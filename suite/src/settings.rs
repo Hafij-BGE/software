@@ -218,6 +218,8 @@ pub struct Settings {
     pub check_updates_on_start: bool,
     /// The suite's keyboard shortcuts (Ctrl+Alt+PageUp/PageDown and the rest; see Settings).
     pub shortcuts: bool,
+    /// Ctrl+N opens a new tab of the active tab's app (instead of the app's own New).
+    pub ctrl_n_new_tab: bool,
 
     // ---- remembered
     pub recent: Vec<String>,
@@ -264,6 +266,7 @@ impl Default for Settings {
             confirm_quit_with_tabs: false,
             check_updates_on_start: false,
             shortcuts: true,
+            ctrl_n_new_tab: true,
             recent: Vec::new(),
             session: Vec::new(),
         }

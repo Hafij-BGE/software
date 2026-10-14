@@ -639,11 +639,30 @@ impl SuiteApp {
 
     /// The suite's keyboard shortcuts, taken out of the input before the app sees them.
     fn take_shortcuts(&mut self, raw: &mut egui::RawInput) {
-        if !self.settings.shortcuts {
-            return;
-        }
         let active = self.active;
         let mut actions = Vec::new();
+        // Ctrl+N: a new tab of the active tab's app (on Home or Settings, what a new tab shows).
+        if self.settings.ctrl_n_new_tab {
+            let new = match self.tab(active).map(|t| t.kind()) {
+                Some(k) if k.is_app() => Action::New { kind: k, replace_page: false },
+                _ => Action::NewDefault,
+            };
+            let mut new = Some(new);
+            raw.events.retain(|e| {
+                let egui::Event::Key { key: egui::Key::N, pressed, modifiers, .. } = e else { return true };
+                if !(modifiers.ctrl && !modifiers.alt && !modifiers.shift) {
+                    return true;
+                }
+                if *pressed && !matches!(e, egui::Event::Key { repeat: true, .. }) {
+                    actions.extend(new.take());
+                }
+                false
+            });
+        }
+        if !self.settings.shortcuts {
+            self.actions.extend(actions);
+            return;
+        }
         raw.events.retain(|e| {
             let egui::Event::Key { key, pressed, modifiers, .. } = e else { return true };
             if !(modifiers.ctrl && modifiers.alt) {

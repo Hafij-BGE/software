@@ -77,11 +77,11 @@ fn side_bar(app: &mut SuiteApp, ui: &mut Ui, page: Page, pal: &Palette) {
         // Settings has its own About and updates card.
         if page == Page::Home {
             ui.scope(|ui| {
-                ui.style_mut().override_text_style = Some(egui::TextStyle::Small);
+                ui.style_mut().override_font_id = Some(egui::FontId::proportional(13.0));
                 app.updater.ui(ui);
             });
         }
-        ui.label(RichText::new(format!("Version {}", update::installed_version())).small().weak());
+        ui.label(RichText::new(format!("Version {}", update::installed_version())).size(12.5).weak());
         ui.add_space(6.0);
         if nav_item(app, ui, pal, SideIcon::Settings, "Settings", page == Page::Settings).clicked() && page != Page::Settings {
             app.actions.push(Action::ShowPage { tab, settings: true });
@@ -677,6 +677,7 @@ fn settings_body(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette) {
 
             ui.label("Keyboard");
             ui.vertical(|ui| {
+                ui.checkbox(&mut s.ctrl_n_new_tab, "Ctrl+N opens a new tab of the same app (a document, presentation or spreadsheet)");
                 ui.checkbox(&mut s.shortcuts, "Suite shortcuts");
                 for (keys, what) in [
                     ("Ctrl+Alt+PageDown / PageUp", "Next / previous tab"),

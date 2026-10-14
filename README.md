@@ -17,6 +17,9 @@ repositories, with room for your own changes.
   - *behaviour*: what a new tab shows, reusing untouched blank tabs, reopening last session's files,
     one window for files opened from the file manager, middle-click to close, keyboard shortcuts.
 - **Drag tabs** to reorder them; right-click for pin, colour, move, close others, show in folder.
+- **Ctrl+N** opens a new tab of the same app as the one you're in: a new document next to a
+  document, a new spreadsheet next to a spreadsheet (Settings › Behaviour › Keyboard turns it off,
+  giving Ctrl+N back to the app).
 - **Tabs in the title bar** (the default): the tab bar is the window's title bar, with minimize,
   maximize and close beside the tabs; drag its empty part to move the window, double-click it to
   maximize, drag the window's edges to resize it. Settings › Window › Title bar switches back to
