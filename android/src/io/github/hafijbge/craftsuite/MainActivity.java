@@ -225,6 +225,11 @@ public class MainActivity extends Activity {
                 return;
             }
             runOnUiThread(() -> {
+                // One Save screen at a time: an app can ask twice for one save (GridCraft keeps a
+                // Ctrl+S made before the workbook has a name, and saves again once it has one).
+                if (pendingSave != null) {
+                    return;
+                }
                 pendingSave = bytes;
                 Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
                 intent.addCategory(Intent.CATEGORY_OPENABLE);

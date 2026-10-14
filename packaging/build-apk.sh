@@ -32,6 +32,7 @@ VERSION_CODE="$(( $(git -C "$ROOT" log -1 --format=%ct 2>/dev/null || date +%s) 
 
 SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
 [ -n "$SDK" ] && [ -d "$SDK" ] || { echo "set ANDROID_HOME to the Android SDK" >&2; exit 1; }
+# The newest build-tools (d8 from 34.0.0 crashes on classes from a recent javac; 35.0.0 is fine).
 BT="$(ls -d "$SDK"/build-tools/* | sort -V | tail -n1)"
 PLATFORM="$(ls -d "$SDK"/platforms/android-* | sort -V | tail -n1)"
 ANDROID_JAR="$PLATFORM/android.jar"
@@ -75,15 +76,15 @@ for app in wordcraft deckcraft gridcraft; do
 done
 
 echo "== compile"
-javac --release 11 -nowarn -cp "$ANDROID_JAR" -d "$STAGE/classes" $(find "$ROOT/android/src" -name '*.java')
+javac --release 8 -nowarn -Xlint:-options -cp "$ANDROID_JAR" -d "$STAGE/classes" $(find "$ROOT/android/src" -name '*.java')
 "$BT/d8" --release --min-api 26 --lib "$ANDROID_JAR" --output "$STAGE/dex" $(find "$STAGE/classes" -name '*.class')
 
 echo "== package"
 "$BT/aapt2" compile --dir "$ROOT/android/res" -o "$STAGE/res.zip"
 "$BT/aapt2" link -o "$STAGE/unsigned.apk" -I "$ANDROID_JAR" \
-  --manifest "$ROOT/android/AndroidManifest.xml" -R "$STAGE/res.zip" -A "$STAGE/assets" \
+  --manifest "$ROOT/android/AndroidManifest.xml" -A "$STAGE/assets" \
   --min-sdk-version 26 --target-sdk-version 34 \
-  --version-code "$VERSION_CODE" --version-name "$VERSION"
+  --version-code "$VERSION_CODE" --version-name "$VERSION" "$STAGE/res.zip"
 (cd "$STAGE/dex" && zip -q "$STAGE/unsigned.apk" classes.dex)
 "$BT/zipalign" -p -f 4 "$STAGE/unsigned.apk" "$STAGE/aligned.apk"
 
