@@ -245,7 +245,8 @@ packaging/build-deb.sh               # build the new package
 1. **Every day at 03:17 UTC**, `.github/workflows/sync-upstream.yml` checks WordCraft, DeckCraft and
    GridCraft for new commits. With nothing new, it stops there.
 2. With new commits, it merges them into `upstream/` (keeping your own changes) on the branch
-   `upstream-sync`, checks that the suite still compiles, and opens a pull request.
+   `upstream-sync`, checks that the suite still compiles, opens a pull request, and builds the
+   Linux, Windows and Android packages on it (the pull request shows whether they build).
 3. **Merging a pull request into `main` builds the `.deb` and publishes a release**
    (`.github/workflows/build-deb.yml`, about 35 minutes). Any push to `main` does, so every change
    to `main` becomes a release.

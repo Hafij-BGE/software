@@ -1,5 +1,5 @@
 # Builds Craft Suite for Linux (.deb), Windows (installer and zip) and Android (.apk). On the
-# default branch (and when run by hand, or by the upstream sync) it also publishes a GitHub release:
+# default branch (pushed to, or run by hand there) it also publishes a GitHub release:
 # the Linux job creates it with the .deb and latest.txt (what craft-suite-update on installed
 # copies looks for), and the Windows and Android jobs add their files to it.
 name: Build .deb
@@ -73,7 +73,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish a release
-        if: github.event_name != 'pull_request' && (github.ref_name == github.event.repository.default_branch || github.event_name == 'workflow_dispatch')
+        if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -126,7 +126,7 @@ jobs:
             dist/*-setup.exe
           if-no-files-found: error
       - name: Add to the release
-        if: github.event_name != 'pull_request' && (github.ref_name == github.event.repository.default_branch || github.event_name == 'workflow_dispatch')
+        if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
         env:
           GH_TOKEN: ${{ github.token }}
         run: packaging/publish-release.sh dist/*.zip dist/*-setup.exe
@@ -172,7 +172,7 @@ jobs:
           path: dist/*.apk
           if-no-files-found: error
       - name: Add to the release
-        if: github.event_name != 'pull_request' && (github.ref_name == github.event.repository.default_branch || github.event_name == 'workflow_dispatch')
+        if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
         env:
           GH_TOKEN: ${{ github.token }}
         run: packaging/publish-release.sh dist/*.apk

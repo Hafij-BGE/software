@@ -112,3 +112,9 @@ jobs:
           else
             gh pr create --base "$BASE" --head upstream-sync --title "Update from upstream apps" --body-file body.md
           fi
+          # A pull request opened with the workflow token starts no workflows: start the build
+          # on the branch, so the pull request shows whether the packages build (it publishes
+          # nothing: only builds of the default branch make releases).
+          if [ "$CONFLICT" = "false" ]; then
+            gh workflow run build-deb.yml --ref upstream-sync
+          fi
