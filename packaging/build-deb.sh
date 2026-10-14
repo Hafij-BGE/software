@@ -16,7 +16,7 @@
 #   --update-url    where craft-suite-update looks for releases (default: this repository's
 #                   GitHub releases, from GITHUB_REPOSITORY or the origin remote)
 #
-# Environment: CRAFT_SUITE_VERSION (default: VERSION file + "+r<commit count>"),
+# Environment: CRAFT_SUITE_VERSION (default: VERSION file + "+r<commit time, UTC>"),
 # CRAFT_SUITE_MAINTAINER, CARGO_TARGET_DIR (default: target/), DIST (default: dist/).
 #
 # Needs: cargo, dpkg-deb, the build libraries listed in README.md.
@@ -43,10 +43,12 @@ export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$ROOT/target}"
 DIST="${DIST:-$ROOT/dist}"
 mkdir -p "$DIST"
 
-# ---- version: VERSION + the commit count, so every build of a newer commit sorts higher -------
+# ---- version: VERSION + the commit's time (UTC, to the minute), so a newer commit sorts higher
+# however it reached the branch (a squash merge leaves few commits, so a commit count could go
+# down). "r" first: older builds were "+r<count>", and dpkg sorts "+r..." above a bare "+2026...".
 BASE="$(tr -d ' \n' <"$ROOT/VERSION")"
-COUNT="$(git -C "$ROOT" rev-list --count HEAD 2>/dev/null || date -u +%Y%m%d%H%M)"
-VERSION="${CRAFT_SUITE_VERSION:-$BASE+r$COUNT}"
+STAMP="$(TZ=UTC git -C "$ROOT" log -1 --format=%cd --date=format-local:%Y%m%d%H%M 2>/dev/null || date -u +%Y%m%d%H%M)"
+VERSION="${CRAFT_SUITE_VERSION:-$BASE+r$STAMP}"
 ARCH="$(dpkg --print-architecture)"
 MAINTAINER="${CRAFT_SUITE_MAINTAINER:-Craft Suite builder <craft-suite@localhost>}"
 
