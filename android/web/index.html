@@ -26,6 +26,8 @@
   a.app span { color: var(--weak); font-size: 14px; }
   .word b { color: #3b5bdb; } .deck b { color: #f26b1d; } .grid b { color: #1f9d55; }
   .note { color: var(--weak); font-size: 13px; margin-top: 28px; }
+  a.update { display: inline-block; margin-top: 18px; padding: 10px 16px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--card); color: inherit; text-decoration: none; font-size: 15px; }
 </style>
 </head>
 <body>
@@ -37,8 +39,10 @@
     <a class="app deck" href="deck/index.html"><img src="icons/deckcraft.png" alt=""><div><b>Presentation</b><span>DeckCraft</span></div></a>
     <a class="app grid" href="grid/index.html"><img src="icons/gridcraft.png" alt=""><div><b>Spreadsheet</b><span>GridCraft</span></div></a>
   </div>
+  <a class="update" href="@RELEASES@">Check for updates</a>
   <p class="note">In each app, File › Open picks a file from your phone; saving asks where to put it.
-    The Back button returns here. Version @VERSION@.</p>
+    The Back button returns here. Version @VERSION@. Check for updates opens the Releases page in
+    your browser: download the newest <code>.apk</code> and open it to update (your files stay).</p>
 </main>
 </body>
 </html>

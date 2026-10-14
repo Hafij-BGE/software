@@ -10,8 +10,8 @@
 # keytool), zip, and the Android SDK ($ANDROID_HOME or $ANDROID_SDK_ROOT) with a platform
 # (android-26 or newer) and build-tools.
 #
-# Signing: ANDROID_KEYSTORE (a .jks file), ANDROID_KEYSTORE_PASSWORD and ANDROID_KEY_ALIAS
-# (default craft-suite). Without them a throwaway key signs the APK: it installs, but Android only
+# Signing: ANDROID_KEYSTORE (a .jks or .p12 file; packaging/make-android-key.sh makes one),
+# ANDROID_KEYSTORE_PASSWORD and ANDROID_KEY_ALIAS (default craft-suite). Without them a throwaway key signs the APK: it installs, but Android only
 # installs an update over it when both are signed with the same key, so keep one key for good.
 set -euo pipefail
 
@@ -69,7 +69,9 @@ open(p, "w", encoding="utf-8").write(s)
 EOF
 done
 cp "$ROOT/android/web/android-shim.js" "$STAGE/assets/web/"
-sed "s/@VERSION@/$VERSION/" "$ROOT/android/web/index.html" > "$STAGE/assets/web/index.html"
+REPO="${GITHUB_REPOSITORY:-$(git -C "$ROOT" remote get-url origin 2>/dev/null | sed -nE 's#.*github\.com[:/]([^/]+/[^/.]+)(\.git)?/?$#\1#p')}"
+RELEASES="https://github.com/${REPO:-Hafij-BGE/software}/releases/latest"
+sed -e "s/@VERSION@/$VERSION/" -e "s#@RELEASES@#$RELEASES#" "$ROOT/android/web/index.html" > "$STAGE/assets/web/index.html"
 cp "$ROOT/assets/hicolor/128x128/apps/craft-suite.png" "$STAGE/assets/web/icons/craft-suite.png"
 for app in wordcraft deckcraft gridcraft; do
   cp "$ROOT/upstream/$app/assets/app-icon/hicolor/128x128/apps/ai.storyteller.$app.png" "$STAGE/assets/web/icons/$app.png"

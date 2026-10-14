@@ -171,28 +171,31 @@ inside the app, so it works offline. Its first page picks Document, Presentation
 - **Not the desktop suite:** one document at a time, no tabs, and the apps' desktop layout (made
   for a mouse and a wide screen: a tablet, or a phone held sideways, works best). Printing, the
   spelling dictionary and other desktop-only parts depend on what each web version supports.
-- **Updates:** install the newer `.apk` over the old one. Android only allows that when both are
-  signed with the same key, so the repository needs a signing key of its own (below); until then
-  each build has a new key, and an update needs uninstalling the old app first.
+- **Updates:** **Check for updates** on the app's first page opens the newest release in your
+  browser; download its `.apk` and open it, and it installs over the old one, keeping your files.
+  Android only allows that when both are signed with the same key, so the repository needs a
+  signing key of its own (below); until then each build has a new key, and an update needs
+  uninstalling the old app first.
 
 ### The Android signing key (once)
 
-On any computer with Java (`sudo apt install default-jdk-headless` on Ubuntu):
+On your Linux computer, in this repository's folder (or download just
+`packaging/make-android-key.sh`):
 
 ```sh
- keytool -genkeypair -keystore craft-suite.jks -alias craft-suite -keyalg RSA -keysize 3072 \
-   -validity 36500 -dname "CN=Craft Suite"
-base64 -w0 craft-suite.jks > craft-suite.jks.txt
+sh packaging/make-android-key.sh
 ```
 
-keytool asks for a password: choose one and keep it. Then, on GitHub, Settings › Secrets and
-variables › Actions › **New repository secret**, twice:
+It makes the key in `~/craft-suite-android-key` (only `openssl` needed) and prints what to do
+next: on GitHub, Settings › Secrets and variables › Actions › **New repository secret**, twice:
 
-- `ANDROID_KEYSTORE_BASE64`: the contents of `craft-suite.jks.txt`
-- `ANDROID_KEYSTORE_PASSWORD`: the password
+- `ANDROID_KEYSTORE_BASE64`: the contents of `~/craft-suite-android-key/craft-suite.p12.b64`
+- `ANDROID_KEYSTORE_PASSWORD`: the line in `~/craft-suite-android-key/password.txt`
 
-Keep `craft-suite.jks` and its password somewhere safe (not in the repository): every future
-update must be signed with it. Delete `craft-suite.jks.txt` afterwards.
+From the next build on, every APK is signed with that key, so each one installs over the last as
+an update. Keep `craft-suite.p12` and `password.txt` somewhere safe and private (not in the
+repository): with a different key, installed apps can't be updated. An APK built before the key
+was added needs uninstalling once.
 
 ## Uninstall
 
