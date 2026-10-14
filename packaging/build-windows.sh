@@ -44,6 +44,7 @@ TARGET_ARGS=()
 if [ -n "$TARGET" ]; then TARGET_ARGS=(--target "$TARGET"); fi
 
 echo "==> Craft Suite $VERSION (Windows)"
+craft_libs_fallback
 
 if [ "$SKIP_BUILD" = 0 ]; then
   for app in "${APPS[@]}"; do

@@ -43,7 +43,9 @@ suite/                the Craft Suite app: the tabbed window that hosts all thre
 packaging/            build-deb.sh, build-windows.sh, build-apk.sh, desktop entries,
                       craft-suite-update, publish-release.sh
 android/              the Android app: a WebView around the three apps' web versions
-scripts/              update-upstream.sh, merge-locks.py
+scripts/              update-upstream.sh, merge-locks.py, backup-deps.sh
+backup/               copies of ArtCraft's craft-libs and craft-fonts, for when github.com/storytold
+                      can't be reached
 .github/workflows/    build-deb.yml (build + release), sync-upstream.yml (daily upstream merge)
 ```
 
@@ -252,19 +254,37 @@ packaging/build-deb.sh               # build the new package
 
 1. **Every day at 03:17 UTC**, `.github/workflows/sync-upstream.yml` checks WordCraft, DeckCraft and
    GridCraft for new commits. With nothing new, it stops there.
-2. With new commits, it merges them into `upstream/` (keeping your own changes) on the branch
-   `upstream-sync`, checks that the suite still compiles, opens a pull request, and builds the
-   Linux, Windows and Android packages on it (the pull request shows whether they build).
-3. **Merging a pull request into `main` builds the `.deb` and publishes a release**
-   (`.github/workflows/build-deb.yml`, about 35 minutes). Any push to `main` does, so every change
-   to `main` becomes a release.
-4. Installed copies find it with **Check for updates** (above).
+2. With new commits, it merges them into `upstream/` (keeping your own changes), refreshes
+   `backup/` (below) and checks that the suite still compiles.
+3. **A clean update that compiles is merged into `main` and released automatically**: the Linux
+   `.deb`, the Windows installer and the Android app (`.github/workflows/build-deb.yml`, about 40
+   minutes). Nothing to click.
+4. An update that conflicts with your own changes, or doesn't compile, comes as a pull request
+   from the branch `upstream-sync` instead (with the packages built on it), so nothing broken is
+   released; merging it releases it.
+5. Installed copies find the release with **Check for updates** (above).
 
-To skip the pull request in step 2, set the repository variable **`AUTO_UPDATE`** to `true`
-(Settings › Secrets and variables › Actions › Variables › New repository variable): an update that
-merges cleanly and compiles is then pushed to `main` and released with no click. An update that
-conflicts with your changes, or doesn't compile, always comes as a pull request instead, so nothing
-broken is released.
+Any push to `main` (a merged pull request too) builds and publishes a release. To review every
+ArtCraft update before it's released, set the repository variable **`AUTO_UPDATE`** to `false`
+(Settings › Secrets and variables › Actions › Variables › New repository variable): each update
+then comes as a pull request.
+
+### If ArtCraft's repositories disappear
+
+Everything needed to keep building is in this repository:
+
+- `upstream/`: the full source of WordCraft, DeckCraft and GridCraft (git subtrees, with your
+  changes).
+- `backup/craft-libs.bundle`: the craft-libs library the apps build with (one git bundle file,
+  with its full history and every commit the `Cargo.lock` files pin).
+- `backup/craft-fonts/<commit>/`: the fonts each app's release embeds (Japanese, Chinese, Arabic
+  and the rest).
+
+Builds use github.com/storytold as usual; when it can't be reached, `packaging/lib.sh` takes these
+copies instead (the same commits, so nothing else changes), and says so in the build log. The
+daily sync then just warns that there's nothing to fetch. `scripts/backup-deps.sh` refreshes the
+copies, and the sync runs it after each update, so they follow the versions the apps use. The
+other libraries come from crates.io, which keeps every published version.
 
 Releases are named after the time of the commit they're built from:
 `Craft Suite 0.1.0+r202610141015` is 2026-10-14 10:15 UTC, so a newer build always has a higher

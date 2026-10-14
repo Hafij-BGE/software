@@ -57,6 +57,7 @@ if [ -z "$UPDATE_URL" ]; then
 fi
 
 echo "==> Craft Suite $VERSION ($ARCH)"
+craft_libs_fallback
 
 if [ "$SKIP_BUILD" = 0 ]; then
   for app in "${APPS[@]}"; do

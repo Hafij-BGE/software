@@ -21,15 +21,45 @@ upstream_version() {
 fonts_ref() {
   sed -n 's/^ *craft-fonts-ref: *\([0-9a-f]\{7,40\}\).*/\1/p' "$ROOT/upstream/$1/.github/workflows/release.yml" 2>/dev/null | head -n1
 }
+# The craft-fonts at `ref`, from github.com/storytold/craft-fonts, or from backup/craft-fonts when
+# that can't be reached (scripts/backup-deps.sh keeps it).
 fonts_dir() {
-  local ref="$1" dir="$ROOT/build/craft-fonts-$1"
+  local ref="$1" dir="$ROOT/build/craft-fonts-$1" backup="$ROOT/backup/craft-fonts/$1"
   if [ ! -f "$dir/fonts/manifest.txt" ]; then
     rm -rf "$dir"
     git init -q "$dir"
-    git -C "$dir" fetch -q --depth 1 https://github.com/storytold/craft-fonts "$ref"
-    git -C "$dir" -c advice.detachedHead=false checkout -q FETCH_HEAD
+    if git -C "$dir" fetch -q --depth 1 https://github.com/storytold/craft-fonts "$ref" 2>/dev/null; then
+      git -C "$dir" -c advice.detachedHead=false checkout -q FETCH_HEAD
+    elif [ -f "$backup/fonts/manifest.txt" ]; then
+      echo "github.com/storytold/craft-fonts can't be reached: using backup/craft-fonts/$ref" >&2
+      rm -rf "$dir"
+      mkdir -p "$dir"
+      cp -R "$backup/fonts" "$dir/"
+    else
+      echo "craft-fonts $ref: github.com/storytold/craft-fonts can't be reached, and it isn't in backup/" >&2
+      return 1
+    fi
   fi
   echo "$dir"
+}
+
+# When github.com/storytold/craft-libs can't be reached, Cargo fetches it from
+# backup/craft-libs.bundle instead: the same commits under the same URL, so the Cargo.lock files
+# still match. Call before building.
+craft_libs_fallback() {
+  local url=https://github.com/storytold/craft-libs bundle="$ROOT/backup/craft-libs.bundle"
+  if git ls-remote -q "$url" HEAD >/dev/null 2>&1; then
+    return 0
+  fi
+  if [ ! -f "$bundle" ]; then
+    echo "warning: $url can't be reached, and backup/craft-libs.bundle is missing" >&2
+    return 0
+  fi
+  # Git for Windows wants C:/... rather than Git Bash's /c/... paths.
+  if command -v cygpath >/dev/null 2>&1; then bundle="$(cygpath -m "$bundle")"; fi
+  echo "$url can't be reached: using backup/craft-libs.bundle" >&2
+  export CARGO_NET_GIT_FETCH_WITH_CLI=true
+  export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="url.$bundle.insteadOf" GIT_CONFIG_VALUE_0="$url"
 }
 
 # What this build is made from, for the About section (upstream.txt).

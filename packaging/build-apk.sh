@@ -41,6 +41,7 @@ echo "platform:    $PLATFORM"
 
 WEB="$ROOT/build/web"
 if [ "$SKIP_WEB" = 0 ]; then
+  craft_libs_fallback
   for pair in word:wordcraft deck:deckcraft grid:gridcraft; do
     short="${pair%%:*}" app="${pair##*:}"
     echo "== $app web"
