@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=GridCraft
+GenericName=Spreadsheet
+Comment=Work with spreadsheets; open and save Excel files (a new tab in Craft Suite)
+Exec=craft-suite --new grid
+TryExec=craft-suite
+Icon=ai.storyteller.gridcraft
+Terminal=false
+StartupNotify=true
+StartupWMClass=craft-suite
+Categories=Office;Spreadsheet;

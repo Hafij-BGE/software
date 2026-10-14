@@ -1,0 +1,89 @@
+#!/bin/sh
+# craft-suite-update: check for and install a newer Craft Suite .deb.
+#
+#   craft-suite-update            check, and install when there's a newer release (asks first)
+#   craft-suite-update --check    print "up-to-date <version>" (exit 0) or
+#                                 "available <installed> <latest>" (exit 10)
+#   craft-suite-update --install [--yes]
+#                                 download and install the newest release
+#
+# Where releases come from: URL in /etc/craft-suite/update.conf, overridden by
+# ~/.config/craft-suite/update.conf or the CRAFT_SUITE_UPDATE_URL environment variable. The URL
+# is a folder (normally a GitHub "releases/latest/download" link) holding latest.txt, whose lines
+# are "<arch> <version> <file> <sha256>", and the .deb files it names.
+set -eu
+
+# The URL="..." line of a config file (read, not run).
+conf_url() {
+  [ -r "$1" ] && sed -n 's/^[[:space:]]*URL=["'\'']\{0,1\}\([^"'\'']*\)["'\'']\{0,1\}[[:space:]]*$/\1/p' "$1" | tail -n1
+}
+URL="$(conf_url /etc/craft-suite/update.conf || true)"
+user_url="$(conf_url "${XDG_CONFIG_HOME:-$HOME/.config}/craft-suite/update.conf" || true)"
+URL="${CRAFT_SUITE_UPDATE_URL:-${user_url:-$URL}}"
+
+die() { echo "craft-suite-update: $*" >&2; exit 1; }
+
+[ -n "$URL" ] || die "no update URL configured (/etc/craft-suite/update.conf)"
+command -v curl >/dev/null 2>&1 || die "curl is needed to check for updates (sudo apt install curl)"
+
+mode=interactive
+yes=0
+for a in "$@"; do
+  case "$a" in
+    --check) mode=check ;;
+    --install) mode=install ;;
+    --yes | -y) yes=1 ;;
+    -h | --help) sed -n '2,14p' "$0"; exit 0 ;;
+    *) die "unknown argument: $a" ;;
+  esac
+done
+
+arch="$(dpkg --print-architecture)"
+current="$(dpkg-query -W -f='${Version}' craft-suite 2>/dev/null || echo 0)"
+line="$(curl -fsSL --retry 2 "$URL/latest.txt" 2>/dev/null | awk -v a="$arch" '$1 == a { print; exit }')" ||
+  die "could not read $URL/latest.txt"
+[ -n "$line" ] || die "could not read $URL/latest.txt, or it lists no $arch build"
+latest="$(echo "$line" | awk '{ print $2 }')"
+file="$(echo "$line" | awk '{ print $3 }')"
+sum="$(echo "$line" | awk '{ print $4 }')"
+
+newer=0
+if dpkg --compare-versions "$latest" gt "$current"; then newer=1; fi
+
+if [ "$mode" = check ]; then
+  if [ "$newer" = 1 ]; then echo "available $current $latest"; exit 10; fi
+  echo "up-to-date $current"
+  exit 0
+fi
+
+if [ "$newer" = 0 ]; then
+  echo "up-to-date $current"
+  exit 0
+fi
+
+if [ "$mode" = interactive ] && [ "$yes" = 0 ]; then
+  printf 'Craft Suite %s is installed; %s is available. Install it? [Y/n] ' "$current" "$latest"
+  read -r answer || answer=n
+  case "$answer" in [nN]*) exit 0 ;; esac
+fi
+
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+deb="$tmp/$file"
+curl -fsSL --retry 2 -o "$deb" "$URL/$file" || die "download of $URL/$file failed"
+if [ -n "$sum" ]; then
+  echo "$sum  $deb" | sha256sum -c --status - || die "$file does not match its checksum; not installing it"
+fi
+chmod 0644 "$deb"
+chmod 0755 "$tmp"
+
+if [ "$(id -u)" = 0 ]; then
+  apt-get install -y "$deb"
+elif [ -t 0 ]; then
+  sudo apt-get install -y "$deb"
+elif command -v pkexec >/dev/null 2>&1; then
+  pkexec apt-get install -y "$deb"
+else
+  die "installing needs root: run 'sudo craft-suite-update' in a terminal"
+fi
+echo "installed $latest"

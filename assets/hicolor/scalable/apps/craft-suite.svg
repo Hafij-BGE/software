@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Craft Suite icon (original; MIT OR Apache-2.0): three tiles in the WordCraft blue,
+       DeckCraft orange and GridCraft green, fanned like a hand of cards. -->
+  <g transform="translate(36 40) scale(0.86)">
+  <rect x="40" y="96" width="260" height="320" rx="44" fill="#3B5BDB" stroke="#0b0b0c" stroke-width="14" transform="rotate(-12 170 256)"/>
+  <rect x="212" y="96" width="260" height="320" rx="44" fill="#1f9d55" stroke="#0b0b0c" stroke-width="14" transform="rotate(12 342 256)"/>
+  <rect x="126" y="70" width="260" height="340" rx="44" fill="#f26b1d" stroke="#0b0b0c" stroke-width="14"/>
+  <rect x="166" y="120" width="180" height="128" rx="12" fill="#efe9dc" stroke="#0b0b0c" stroke-width="12"/>
+  <g stroke="#0b0b0c" stroke-width="14" stroke-linecap="round">
+    <line x1="170" y1="296" x2="342" y2="296"/>
+    <line x1="170" y1="336" x2="342" y2="336"/>
+    <line x1="170" y1="376" x2="290" y2="376"/>
+  </g>
+</g>
+</svg>

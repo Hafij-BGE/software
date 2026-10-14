@@ -1,0 +1,114 @@
+# Once a day (and when run by hand): merge new commits from WordCraft, DeckCraft and GridCraft
+# into upstream/ with scripts/update-upstream.sh, keeping the changes made in this repository,
+# and check that the suite still compiles against them.
+#
+# What happens next depends on the repository variable AUTO_UPDATE (Settings › Secrets and
+# variables › Actions › Variables):
+#   unset/false: the update goes to the branch "upstream-sync" and a pull request is opened for
+#                you to merge (merging builds and publishes the new .deb). Needs Settings › Actions
+#                › General › "Allow GitHub Actions to create and approve pull requests".
+#   true:        a clean update that compiles is pushed straight to the default branch and the
+#                .deb is built and released; conflicts or build errors still open a pull request.
+name: Sync upstream
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Anything new?
+        id: check
+        run: |
+          set +e
+          scripts/update-upstream.sh --check
+          code=$?
+          set -e
+          if [ "$code" = 10 ]; then echo "new=true" >> "$GITHUB_OUTPUT"; elif [ "$code" != 0 ]; then exit "$code"; fi
+      - name: Merge the upstream changes
+        if: steps.check.outputs.new == 'true'
+        id: merge
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B upstream-sync
+          if scripts/update-upstream.sh; then
+            echo "conflict=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "conflict=true" >> "$GITHUB_OUTPUT"
+            # Keep the conflict markers in a commit so the pull request shows what to resolve.
+            git add -A
+            git -c core.editor=true commit --no-verify -m "Upstream update with merge conflicts to resolve" || true
+          fi
+      - name: Build libraries
+        if: steps.check.outputs.new == 'true' && steps.merge.outputs.conflict == 'false'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pkg-config libasound2-dev libxkbcommon-dev \
+            libwayland-dev libx11-dev libxcursor-dev libxrandr-dev libxi-dev libgl1-mesa-dev \
+            libfontconfig1-dev libfreetype-dev
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        if: steps.check.outputs.new == 'true' && steps.merge.outputs.conflict == 'false'
+        with:
+          workspaces: suite
+          shared-key: craft-suite-check
+      - name: Does the suite still compile?
+        if: steps.check.outputs.new == 'true' && steps.merge.outputs.conflict == 'false'
+        id: compile
+        run: |
+          if (cd suite && cargo check --release) > check.log 2>&1; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+          tail -n 60 check.log > compile.log
+      - name: Publish
+        if: steps.check.outputs.new == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ github.ref_name }}
+          AUTO: ${{ vars.AUTO_UPDATE }}
+          CONFLICT: ${{ steps.merge.outputs.conflict }}
+          COMPILES: ${{ steps.compile.outputs.ok }}
+        run: |
+          if [ "$AUTO" = "true" ] && [ "$CONFLICT" = "false" ] && [ "$COMPILES" = "true" ]; then
+            git push origin "HEAD:$BASE"
+            # Pushes made with the workflow token don't start other workflows; a dispatch does.
+            gh workflow run build-deb.yml --ref "$BASE"
+            echo "Pushed the update to $BASE and started the .deb build."
+            exit 0
+          fi
+          git push --force origin upstream-sync
+          {
+            echo "New commits from the upstream apps, merged with the changes in this repository by scripts/update-upstream.sh."
+            echo
+            if [ "$CONFLICT" = "true" ]; then
+              echo "**Merge conflicts:** upstream changed lines that were also changed here. The conflicted files are committed with conflict markers; check out this branch, resolve them, and push."
+            elif [ "$COMPILES" = "true" ]; then
+              echo "The suite compiles against the update. Merging builds and publishes the new .deb."
+            else
+              echo "**The suite does not compile against this update** (an upstream API it uses changed; see suite/src/hosts.rs). Last lines of \`cargo check\`:"
+              echo; echo '```'; cat compile.log; echo '```'
+            fi
+          } > body.md
+          if gh pr view upstream-sync --json state -q .state 2>/dev/null | grep -q OPEN; then
+            gh pr edit upstream-sync --body-file body.md
+          else
+            gh pr create --base "$BASE" --head upstream-sync --title "Update from upstream apps" --body-file body.md
+          fi

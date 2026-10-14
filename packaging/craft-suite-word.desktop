@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=WordCraft
+GenericName=Word Processor
+Comment=Write documents; open and save Word files (a new tab in Craft Suite)
+Exec=craft-suite --new word
+TryExec=craft-suite
+Icon=ai.storyteller.wordcraft
+Terminal=false
+StartupNotify=true
+StartupWMClass=craft-suite
+Categories=Office;WordProcessor;
