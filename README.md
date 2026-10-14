@@ -50,11 +50,12 @@ terminal:
 ```sh
 cd ~/Downloads
 TOKEN="$(echo 'U2FsdGVkX186wTCYtCm9KNC5hOcBgdKJDXHYnDt10FC4F/LhnLDF2Ai0dAx+nNUbK2eEBAZ2YWnqLyorDvm9LPyWX7NvU7sjMPMxPBbok3O911prLnelXKVZep5NmKEWZgEPpc242VbT83tFSWHkZA==' | openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -md sha256 -a -A)"
-mkdir -p ~/.config/craft-suite && (umask 077; printf 'TOKEN="%s"\n' "$TOKEN" >> ~/.config/craft-suite/update.conf)
+[ -n "$TOKEN" ] && mkdir -p ~/.config/craft-suite && (umask 077; printf 'TOKEN="%s"\n' "$TOKEN" >> ~/.config/craft-suite/update.conf)
 ```
 
 The second line asks for the password (it doesn't show while you type) and unlocks the token.
-The third saves it for this computer's updates, so **Check for updates** works from then on.
+The third saves it for this computer's updates, so **Check for updates** works from then on
+(with a wrong password, openssl prints `bad decrypt` and nothing is saved: run both lines again).
 Then paste these lines, as they are:
 
 ```sh
