@@ -44,9 +44,8 @@ newer, and similar distributions.
 
 ### From a terminal (with a token)
 
-You need a read-only token for this repository (how to make one:
-[Updates from a private repository](#updates-from-a-private-repository), step 1). Keep it in a
-password manager, not in this repository. Then paste these lines into a terminal:
+The lines below hold the update token, encrypted; you need its password. Paste them into a
+terminal:
 
 ```sh
 cd ~/Downloads
