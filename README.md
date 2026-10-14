@@ -16,6 +16,13 @@ kept up to date from the upstream repositories, with room for your own changes.
   - *behaviour*: what a new tab shows, reusing untouched blank tabs, reopening last session's files,
     one window for files opened from the file manager, middle-click to close, keyboard shortcuts.
 - **Drag tabs** to reorder them; right-click for pin, colour, move, close others, show in folder.
+- **Tabs in the title bar** (the default): the tab bar is the window's title bar, with minimize,
+  maximize and close beside the tabs; drag its empty part to move the window, double-click it to
+  maximize, drag the window's edges to resize it. Settings › Window › Title bar switches back to
+  the desktop's own title bar.
+- **Home page**: blank document, presentation and spreadsheet tiles, Open, and your recent files
+  with search, a filter by app and when each file last changed (right-click one to show it in its
+  folder or remove it from the list).
 - **Updates**: a daily GitHub workflow merges new upstream commits; installed copies update with
   `craft-suite-update` or **Check for updates** on the Home page.
 

@@ -101,6 +101,8 @@ fn main() -> std::process::ExitCode {
         .with_inner_size([1440.0, 920.0])
         .with_min_inner_size([760.0, 480.0])
         .with_drag_and_drop(true)
+        // Tabs in the title bar: the suite draws the window buttons (see `tabbar`).
+        .with_decorations(settings.title_bar == settings::TitleBar::System)
         .with_icon(app::icon_data());
     let mut options = eframe::NativeOptions { viewport, ..Default::default() };
     // As WordCraft and DeckCraft do: winit has no file drag-and-drop on Wayland, so run through

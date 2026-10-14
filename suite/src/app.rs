@@ -7,7 +7,7 @@ use std::sync::mpsc::Receiver;
 use crate::hosts::{CloseCheck, Doc};
 use crate::kind::Kind;
 use crate::look::Look;
-use crate::settings::{Mixing, NewTabOpens, NewTabPlacement, Rgb, SavedTab, Settings, SuiteTheme};
+use crate::settings::{Mixing, NewTabOpens, NewTabPlacement, Rgb, SavedTab, Settings, SuiteTheme, TitleBar};
 use crate::{Request, hosts, instance, update};
 
 pub enum Content {
@@ -86,6 +86,8 @@ pub enum Action {
     /// Show the Home page (a new one when none is open).
     Home,
     Settings,
+    /// Turn a Home or Settings tab into the other page (the pages' side bar).
+    ShowPage { tab: u64, settings: bool },
 }
 
 enum Prompt {
@@ -125,10 +127,57 @@ pub struct SuiteApp {
     allow_close: bool,
     close_requested: bool,
     pub updater: update::Updater,
-    title_sent: String,
+    pub title_sent: String,
     pub tabbar: crate::tabbar::TabBarState,
     /// A short message at the bottom of the window, and when it appeared.
     toast: Option<(String, f64)>,
+    /// Where the pointer last was (window edges resize it when the suite draws the title bar).
+    pointer: Option<egui::Pos2>,
+    /// A press on a window edge: resize from there (sent from `logic`).
+    pending_resize: Option<egui::ResizeDirection>,
+    /// The window decorations last asked for.
+    decorations_sent: Option<bool>,
+}
+
+/// How close to the window's edge a press resizes the window (tabs in the title bar).
+const EDGE: f32 = 6.0;
+const CORNER: f32 = 14.0;
+
+/// The window edge or corner at `pos`, if any.
+fn edge_at(screen: egui::Rect, pos: egui::Pos2) -> Option<egui::ResizeDirection> {
+    use egui::ResizeDirection as D;
+    if !screen.expand(1.0).contains(pos) {
+        return None;
+    }
+    let (l, r) = (pos.x - screen.left() < EDGE, screen.right() - pos.x < EDGE);
+    let (t, b) = (pos.y - screen.top() < EDGE, screen.bottom() - pos.y < EDGE);
+    let (l2, r2) = (pos.x - screen.left() < CORNER, screen.right() - pos.x < CORNER);
+    let (t2, b2) = (pos.y - screen.top() < CORNER, screen.bottom() - pos.y < CORNER);
+    Some(match () {
+        _ if (t && l2) || (l && t2) => D::NorthWest,
+        _ if (t && r2) || (r && t2) => D::NorthEast,
+        _ if (b && l2) || (l && b2) => D::SouthWest,
+        _ if (b && r2) || (r && b2) => D::SouthEast,
+        _ if t => D::North,
+        _ if b => D::South,
+        _ if l => D::West,
+        _ if r => D::East,
+        _ => return None,
+    })
+}
+
+fn resize_cursor(dir: egui::ResizeDirection) -> egui::CursorIcon {
+    use egui::{CursorIcon as C, ResizeDirection as D};
+    match dir {
+        D::North => C::ResizeNorth,
+        D::South => C::ResizeSouth,
+        D::East => C::ResizeEast,
+        D::West => C::ResizeWest,
+        D::NorthEast => C::ResizeNorthEast,
+        D::NorthWest => C::ResizeNorthWest,
+        D::SouthEast => C::ResizeSouthEast,
+        D::SouthWest => C::ResizeSouthWest,
+    }
 }
 
 pub fn decode_png(bytes: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
@@ -183,6 +232,9 @@ impl SuiteApp {
             title_sent: String::new(),
             tabbar: Default::default(),
             toast: None,
+            pointer: None,
+            pending_resize: None,
+            decorations_sent: None,
         };
         if app.settings.restore_tabs {
             for saved in app.settings.session.clone() {
@@ -350,6 +402,21 @@ impl SuiteApp {
                 match self.tabs.iter().find(|t| matches!(t.content, Content::Settings)) {
                     Some(t) => self.active = t.id,
                     None => self.active = self.push_tab(Content::Settings, true),
+                }
+            }
+            Action::ShowPage { tab, settings } => {
+                let other = self.tabs.iter().find(|t| {
+                    t.id != tab && if settings { matches!(t.content, Content::Settings) } else { matches!(t.content, Content::Home) }
+                });
+                match other {
+                    Some(t) => self.active = t.id,
+                    None => {
+                        if let Some(t) = self.tab_mut(tab)
+                            && t.is_page()
+                        {
+                            t.content = if settings { Content::Settings } else { Content::Home };
+                        }
+                    }
                 }
             }
             Action::New { kind, replace_page } => {
@@ -739,6 +806,64 @@ impl SuiteApp {
     }
 }
 
+impl SuiteApp {
+    /// The suite draws the title bar (Settings › Window).
+    pub fn integrated(&self) -> bool {
+        self.settings.title_bar == TitleBar::Integrated
+    }
+
+    /// Whether the window fills the screen (no edges to resize, no border).
+    pub fn maximized(ctx: &egui::Context) -> bool {
+        ctx.input(|i| i.viewport().maximized.unwrap_or(false) || i.viewport().fullscreen.unwrap_or(false))
+    }
+
+    /// Without the desktop's title bar the window has no frame to resize it by: a press within
+    /// a few points of the window's edge resizes it instead of reaching the tab or app under it.
+    fn window_edges(&mut self, raw: &mut egui::RawInput) {
+        let info = raw.viewports.get(&egui::ViewportId::ROOT);
+        let full = info.is_some_and(|i| i.maximized.unwrap_or(false) || i.fullscreen.unwrap_or(false));
+        let Some(screen) = raw.screen_rect else { return };
+        let mut resize = None;
+        raw.events.retain(|e| match e {
+            egui::Event::PointerMoved(p) => {
+                self.pointer = Some(*p);
+                true
+            }
+            egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed: true, .. } if !full => {
+                match edge_at(screen, *pos) {
+                    Some(dir) => {
+                        resize = Some(dir);
+                        false
+                    }
+                    None => true,
+                }
+            }
+            _ => true,
+        });
+        if resize.is_some() {
+            self.pending_resize = resize;
+        }
+    }
+
+    /// Resize cursors along the window's edges, and a thin border around it.
+    fn window_frame(&self, ctx: &egui::Context) {
+        if Self::maximized(ctx) {
+            return;
+        }
+        let screen = ctx.content_rect();
+        if let Some(pos) = ctx.input(|i| i.pointer.hover_pos()).or(self.pointer)
+            && let Some(dir) = edge_at(screen, pos)
+            && ctx.input(|i| i.pointer.hover_pos().is_some())
+        {
+            ctx.set_cursor_icon(resize_cursor(dir));
+        }
+        let dark = crate::tabbar::is_dark(self, ctx);
+        let color = if dark { egui::Color32::from_gray(70) } else { egui::Color32::from_gray(170) };
+        let painter = ctx.layer_painter(egui::LayerId::new(egui::Order::Foreground, egui::Id::new("craft_suite_window_border")));
+        painter.rect_stroke(screen.shrink(0.5), 0.0, egui::Stroke::new(1.0, color), egui::StrokeKind::Middle);
+    }
+}
+
 impl eframe::App for SuiteApp {
     fn raw_input_hook(&mut self, _ctx: &egui::Context, raw: &mut egui::RawInput) {
         // The window's close button: the suite decides (unsaved tabs), not the app on show.
@@ -748,6 +873,9 @@ impl eframe::App for SuiteApp {
         {
             info.events.retain(|e| !matches!(e, egui::ViewportEvent::Close));
             self.close_requested = true;
+        }
+        if self.integrated() {
+            self.window_edges(raw);
         }
         // Documents dropped on the window open as tabs; anything else (a picture, a font) goes
         // to the app on show, which inserts it.
@@ -775,6 +903,16 @@ impl eframe::App for SuiteApp {
             self.home_look = Some(home);
         }
         self.drain_incoming(ctx);
+        let decorations = !self.integrated();
+        if self.decorations_sent != Some(decorations) {
+            if self.decorations_sent.is_some() {
+                ctx.send_viewport_cmd(egui::ViewportCommand::Decorations(decorations));
+            }
+            self.decorations_sent = Some(decorations);
+        }
+        if let Some(dir) = self.pending_resize.take() {
+            ctx.send_viewport_cmd(egui::ViewportCommand::BeginResize(dir));
+        }
         self.apply_actions(ctx);
         if self.tabs.is_empty() {
             let kind = match self.settings.new_tab_opens {
@@ -877,6 +1015,9 @@ impl eframe::App for SuiteApp {
         }
         self.show_prompt(ui.ctx());
         self.show_toast(ui);
+        if self.integrated() {
+            self.window_frame(ui.ctx());
+        }
         self.update_title(ui.ctx());
         self.save_settings();
     }
