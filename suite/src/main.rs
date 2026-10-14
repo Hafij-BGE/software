@@ -6,6 +6,9 @@
 //! default), a second `craft-suite` hands its files to the window already open and exits.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
+// No console window behind the suite on Windows (release builds).
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
+
 mod app;
 mod hosts;
 mod instance;
@@ -13,6 +16,7 @@ mod kind;
 mod look;
 mod pages;
 mod settings;
+mod system;
 mod tabbar;
 mod update;
 
@@ -51,11 +55,18 @@ pub struct Request {
     pub new: Vec<Kind>,
 }
 
+/// Who made the suite, and where its apps come from (the About card, --help, the packages).
+pub const CREATOR: &str = "Md. Hafijur Rahman";
+pub const SOURCE: &str = "ArtCraft";
+
 const USAGE: &str = "usage: craft-suite [--new word|deck|grid|home] [--new-window] [FILE...]
 
 Opens WordCraft documents, DeckCraft presentations and GridCraft spreadsheets as tabs of one
 window. Each FILE opens in the app for its type; --new opens a blank one (repeatable).
---new-window starts a separate window even when one is already open.";
+--new-window starts a separate window even when one is already open.
+
+Craft Suite, created by Md. Hafijur Rahman. Source: WordCraft, DeckCraft and GridCraft by
+ArtCraft (https://github.com/storytold).";
 
 fn main() -> std::process::ExitCode {
     log::set_logger(&LOGGER).map(|()| log::set_max_level(log_level())).ok();
@@ -104,6 +115,7 @@ fn main() -> std::process::ExitCode {
         // Tabs in the title bar: the suite draws the window buttons (see `tabbar`).
         .with_decorations(settings.title_bar == settings::TitleBar::System)
         .with_icon(app::icon_data());
+    #[cfg_attr(not(all(unix, not(target_os = "macos"))), allow(unused_mut))]
     let mut options = eframe::NativeOptions { viewport, ..Default::default() };
     // As WordCraft and DeckCraft do: winit has no file drag-and-drop on Wayland, so run through
     // XWayland when it's there. CRAFT_SUITE_WAYLAND=1 keeps the native Wayland backend.

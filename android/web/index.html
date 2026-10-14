@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Craft Suite</title>
+<style>
+  :root { --bg: #f6f7f9; --card: #fff; --text: #1d2024; --weak: #6b7079; --border: #e1e4ea; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1e1f22; --card: #2a2b2f; --text: #ececf0; --weak: #a2a6ae; --border: #3a3c41; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 28px 16px 40px; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  header img { width: 44px; height: 44px; }
+  h1 { font-size: 26px; margin: 0; font-weight: 600; }
+  p.lead { color: var(--weak); margin: 0 0 24px; }
+  .apps { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  a.app { display: flex; align-items: center; gap: 14px; padding: 18px; border-radius: 14px;
+    background: var(--card); border: 1px solid var(--border); color: inherit; text-decoration: none; }
+  a.app:active { transform: scale(0.98); }
+  a.app img { width: 52px; height: 52px; }
+  a.app b { display: block; font-size: 18px; font-weight: 600; }
+  a.app span { color: var(--weak); font-size: 14px; }
+  .word b { color: #3b5bdb; } .deck b { color: #f26b1d; } .grid b { color: #1f9d55; }
+  .note { color: var(--weak); font-size: 13px; margin-top: 28px; }
+  a.update { display: inline-block; margin-top: 18px; padding: 10px 16px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--card); color: inherit; text-decoration: none; font-size: 15px; }
+</style>
+</head>
+<body>
+<main>
+  <header><img src="icons/craft-suite.png" alt=""><h1>Craft Suite</h1></header>
+  <p class="lead">Documents, presentations and spreadsheets.</p>
+  <div class="apps">
+    <a class="app word" href="word/index.html"><img src="icons/wordcraft.png" alt=""><div><b>Document</b><span>WordCraft</span></div></a>
+    <a class="app deck" href="deck/index.html"><img src="icons/deckcraft.png" alt=""><div><b>Presentation</b><span>DeckCraft</span></div></a>
+    <a class="app grid" href="grid/index.html"><img src="icons/gridcraft.png" alt=""><div><b>Spreadsheet</b><span>GridCraft</span></div></a>
+  </div>
+  <a class="update" href="@RELEASES@">Check for updates</a>
+  <p class="note">In each app, File › Open picks a file from your phone; saving asks where to put it.
+    The Back button returns here. Version @VERSION@. Check for updates opens the Releases page in
+    your browser: download the newest <code>.apk</code> and open it to update (your files stay).</p>
+  <p class="note">Created by Md. Hafijur Rahman. Source: WordCraft, DeckCraft and GridCraft by ArtCraft.</p>
+</main>
+</body>
+</html>

@@ -1,6 +1,9 @@
 //! Suite updates, through `craft-suite-update` (packaging/craft-suite-update): it compares the
 //! installed package with the newest release of the repository this build came from, and
 //! downloads and installs that release's .deb.
+//!
+//! On Windows there's no updater yet: the Home page links to the Releases page instead, from
+//! `CRAFT_SUITE_RELEASES_URL` at build time.
 
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{Receiver, channel};
@@ -8,15 +11,25 @@ use std::sync::mpsc::{Receiver, channel};
 const SHARE_DIR: &str = "/usr/share/craft-suite";
 const UPDATER: &str = "craft-suite-update";
 
+/// Where the build's VERSION and upstream.txt are: /usr/share/craft-suite from the .deb, the
+/// program's own folder on Windows.
+fn share_dir() -> std::path::PathBuf {
+    if cfg!(windows) {
+        std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.to_path_buf())).unwrap_or_default()
+    } else {
+        std::path::PathBuf::from(SHARE_DIR)
+    }
+}
+
 pub fn installed_version() -> String {
-    std::fs::read_to_string(std::path::Path::new(SHARE_DIR).join("VERSION"))
+    std::fs::read_to_string(share_dir().join("VERSION"))
         .map(|s| s.trim().to_string())
         .unwrap_or_else(|_| format!("{} (development build)", env!("CARGO_PKG_VERSION")))
 }
 
 /// The upstream apps this build was made from, one per line (written by build-deb.sh).
 pub fn upstream_summary() -> String {
-    std::fs::read_to_string(std::path::Path::new(SHARE_DIR).join("upstream.txt")).unwrap_or_default()
+    std::fs::read_to_string(share_dir().join("upstream.txt")).unwrap_or_default()
 }
 
 #[derive(Clone, Debug)]
@@ -56,7 +69,7 @@ impl Updater {
 
     /// Checks (or, when an update is known to be available, installs) on a thread.
     pub fn start(&mut self, ctx: &egui::Context, install: bool) {
-        if self.status.busy() {
+        if self.status.busy() || cfg!(windows) {
             return;
         }
         let (tx, rx) = channel();
@@ -91,6 +104,14 @@ impl Updater {
 
     /// The status line and the Check / Install button.
     pub fn ui(&mut self, ui: &mut egui::Ui) {
+        if cfg!(windows) {
+            if let Some(url) = option_env!("CRAFT_SUITE_RELEASES_URL")
+                && ui.button("Get updates").on_hover_text("Open the Releases page: download and run the newest installer").clicked()
+            {
+                crate::system::open(url);
+            }
+            return;
+        }
         self.poll();
         ui.horizontal_wrapped(|ui| {
             match &self.status {

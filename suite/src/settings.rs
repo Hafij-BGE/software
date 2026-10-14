@@ -218,6 +218,8 @@ pub struct Settings {
     pub check_updates_on_start: bool,
     /// The suite's keyboard shortcuts (Ctrl+Alt+PageUp/PageDown and the rest; see Settings).
     pub shortcuts: bool,
+    /// Ctrl+N opens a new tab of the active tab's app (instead of the app's own New).
+    pub ctrl_n_new_tab: bool,
 
     // ---- remembered
     pub recent: Vec<String>,
@@ -264,6 +266,7 @@ impl Default for Settings {
             confirm_quit_with_tabs: false,
             check_updates_on_start: false,
             shortcuts: true,
+            ctrl_n_new_tab: true,
             recent: Vec::new(),
             session: Vec::new(),
         }
@@ -352,6 +355,10 @@ pub fn no_prefs() -> bool {
 }
 
 pub fn config_dir() -> Option<std::path::PathBuf> {
+    // Windows: %APPDATA% (C:\Users\<you>\AppData\Roaming), as WordCraft keeps its settings.
+    if cfg!(windows) {
+        return std::env::var_os("APPDATA").filter(|d| !d.is_empty()).map(std::path::PathBuf::from);
+    }
     std::env::var_os("XDG_CONFIG_HOME")
         .filter(|d| !d.is_empty())
         .map(std::path::PathBuf::from)

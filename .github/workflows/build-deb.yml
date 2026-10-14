@@ -1,6 +1,7 @@
-# Builds the Craft Suite .deb. On the default branch (and when run by hand, or by the upstream
-# sync) it also publishes a GitHub release with the .deb and latest.txt, which is what
-# craft-suite-update on installed copies looks for.
+# Builds Craft Suite for Linux (.deb), Windows (installer and zip) and Android (.apk). On the
+# default branch (pushed to, or run by hand there) it also publishes a GitHub release:
+# the Linux job creates it with the .deb and latest.txt (what craft-suite-update on installed
+# copies looks for), and the Windows and Android jobs add their files to it.
 name: Build .deb
 
 on:
@@ -72,19 +73,106 @@ jobs:
           if-no-files-found: error
 
       - name: Publish a release
-        if: github.event_name != 'pull_request' && (github.ref_name == github.event.repository.default_branch || github.event_name == 'workflow_dispatch')
+        if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          deb="$(ls dist/*.deb | head -n1)"
-          version="$(awk '{ print $2; exit }' dist/latest-*.txt)"
-          tag="v${version//+/-}"
           cat dist/latest-*.txt > dist/latest.txt
-          api="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY"
-          body="$(python3 -c 'import json,sys; print(json.dumps({"tag_name": sys.argv[1], "target_commitish": sys.argv[2], "name": "Craft Suite " + sys.argv[3], "body": "Built from " + sys.argv[2][:12] + ". Install: sudo apt install ./" + sys.argv[4] + ". Installed copies update with craft-suite-update, or Check for updates on the Home page."}))' "$tag" "$GITHUB_SHA" "$version" "$(basename "$deb")")"
-          id="$(curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$api/releases" -d "$body" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
-          for f in "$deb" dist/latest.txt; do
-            curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Content-Type: application/octet-stream" \
-              --data-binary @"$f" "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$id/assets?name=$(basename "$f")" >/dev/null
-          done
-          echo "released $tag"
+          packaging/publish-release.sh --create dist/*.deb dist/latest.txt
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 240
+    defaults:
+      run:
+        shell: bash
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+      # The icon and version information must make it into craft-suite.exe.
+      CRAFT_SUITE_REQUIRE_WINRES: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Rust
+        run: rustup update stable --no-self-update && rustup default stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: |
+            suite
+            upstream/wordcraft
+            upstream/deckcraft
+            upstream/gridcraft
+          shared-key: craft-suite-windows
+          save-if: ${{ github.event_name != 'pull_request' }}
+      - name: Inno Setup
+        run: |
+          if [ ! -f "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" ]; then choco install innosetup -y --no-progress; fi
+      - name: Build the installer and zip
+        run: packaging/build-windows.sh --with-fonts
+      - name: Smoke test
+        run: |
+          dir="build/windows/Craft Suite"
+          "$dir/wordcraft-cli.exe" --version
+          "$dir/deckcraft-cli.exe" --version || "$dir/deckcraft-cli.exe" --help >/dev/null
+          "$dir/gridcraft-cli.exe" --version || "$dir/gridcraft-cli.exe" --help >/dev/null
+          test -s "$dir/craft-suite.exe"
+          ls -la dist
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: craft-suite-windows
+          path: |
+            dist/*.zip
+            dist/*-setup.exe
+          if-no-files-found: error
+      - name: Add to the release
+        if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: packaging/publish-release.sh dist/*.zip dist/*-setup.exe
+
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target/web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Rust, WebAssembly and trunk
+        run: |
+          rustup update stable --no-self-update && rustup default stable
+          rustup target add wasm32-unknown-unknown
+          curl -sSfL https://github.com/trunk-rs/trunk/releases/download/v0.21.14/trunk-x86_64-unknown-linux-gnu.tar.gz | tar xz -C "$HOME/.cargo/bin"
+          trunk --version
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: |
+            upstream/wordcraft -> ../../target/web
+          shared-key: craft-suite-web
+          save-if: ${{ github.event_name != 'pull_request' }}
+      - name: Signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/craft-suite.jks"
+            echo "ANDROID_KEYSTORE=$RUNNER_TEMP/craft-suite.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret: the APK is signed with a throwaway key, so installing the next one needs an uninstall first. Make the key once with packaging/make-android-key.sh (README › Android)."
+          fi
+      - name: Build the APK
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: packaging/build-apk.sh
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: craft-suite-android
+          path: dist/*.apk
+          if-no-files-found: error
+      - name: Add to the release
+        if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: packaging/publish-release.sh dist/*.apk

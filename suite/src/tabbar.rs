@@ -614,9 +614,7 @@ fn tab_menu(app: &mut SuiteApp, ui: &mut Ui, id: u64, kind: Kind, pinned: bool, 
         && let Some(dir) = std::path::Path::new(p).parent()
         && ui.button("Show in folder").clicked()
     {
-        if let Err(e) = std::process::Command::new("xdg-open").arg(dir).spawn() {
-            log::warn!("xdg-open {}: {e}", dir.display());
-        }
+        crate::system::open(dir);
         ui.close();
     }
     ui.separator();

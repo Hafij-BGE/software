@@ -2,13 +2,17 @@
 # into upstream/ with scripts/update-upstream.sh, keeping the changes made in this repository,
 # and check that the suite still compiles against them.
 #
-# What happens next depends on the repository variable AUTO_UPDATE (Settings › Secrets and
-# variables › Actions › Variables):
-#   unset/false: the update goes to the branch "upstream-sync" and a pull request is opened for
-#                you to merge (merging builds and publishes the new .deb). Needs Settings › Actions
-#                › General › "Allow GitHub Actions to create and approve pull requests".
-#   true:        a clean update that compiles is pushed straight to the default branch and the
-#                .deb is built and released; conflicts or build errors still open a pull request.
+# A clean update that compiles is merged into the default branch and released (Linux, Windows,
+# Android) with nothing to click. An update that conflicts with the changes made here, or doesn't
+# compile, goes to the branch "upstream-sync" as a pull request instead, so nothing broken is
+# released. To review every update first, set the repository variable AUTO_UPDATE to false
+# (Settings › Secrets and variables › Actions › Variables): each one then comes as a pull request.
+# Pull requests need Settings › Actions › General › "Allow GitHub Actions to create and approve
+# pull requests".
+#
+# After an update, scripts/backup-deps.sh refreshes backup/ (the copies the builds fall back to
+# if ArtCraft's repositories disappear). When they can't be reached at all, the sync warns and
+# stops; the builds carry on from backup/.
 name: Sync upstream
 
 on:
@@ -40,7 +44,12 @@ jobs:
           scripts/update-upstream.sh --check
           code=$?
           set -e
-          if [ "$code" = 10 ]; then echo "new=true" >> "$GITHUB_OUTPUT"; elif [ "$code" != 0 ]; then exit "$code"; fi
+          if [ "$code" = 10 ]; then
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          elif [ "$code" != 0 ]; then
+            # Gone or down: nothing to merge; the builds use backup/ (packaging/lib.sh).
+            echo "::warning::The upstream repositories can't be reached (see upstream.conf); nothing to sync. Builds fall back to backup/."
+          fi
       - name: Merge the upstream changes
         if: steps.check.outputs.new == 'true'
         id: merge
@@ -50,6 +59,11 @@ jobs:
           git checkout -B upstream-sync
           if scripts/update-upstream.sh; then
             echo "conflict=false" >> "$GITHUB_OUTPUT"
+            # The copies of craft-libs and craft-fonts the builds fall back to, for the versions
+            # the updated apps pin.
+            scripts/backup-deps.sh
+            git add -A backup
+            git diff --cached --quiet || git commit -q -m "Refresh backup/ for the upstream update"
           else
             echo "conflict=true" >> "$GITHUB_OUTPUT"
             # Keep the conflict markers in a commit so the pull request shows what to resolve.
@@ -83,7 +97,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           BASE: ${{ github.ref_name }}
-          AUTO: ${{ vars.AUTO_UPDATE }}
+          AUTO: ${{ vars.AUTO_UPDATE != 'false' }}
           CONFLICT: ${{ steps.merge.outputs.conflict }}
           COMPILES: ${{ steps.compile.outputs.ok }}
         run: |
@@ -111,4 +125,10 @@ jobs:
             gh pr edit upstream-sync --body-file body.md
           else
             gh pr create --base "$BASE" --head upstream-sync --title "Update from upstream apps" --body-file body.md
+          fi
+          # A pull request opened with the workflow token starts no workflows: start the build
+          # on the branch, so the pull request shows whether the packages build (it publishes
+          # nothing: only builds of the default branch make releases).
+          if [ "$CONFLICT" = "false" ]; then
+            gh workflow run build-deb.yml --ref upstream-sync
           fi

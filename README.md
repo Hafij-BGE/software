@@ -1,9 +1,12 @@
 # Craft Suite
 
+Created by **Md. Hafijur Rahman**. Source: **ArtCraft**'s WordCraft, DeckCraft and GridCraft.
+
 [WordCraft](https://github.com/storytold/wordcraft), [DeckCraft](https://github.com/storytold/deckcraft)
 and [GridCraft](https://github.com/storytold/gridcraft) (open-source Rust reimplementations of Word,
-PowerPoint and Excel by the ArtCraft team) in **one window with tabs**, packaged as **one `.deb`**,
-kept up to date from the upstream repositories, with room for your own changes.
+PowerPoint and Excel by the ArtCraft team) in **one window with tabs**, packaged as **one `.deb`**
+(plus a **Windows** installer and an **Android** app), kept up to date from the upstream
+repositories, with room for your own changes.
 
 - **Tabs that mix apps**: a Word document, a slide deck and a spreadsheet side by side, each in its
   own tab with its app's icon and colour.
@@ -16,6 +19,9 @@ kept up to date from the upstream repositories, with room for your own changes.
   - *behaviour*: what a new tab shows, reusing untouched blank tabs, reopening last session's files,
     one window for files opened from the file manager, middle-click to close, keyboard shortcuts.
 - **Drag tabs** to reorder them; right-click for pin, colour, move, close others, show in folder.
+- **Ctrl+N** opens a new tab of the same app as the one you're in: a new document next to a
+  document, a new spreadsheet next to a spreadsheet (Settings › Behaviour › Keyboard turns it off,
+  giving Ctrl+N back to the app).
 - **Tabs in the title bar** (the default): the tab bar is the window's title bar, with minimize,
   maximize and close beside the tabs; drag its empty part to move the window, double-click it to
   maximize, drag the window's edges to resize it. Settings › Window › Title bar switches back to
@@ -34,8 +40,12 @@ upstream/deckcraft/   DeckCraft, as a git subtree
 upstream/gridcraft/   GridCraft, as a git subtree
 upstream.conf         which repositories and branches upstream/ follows
 suite/                the Craft Suite app: the tabbed window that hosts all three
-packaging/            build-deb.sh, desktop entries, craft-suite-update
-scripts/              update-upstream.sh, merge-locks.py
+packaging/            build-deb.sh, build-windows.sh, build-apk.sh, desktop entries,
+                      craft-suite-update, publish-release.sh
+android/              the Android app: a WebView around the three apps' web versions
+scripts/              update-upstream.sh, merge-locks.py, backup-deps.sh
+backup/               copies of ArtCraft's craft-libs and craft-fonts, for when github.com/storytold
+                      can't be reached
 .github/workflows/    build-deb.yml (build + release), sync-upstream.yml (daily upstream merge)
 ```
 
@@ -136,6 +146,64 @@ installed (it ships the same CLI tools, file types and icons).
 
 Restart Craft Suite after an update. Nothing is installed without your password.
 
+## Windows
+
+Every release also has a Windows (64-bit, Windows 10 or 11) build, the same suite as on Linux:
+
+- `craft-suite_<version>_windows-x64-setup.exe`: the installer. It installs to Program Files (or
+  just for you, if you choose), adds Craft Suite, WordCraft, DeckCraft and GridCraft to the Start
+  menu, offers a desktop shortcut, and lists Craft Suite under **Open with** for documents,
+  presentations and spreadsheets (without taking over your defaults). Uninstall it in
+  Settings › Apps.
+- `craft-suite_<version>_windows-x64.zip`: no installer; unzip it anywhere and run
+  `craft-suite.exe`.
+
+The files aren't code-signed, so Windows SmartScreen warns about an unknown publisher the first
+time: **More info › Run anyway**. Settings are kept in `%APPDATA%\craft-suite`. On Windows, for now,
+each start opens its own window (no handing files to an open window), and **Get updates** on the
+Home page opens the Releases page, where you download the newer installer and run it over the old
+one.
+
+## Android
+
+Every release also has `craft-suite_<version>.apk` (Android 8.0 or newer): a small app that shows
+WordCraft, DeckCraft and GridCraft's **web versions** (the same apps, compiled to WebAssembly) from
+inside the app, so it works offline. Its first page picks Document, Presentation or Spreadsheet;
+**Back** returns there.
+
+- **Install:** download the `.apk` on the phone (logged in to GitHub: the repository is private),
+  open it, and allow installing apps from your browser or file manager when Android asks.
+- **Opening and saving:** File › Open in each app picks a file from the phone; saving asks where
+  to put the file (the system's Save screen).
+- **Not the desktop suite:** one document at a time, no tabs, and the apps' desktop layout (made
+  for a mouse and a wide screen: a tablet, or a phone held sideways, works best). Printing, the
+  spelling dictionary and other desktop-only parts depend on what each web version supports.
+- **Updates:** **Check for updates** on the app's first page opens the newest release in your
+  browser; download its `.apk` and open it, and it installs over the old one, keeping your files.
+  Android only allows that when both are signed with the same key, so the repository needs a
+  signing key of its own (below); until then each build has a new key, and an update needs
+  uninstalling the old app first.
+
+### The Android signing key (once)
+
+On your Linux computer, in this repository's folder (or download just
+`packaging/make-android-key.sh`):
+
+```sh
+sh packaging/make-android-key.sh
+```
+
+It makes the key in `~/craft-suite-android-key` (only `openssl` needed) and prints what to do
+next: on GitHub, Settings › Secrets and variables › Actions › **New repository secret**, twice:
+
+- `ANDROID_KEYSTORE_BASE64`: the contents of `~/craft-suite-android-key/craft-suite.p12.b64`
+- `ANDROID_KEYSTORE_PASSWORD`: the line in `~/craft-suite-android-key/password.txt`
+
+From the next build on, every APK is signed with that key, so each one installs over the last as
+an update. Keep `craft-suite.p12` and `password.txt` somewhere safe and private (not in the
+repository): with a different key, installed apps can't be updated. An APK built before the key
+was added needs uninstalling once.
+
 ## Uninstall
 
 ```sh
@@ -165,6 +233,15 @@ quicker build with egui's default fonts. A first build takes a while (three offi
 
 To try the window without packaging: `cd suite && cargo run --release`.
 
+**Windows:** in Git Bash, with Rust (`rustup`, MSVC) and, for the installer,
+[Inno Setup 6](https://jrsoftware.org/isinfo.php): `packaging/build-windows.sh --with-fonts`
+(-> `dist/craft-suite_<version>_windows-x64.zip` and `-setup.exe`).
+
+**Android:** with Rust's `wasm32-unknown-unknown` target, [trunk](https://trunkrs.dev), a JDK and
+the Android SDK (`ANDROID_HOME`, a platform and build-tools): `packaging/build-apk.sh`
+(-> `dist/craft-suite_<version>.apk`; set `ANDROID_KEYSTORE` and `ANDROID_KEYSTORE_PASSWORD` to sign
+it with your key).
+
 ## Updates from upstream
 
 ```sh
@@ -177,18 +254,37 @@ packaging/build-deb.sh               # build the new package
 
 1. **Every day at 03:17 UTC**, `.github/workflows/sync-upstream.yml` checks WordCraft, DeckCraft and
    GridCraft for new commits. With nothing new, it stops there.
-2. With new commits, it merges them into `upstream/` (keeping your own changes) on the branch
-   `upstream-sync`, checks that the suite still compiles, and opens a pull request.
-3. **Merging a pull request into `main` builds the `.deb` and publishes a release**
-   (`.github/workflows/build-deb.yml`, about 35 minutes). Any push to `main` does, so every change
-   to `main` becomes a release.
-4. Installed copies find it with **Check for updates** (above).
+2. With new commits, it merges them into `upstream/` (keeping your own changes), refreshes
+   `backup/` (below) and checks that the suite still compiles.
+3. **A clean update that compiles is merged into `main` and released automatically**: the Linux
+   `.deb`, the Windows installer and the Android app (`.github/workflows/build-deb.yml`, about 40
+   minutes). Nothing to click.
+4. An update that conflicts with your own changes, or doesn't compile, comes as a pull request
+   from the branch `upstream-sync` instead (with the packages built on it), so nothing broken is
+   released; merging it releases it.
+5. Installed copies find the release with **Check for updates** (above).
 
-To skip the pull request in step 2, set the repository variable **`AUTO_UPDATE`** to `true`
-(Settings › Secrets and variables › Actions › Variables › New repository variable): an update that
-merges cleanly and compiles is then pushed to `main` and released with no click. An update that
-conflicts with your changes, or doesn't compile, always comes as a pull request instead, so nothing
-broken is released.
+Any push to `main` (a merged pull request too) builds and publishes a release. To review every
+ArtCraft update before it's released, set the repository variable **`AUTO_UPDATE`** to `false`
+(Settings › Secrets and variables › Actions › Variables › New repository variable): each update
+then comes as a pull request.
+
+### If ArtCraft's repositories disappear
+
+Everything needed to keep building is in this repository:
+
+- `upstream/`: the full source of WordCraft, DeckCraft and GridCraft (git subtrees, with your
+  changes).
+- `backup/craft-libs.bundle`: the craft-libs library the apps build with (one git bundle file,
+  with its full history and every commit the `Cargo.lock` files pin).
+- `backup/craft-fonts/<commit>/`: the fonts each app's release embeds (Japanese, Chinese, Arabic
+  and the rest).
+
+Builds use github.com/storytold as usual; when it can't be reached, `packaging/lib.sh` takes these
+copies instead (the same commits, so nothing else changes), and says so in the build log. The
+daily sync then just warns that there's nothing to fetch. `scripts/backup-deps.sh` refreshes the
+copies, and the sync runs it after each update, so they follow the versions the apps use. The
+other libraries come from crates.io, which keeps every published version.
 
 Releases are named after the time of the commit they're built from:
 `Craft Suite 0.1.0+r202610141015` is 2026-10-14 10:15 UTC, so a newer build always has a higher
