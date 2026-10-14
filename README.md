@@ -42,6 +42,43 @@ compiled straight from `upstream/*/apps/*/src`, so upstream fixes to them carry 
 Works on 64-bit PCs (amd64) with Ubuntu 22.04 or newer, Debian 12 or newer, Linux Mint 21 or
 newer, and similar distributions.
 
+### From a terminal (with a token)
+
+You need a read-only token for this repository (how to make one:
+[Updates from a private repository](#updates-from-a-private-repository), step 1). Keep it in a
+password manager, not in this repository. Then paste these lines into a terminal:
+
+```sh
+cd ~/Downloads
+read -rsp 'Paste the token, then press Enter: ' TOKEN; echo
+```
+
+The first line goes to Downloads. The second waits for the token: paste it and press Enter. It
+doesn't show while you paste, and it isn't saved anywhere. Then paste these lines, as they are
+(they use the token you just entered; don't put the token into them):
+
+```sh
+ID="$(curl -4 --http1.1 --retry 3 -fsSL -H "Authorization: Bearer $TOKEN" \
+  https://api.github.com/repos/Hafij-BGE/software/releases/latest \
+  | python3 -c 'import json, sys; print(next(a["id"] for a in json.load(sys.stdin)["assets"] if a["name"].endswith("_amd64.deb")))')"
+curl -4 --http1.1 --retry 3 -fL -H "Authorization: Bearer $TOKEN" -H "Accept: application/octet-stream" \
+  -o craft-suite_latest_amd64.deb "https://api.github.com/repos/Hafij-BGE/software/releases/assets/$ID"
+unset TOKEN
+ls -lh craft-suite_latest_amd64.deb       # about 110 MB; a tiny file is an error message
+sudo apt install ./craft-suite_latest_amd64.deb
+```
+
+This always downloads the newest release. Notes:
+
+- `curl: (22) … 401` means the token is wrong or expired; `404` means it can't read this
+  repository. Make a new token.
+- `curl: (35) TLS connect error` is a network problem, not the token: run the lines again. (`-4`
+  and `--http1.1` are there because some networks break the connection without them.)
+- apt may print `Notice: Download is performed unsandboxed as root … couldn't be accessed by user
+  '_apt'`. That's harmless: apt reads the file from your home folder as root instead.
+
+### From the browser
+
 1. Open this repository's [**Releases**](https://github.com/Hafij-BGE/software/releases) page (log in to GitHub first: the
    repository is private) and, under **Assets** of the newest release, download
    `craft-suite_<version>_amd64.deb`, for example `craft-suite_0.1.0-r202610141015_amd64.deb`.
@@ -59,6 +96,8 @@ newer, and similar distributions.
 
 A build from the **Actions** page (a run of "Build .deb" › **Artifacts** › `craft-suite-deb`)
 downloads as a zip: `unzip craft-suite-deb.zip` first, then the same `apt install` line.
+
+### After installing
 
 Start **Craft Suite** from the applications menu (there are also WordCraft, DeckCraft and GridCraft
 entries, which open a new tab of that app), or from a terminal:
@@ -82,7 +121,8 @@ installed (it ships the same CLI tools, file types and icons).
   see [Updates from a private repository](#updates-from-a-private-repository).
 - **From a terminal:** `craft-suite-update` (asks before installing), or
   `craft-suite-update --check` to only look.
-- **By hand:** download the newer `.deb` from Releases and run the same
+- **By hand:** run the [terminal install](#from-a-terminal-with-a-token) lines again (they
+  always fetch the newest release), or download the newer `.deb` from Releases and run the same
   `sudo apt install ./craft-suite_*_amd64.deb` in its folder. Settings and the files you had open
   are kept.
 
