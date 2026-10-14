@@ -6,7 +6,7 @@ use deckcraft_model::Comment;
 use serde_json::{Value, json};
 
 use super::*;
-use crate::{Result, Session, UiRequest};
+use crate::{Result, Session, Target, UiRequest};
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
@@ -15,6 +15,24 @@ pub fn specs() -> Vec<CommandSpec> {
         cmd!("comment.delete", "Delete Comment", ["Review", "Comments"], None, "{index? | all?: bool}", has_slide, delete),
         cmd!("comment.resolve", "Resolve Thread", ["Comments"], None, "{index, resolved?: bool}", has_slide, resolve),
         cmd!(query "comment.list", "Comments", [], None, "{slide?} → comments", has_slide, list),
+        cmd!(
+            noundo "comment.next",
+            "Next Comment",
+            ["Review", "Comments"],
+            None,
+            "{slide?, index?} → {slide, index, text}",
+            has_slide,
+            |s, p| neighbour(s, p, true)
+        ),
+        cmd!(
+            noundo "comment.prev",
+            "Previous Comment",
+            ["Review", "Comments"],
+            None,
+            "{slide?, index?} → {slide, index, text}",
+            has_slide,
+            |s, p| neighbour(s, p, false)
+        ),
         cmd!(query "review.accessibility", "Check Accessibility", ["Review", "Accessibility"], None, "{} → [{slide, shape, issue}]", has_doc, accessibility),
         cmd!(query "review.spelling", "Spelling", ["Review", "Proofing"], Some("F7"), "{} → [{slide, shape, word}] (words not in the built-in list)", has_doc, spelling),
         cmd!(noundo "show.fromStart", "Play from Start", ["Slide Show", "Start Slide Show"], Some("Cmd+Shift+Enter"), "{}", has_slide, |s, _| start(s, 0)),
@@ -27,7 +45,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Set Up Slide Show…",
             ["Slide Show", "Set Up"],
             None,
-            "{type?: speaker|browsed|kiosk, loop?: bool, noNarration?, noAnimation?, useTimings?, from?, to?}",
+            "{type?: speaker|browsed|kiosk, loop?: bool, noNarration?, noAnimation?, useTimings?, showMediaControls?, from?, to?, custom?: name}",
             has_doc,
             setup
         ),
@@ -43,24 +61,33 @@ pub fn specs() -> Vec<CommandSpec> {
     ]
 }
 
-fn now() -> String {
+/// Seconds since the Unix epoch: the system clock, or the browser's on wasm (which has no `SystemTime`).
+fn now_secs() -> u64 {
     #[cfg(not(target_arch = "wasm32"))]
     {
-        let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
-        let (y, m, d) = super::design::civil((secs / 86_400) as i64);
-        let t = secs % 86_400;
-        format!("{y:04}-{m:02}-{d:02}T{:02}:{:02}:{:02}Z", t / 3600, t / 60 % 60, t % 60)
+        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
     }
     #[cfg(target_arch = "wasm32")]
     {
-        String::new()
+        (js_sys::Date::now() / 1000.0).max(0.0) as u64
     }
+}
+
+/// A UTC timestamp as saved on comments: `2026-10-10T13:10:35Z`.
+fn iso_utc(secs: u64) -> String {
+    let (y, m, d) = super::design::civil((secs / 86_400) as i64);
+    let t = secs % 86_400;
+    format!("{y:04}-{m:02}-{d:02}T{:02}:{:02}:{:02}Z", t / 3600, t / 60 % 60, t % 60)
+}
+
+fn now() -> String {
+    iso_utc(now_secs())
 }
 
 fn add(s: &mut Session, p: &Value) -> Result<Value> {
     let text = str_param(p, "text").ok_or_else(|| bad("comment.add", "missing `text`"))?.to_string();
     let author = s.prefs.author.clone();
-    let shape = id_param(p, "id").or_else(|| s.active().and_then(|d| d.selection.shapes.first().copied()));
+    let shape = id_param(p, "id", "comment.add")?.or_else(|| s.active().and_then(|d| d.selection.shapes.first().copied()));
     let (x, y) = (f64_or(p, "x", 10.0), f64_or(p, "y", 10.0));
     s.edit(|doc, sel| {
         let sl = Arc::make_mut(doc.slides.get_mut(sel.slide).ok_or_else(|| bad("comment.add", "no slide"))?);
@@ -121,6 +148,51 @@ fn list(s: &mut Session, p: &Value) -> Result<Value> {
     let st = s.doc()?;
     let i = usize_param(p, "slide").unwrap_or(st.selection.slide);
     Ok(serde_json::to_value(st.doc.slides.get(i).map(|x| x.comments.clone()).unwrap_or_default()).unwrap_or_default())
+}
+
+/// Flat `(slide, comment index)` list in deck order.
+fn comment_threads(doc: &deckcraft_model::Presentation) -> Vec<(usize, usize)> {
+    let mut out = Vec::new();
+    for (si, sl) in doc.slides.iter().enumerate() {
+        for ci in 0..sl.comments.len() {
+            out.push((si, ci));
+        }
+    }
+    out
+}
+
+/// Step to the next or previous comment. With `{slide, index}` matching a thread, move one step
+/// and stop at the ends. Without `index`, next is the first thread on or after `slide` (the
+/// current slide when omitted) and previous is the last thread strictly before it.
+fn neighbour(s: &mut Session, p: &Value, forward: bool) -> Result<Value> {
+    let cmd = if forward { "comment.next" } else { "comment.prev" };
+    let (threads, slide, index) = {
+        let st = s.doc()?;
+        (comment_threads(&st.doc), usize_param(p, "slide").unwrap_or(st.selection.slide), usize_param(p, "index"))
+    };
+    if threads.is_empty() {
+        return Err(bad(cmd, "no comments"));
+    }
+    let pos = index.and_then(|i| threads.iter().position(|&(sl, c)| sl == slide && c == i));
+    let target = match (pos, forward) {
+        (Some(i), true) => threads.get(i + 1).copied(),
+        (Some(i), false) => i.checked_sub(1).and_then(|j| threads.get(j).copied()),
+        (None, true) => threads.iter().copied().find(|(sl, _)| *sl >= slide),
+        (None, false) => threads.iter().copied().rev().find(|(sl, _)| *sl < slide),
+    };
+    let Some((slide, index)) = target else {
+        return Err(bad(cmd, "no more comments"));
+    };
+    s.select(|doc, sel| {
+        sel.slide = slide;
+        sel.slides = doc.slides.get(slide).map(|x| vec![x.id]).unwrap_or_default();
+        sel.shapes.clear();
+        sel.text = None;
+        sel.cells = None;
+        sel.target = Target::Slides;
+    })?;
+    let text = s.doc()?.doc.slides.get(slide).and_then(|sl| sl.comments.get(index)).map(|c| c.text.clone()).unwrap_or_default();
+    Ok(json!({"slide": slide, "index": index, "text": text}))
 }
 
 fn accessibility(s: &mut Session, _p: &Value) -> Result<Value> {
@@ -240,10 +312,24 @@ fn setup(s: &mut Session, p: &Value) -> Result<Value> {
         if let Some(v) = bool_param(p, "useTimings") {
             sh.use_timings = v;
         }
+        if let Some(v) = bool_param(p, "showMediaControls") {
+            sh.show_media_controls = v;
+        }
         match (p.get("from").and_then(Value::as_u64), p.get("to").and_then(Value::as_u64)) {
             (Some(a), Some(b)) => sh.range = Some((a.min(u32::MAX as u64) as u32, b.min(u32::MAX as u64) as u32)),
             (None, None) if p.get("all").is_some() => sh.range = None,
             _ => {}
+        }
+        if p.get("all").and_then(Value::as_bool) == Some(true) {
+            sh.range = None;
+            sh.custom_show = None;
+        }
+        if p.get("custom").is_some() {
+            let name = p.get("custom").and_then(Value::as_str).unwrap_or("");
+            sh.custom_show = if name.is_empty() { None } else { Some(name.to_string()) };
+            if sh.custom_show.is_some() {
+                sh.range = None;
+            }
         }
         Ok(serde_json::to_value(&*sh).unwrap_or_default())
     })
@@ -263,4 +349,94 @@ fn custom_show(s: &mut Session, p: &Value) -> Result<Value> {
         Ok(())
     })?;
     ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    use crate::Session;
+
+    #[test]
+    fn previous_and_next_comment_walk_the_deck() {
+        let mut s = Session::with_new();
+        let err = s.execute("comment.next", &json!({})).unwrap_err();
+        assert!(err.to_string().contains("no comments"), "{err}");
+
+        s.execute("comment.add", &json!({"text": "on first"})).unwrap();
+        s.execute("shape.insert", &json!({"preset": "rect", "rect": [10.0, 10.0, 40.0, 40.0]})).unwrap();
+        s.execute("slide.new", &json!({})).unwrap();
+        s.execute("comment.add", &json!({"text": "on second a"})).unwrap();
+        s.execute("comment.add", &json!({"text": "on second b"})).unwrap();
+        s.execute("slide.new", &json!({})).unwrap();
+        assert_eq!(s.doc().unwrap().selection.slide, 2);
+
+        let err = s.execute("comment.next", &json!({})).unwrap_err();
+        assert!(err.to_string().contains("no more comments"), "{err}");
+
+        let undo_before = s.doc().unwrap().history.undo.len();
+        let back = s.execute("comment.prev", &json!({})).unwrap();
+        assert_eq!(back["slide"], 1);
+        assert_eq!(back["index"], 1);
+        assert_eq!(back["text"], "on second b");
+        assert_eq!(s.doc().unwrap().selection.slide, 1);
+        assert!(s.doc().unwrap().selection.shapes.is_empty());
+        assert_eq!(s.doc().unwrap().history.undo.len(), undo_before);
+
+        let prev = s.execute("comment.prev", &json!({"slide": 1, "index": 1})).unwrap();
+        assert_eq!(prev["index"], 0);
+        assert_eq!(prev["text"], "on second a");
+        let first = s.execute("comment.prev", &json!({"slide": prev["slide"], "index": prev["index"]})).unwrap();
+        assert_eq!(first["slide"], 0);
+        assert_eq!(first["text"], "on first");
+        let err = s.execute("comment.prev", &json!({"slide": 0, "index": 0})).unwrap_err();
+        assert!(err.to_string().contains("no more comments"), "{err}");
+
+        let next = s.execute("comment.next", &json!({"slide": 0, "index": 0})).unwrap();
+        assert_eq!(next["slide"], 1);
+        assert_eq!(next["text"], "on second a");
+        s.execute("slide.go", &json!({"index": 0})).unwrap();
+        let here = s.execute("comment.next", &json!({})).unwrap();
+        assert_eq!(here["text"], "on first");
+    }
+
+    #[test]
+    fn timestamps_are_iso_utc() {
+        assert_eq!(iso_utc(0), "1970-01-01T00:00:00Z");
+        assert_eq!(iso_utc(1_791_637_835), "2026-10-10T13:10:35Z");
+    }
+
+    #[test]
+    fn the_clock_is_not_empty() {
+        // On wasm this used to return an empty string, so browser comments were saved undated.
+        assert!(now().starts_with("20"), "{}", now());
+    }
+
+    #[test]
+    fn show_media_controls_follow_setup() {
+        let mut s = Session::with_new();
+        assert!(s.doc().expect("doc").doc.show.show_media_controls);
+        let off = s.execute("show.setup", &json!({"showMediaControls": false})).expect("off");
+        assert_eq!(off["showMediaControls"], false);
+        assert_eq!(off["useTimings"], true, "other setup flags stay");
+        let timings = s.execute("show.setup", &json!({"useTimings": false})).expect("timings");
+        assert_eq!(timings["showMediaControls"], false);
+        assert_eq!(timings["useTimings"], false);
+        s.execute("show.setup", &json!({"showMediaControls": true})).expect("on");
+        assert!(s.doc().expect("doc").doc.show.show_media_controls);
+    }
+
+    #[test]
+    fn setup_remembers_a_custom_show() {
+        let mut s = Session::with_new();
+        s.execute("slide.new", &json!({})).unwrap();
+        s.execute("slide.new", &json!({})).unwrap();
+        s.execute("show.customShow", &json!({"name": "Short", "slides": [0, 1]})).unwrap();
+        let v = s.execute("show.setup", &json!({"custom": "Short"})).unwrap();
+        assert_eq!(v.get("customShow").and_then(Value::as_str), Some("Short"));
+        assert!(s.active().unwrap().doc.show.range.is_none());
+        s.execute("show.setup", &json!({"custom": ""})).unwrap();
+        assert!(s.active().unwrap().doc.show.custom_show.is_none());
+    }
 }
