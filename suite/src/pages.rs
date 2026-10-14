@@ -470,7 +470,7 @@ fn chip(ui: &mut Ui, pal: &Palette, label: &str, selected: bool) -> egui::Respon
 // ---- Settings
 
 /// A titled card of settings.
-fn card(ui: &mut Ui, pal: &Palette, title: &str, note: &str, add: impl FnOnce(&mut Ui)) {
+pub(crate) fn card(ui: &mut Ui, pal: &Palette, title: &str, note: &str, add: impl FnOnce(&mut Ui)) {
     ui.add_space(16.0);
     egui::Frame::NONE.fill(pal.card).stroke(Stroke::new(1.0, pal.border)).corner_radius(12).inner_margin(20).show(ui, |ui| {
         ui.set_width(ui.available_width());
@@ -492,7 +492,9 @@ fn radio_row<T: PartialEq + Copy>(ui: &mut Ui, value: &mut T, options: &[(T, &st
 }
 
 fn grid(ui: &mut Ui, id: &str, add: impl FnOnce(&mut Ui)) {
-    egui::Grid::new(id).num_columns(2).spacing(vec2(28.0, 12.0)).min_col_width(170.0).show(ui, add);
+    // The options column wraps at the card's width (a narrow window, or the Ask AI panel open).
+    let options = (ui.available_width() - 170.0 - 28.0).max(220.0);
+    egui::Grid::new(id).num_columns(2).spacing(vec2(28.0, 12.0)).min_col_width(170.0).max_col_width(options).show(ui, add);
 }
 
 pub fn settings(app: &mut SuiteApp, ui: &mut Ui) {
@@ -694,6 +696,9 @@ fn settings_body(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette) {
             ui.end_row();
         });
     });
+
+    #[cfg(feature = "ai")]
+    crate::ai::settings_card(app, ui, pal);
 
     card(ui, pal, "About and updates", "", |ui| {
         ui.label(format!("Craft Suite {}", update::installed_version()));

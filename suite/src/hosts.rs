@@ -182,6 +182,17 @@ impl Doc {
         }
     }
 
+    /// Runs one of the app's commands on this tab, as its own automation does (Ask AI reads the
+    /// document and applies the changes you accept this way).
+    #[cfg(feature = "ai")]
+    pub fn command(&mut self, id: &str, params: serde_json::Value) -> Result<serde_json::Value, String> {
+        match self {
+            Doc::Word(t) => t.app.execute(id, params),
+            Doc::Deck(t) => t.app.run(id, params),
+            Doc::Grid(t) => t.app.run(id, params),
+        }
+    }
+
     /// Starts closing the tab.
     pub fn check_close(&mut self) -> CloseCheck {
         match self {

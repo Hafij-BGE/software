@@ -42,11 +42,33 @@ echo "platform:    $PLATFORM"
 WEB="$ROOT/build/web"
 if [ "$SKIP_WEB" = 0 ]; then
   craft_libs_fallback
+  # Touch-friendly changes for the phone (android/patches: wider scroll bars, always shown),
+  # applied to upstream/ only while the web apps build. A patch an upstream update no longer fits
+  # is left out with a warning: the build goes on without it.
+  APPLIED=()
+  revert_patches() {
+    local i
+    for ((i = ${#APPLIED[@]} - 1; i >= 0; i--)); do git -C "$ROOT" apply -R "${APPLIED[$i]}" || echo "warning: couldn't undo ${APPLIED[$i]}" >&2; done
+    APPLIED=()
+  }
+  trap revert_patches EXIT
+  for patch in "$ROOT"/android/patches/*.patch; do
+    [ -f "$patch" ] || continue
+    if git -C "$ROOT" apply --check "$patch" 2>/dev/null; then
+      git -C "$ROOT" apply "$patch"
+      APPLIED+=("$patch")
+      echo "patched: $(basename "$patch")"
+    else
+      echo "warning: $(basename "$patch") doesn't fit upstream any more; building without it" >&2
+    fi
+  done
   for pair in word:wordcraft deck:deckcraft grid:gridcraft; do
     short="${pair%%:*}" app="${pair##*:}"
     echo "== $app web"
     (cd "$ROOT/upstream/$app/apps/$app-web" && trunk build --release --dist "$WEB/$short")
   done
+  revert_patches
+  trap - EXIT
 fi
 
 STAGE="$ROOT/build/apk"

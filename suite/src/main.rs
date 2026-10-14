@@ -9,6 +9,9 @@
 // No console window behind the suite on Windows (release builds).
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
+// Ask AI (the `ai` feature; see src/ai/mod.rs).
+#[cfg(feature = "ai")]
+mod ai;
 mod app;
 mod hosts;
 mod instance;

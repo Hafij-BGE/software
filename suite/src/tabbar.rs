@@ -339,7 +339,8 @@ fn rows(app: &mut SuiteApp, ui: &mut Ui, rects: &mut Vec<(u64, Rect)>) {
             if separate {
                 group_label(app, ui, kind, 96.0);
             }
-            let buttons = if gi + 1 == count || separate { 2.0 * BUTTON_W + 4.0 } else { 0.0 };
+            let last = gi + 1 == count;
+            let buttons = if last || separate { 2.0 * BUTTON_W + 4.0 } else { 0.0 } + if last { ai_button_w(app) } else { 0.0 };
             let window = if controls && gi == 0 { 3.0 * CONTROL_W + DRAG_MIN } else { 0.0 };
             let avail = (ui.available_width() - buttons - window).max(60.0);
             let compact_w = SIDE_TAB_H + 8.0;
@@ -364,13 +365,28 @@ fn rows(app: &mut SuiteApp, ui: &mut Ui, rects: &mut Vec<(u64, Rect)>) {
                 });
             if buttons > 0.0 {
                 ui.add_space(4.0);
-                bar_buttons(app, ui, if separate { kind } else { None });
+                if last || separate {
+                    bar_buttons(app, ui, if separate { kind } else { None });
+                }
+                #[cfg(feature = "ai")]
+                if last {
+                    crate::ai::bar_button(app, ui, vec2(ai_button_w(app), ROW_H));
+                }
             }
             if window > 0.0 {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| window_controls(ui, ROW_H));
             }
         });
     }
+}
+
+/// Room for the Ask AI button (when it's on).
+fn ai_button_w(_app: &SuiteApp) -> f32 {
+    #[cfg(feature = "ai")]
+    if _app.ai.config.enabled {
+        return crate::ai::BUTTON_W;
+    }
+    0.0
 }
 
 /// The + button (a new tab: of this row's app in a row per app) and the menu button.
@@ -419,6 +435,8 @@ fn side_strip(app: &mut SuiteApp, ui: &mut Ui, rects: &mut Vec<(u64, Rect)>) {
         }
         let menu = glyph_button(app, ui, Glyph::Menu, slot, "New, Open, Home and Settings");
         egui::Popup::menu(&menu).show(|ui| new_menu(app, ui));
+        #[cfg(feature = "ai")]
+        crate::ai::bar_button(app, ui, vec2(ai_button_w(app), SIDE_TAB_H));
     });
     ui.add_space(4.0);
     let separate = app.settings.mixing == Mixing::Separate;
