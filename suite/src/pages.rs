@@ -82,6 +82,8 @@ fn side_bar(app: &mut SuiteApp, ui: &mut Ui, page: Page, pal: &Palette) {
             });
         }
         ui.label(RichText::new(format!("Version {}", update::installed_version())).size(12.5).weak());
+        ui.label(RichText::new(format!("Source: {}", crate::SOURCE)).size(12.5).weak());
+        ui.label(RichText::new(format!("Created by {}", crate::CREATOR)).size(12.5).weak());
         ui.add_space(6.0);
         if nav_item(app, ui, pal, SideIcon::Settings, "Settings", page == Page::Settings).clicked() && page != Page::Settings {
             app.actions.push(Action::ShowPage { tab, settings: true });
@@ -695,6 +697,17 @@ fn settings_body(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette) {
 
     card(ui, pal, "About and updates", "", |ui| {
         ui.label(format!("Craft Suite {}", update::installed_version()));
+        ui.label(format!("Created by {}", crate::CREATOR));
+        ui.horizontal_wrapped(|ui| {
+            ui.spacing_mut().item_spacing.x = 0.0;
+            ui.label(format!("Source: {}: ", crate::SOURCE));
+            ui.hyperlink_to("WordCraft", "https://github.com/storytold/wordcraft");
+            ui.label(", ");
+            ui.hyperlink_to("DeckCraft", "https://github.com/storytold/deckcraft");
+            ui.label(" and ");
+            ui.hyperlink_to("GridCraft", "https://github.com/storytold/gridcraft");
+        });
+        ui.add_space(4.0);
         let upstream = update::upstream_summary();
         if !upstream.is_empty() {
             ui.collapsing("Built from", |ui| {

@@ -46,7 +46,7 @@ mkdir -p "$DIST"
 # The version (VERSION + the commit's time) and the upstream helpers.
 . "$HERE/lib.sh"
 ARCH="$(dpkg --print-architecture)"
-MAINTAINER="${CRAFT_SUITE_MAINTAINER:-Craft Suite builder <craft-suite@localhost>}"
+MAINTAINER="${CRAFT_SUITE_MAINTAINER:-Md. Hafijur Rahman <craft-suite@localhost>}"
 
 if [ -z "$UPDATE_URL" ]; then
   REPO="${GITHUB_REPOSITORY:-}"
@@ -171,6 +171,9 @@ Description: WordCraft, DeckCraft and GridCraft in one tabbed window
  .
  Includes wordcraft-cli, deckcraft-cli and gridcraft-cli, headless converters
  and command runners, and craft-suite-update, which installs newer releases.
+ .
+ Created by Md. Hafijur Rahman. Source: WordCraft, DeckCraft and GridCraft by
+ ArtCraft (https://github.com/storytold).
 EOF
 echo "/etc/craft-suite/update.conf" >"$STAGE/DEBIAN/conffiles"
 install -m755 "$HERE/postinst" "$STAGE/DEBIAN/postinst"

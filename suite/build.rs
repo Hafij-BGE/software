@@ -14,7 +14,9 @@ fn main() {
     res.set_icon("../assets/craft-suite.ico")
         .set("ProductName", "Craft Suite")
         .set("FileDescription", "Craft Suite: WordCraft, DeckCraft and GridCraft in one window")
-        .set("LegalCopyright", "MIT OR Apache-2.0")
+        .set("CompanyName", "Md. Hafijur Rahman")
+        .set("Comments", "Created by Md. Hafijur Rahman. Source: WordCraft, DeckCraft and GridCraft by ArtCraft.")
+        .set("LegalCopyright", "Craft Suite by Md. Hafijur Rahman; apps by ArtCraft. MIT OR Apache-2.0")
         .set("OriginalFilename", "craft-suite.exe")
         .set("InternalName", "craft-suite");
     if let Err(e) = res.compile() {

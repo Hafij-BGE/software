@@ -55,11 +55,18 @@ pub struct Request {
     pub new: Vec<Kind>,
 }
 
+/// Who made the suite, and where its apps come from (the About card, --help, the packages).
+pub const CREATOR: &str = "Md. Hafijur Rahman";
+pub const SOURCE: &str = "ArtCraft";
+
 const USAGE: &str = "usage: craft-suite [--new word|deck|grid|home] [--new-window] [FILE...]
 
 Opens WordCraft documents, DeckCraft presentations and GridCraft spreadsheets as tabs of one
 window. Each FILE opens in the app for its type; --new opens a blank one (repeatable).
---new-window starts a separate window even when one is already open.";
+--new-window starts a separate window even when one is already open.
+
+Craft Suite, created by Md. Hafijur Rahman. Source: WordCraft, DeckCraft and GridCraft by
+ArtCraft (https://github.com/storytold).";
 
 fn main() -> std::process::ExitCode {
     log::set_logger(&LOGGER).map(|()| log::set_max_level(log_level())).ok();

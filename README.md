@@ -1,5 +1,7 @@
 # Craft Suite
 
+Created by **Md. Hafijur Rahman**. Source: **ArtCraft**'s WordCraft, DeckCraft and GridCraft.
+
 [WordCraft](https://github.com/storytold/wordcraft), [DeckCraft](https://github.com/storytold/deckcraft)
 and [GridCraft](https://github.com/storytold/gridcraft) (open-source Rust reimplementations of Word,
 PowerPoint and Excel by the ArtCraft team) in **one window with tabs**, packaged as **one `.deb`**
