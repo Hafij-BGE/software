@@ -1,0 +1,105 @@
+    Updating crates.io index
+     Locking 49 packages to latest Rust 1.97.0 compatible versions
+      Adding deckcraft-anim v0.6.1 (/home/user/software/upstream/deckcraft/crates/anim)
+      Adding deckcraft-av1 v0.6.1 (/home/user/software/upstream/deckcraft/crates/av1)
+      Adding deckcraft-bitstream v0.6.1 (/home/user/software/upstream/deckcraft/crates/bitstream)
+      Adding deckcraft-color v0.6.1 (/home/user/software/upstream/deckcraft/crates/color)
+      Adding deckcraft-engine v0.6.1 (/home/user/software/upstream/deckcraft/crates/engine)
+      Adding deckcraft-fonts v0.6.1 (/home/user/software/upstream/deckcraft/crates/fonts)
+      Adding deckcraft-format v0.6.1 (/home/user/software/upstream/deckcraft/crates/format)
+      Adding deckcraft-geom v0.6.1 (/home/user/software/upstream/deckcraft/crates/geom)
+      Adding deckcraft-h264 v0.6.1 (/home/user/software/upstream/deckcraft/crates/h264)
+      Adding deckcraft-hevc v0.6.1 (/home/user/software/upstream/deckcraft/crates/hevc)
+      Adding deckcraft-isobmff v0.6.1 (/home/user/software/upstream/deckcraft/crates/isobmff)
+      Adding deckcraft-matroska v0.6.1 (/home/user/software/upstream/deckcraft/crates/matroska)
+      Adding deckcraft-media v0.6.1 (/home/user/software/upstream/deckcraft/crates/media)
+      Adding deckcraft-metafile v0.6.1 (/home/user/software/upstream/deckcraft/crates/metafile)
+      Adding deckcraft-model v0.6.1 (/home/user/software/upstream/deckcraft/crates/model)
+      Adding deckcraft-ogg v0.6.1 (/home/user/software/upstream/deckcraft/crates/ogg)
+      Adding deckcraft-opus v0.6.1 (/home/user/software/upstream/deckcraft/crates/opus)
+      Adding deckcraft-pdf v0.6.1 (/home/user/software/upstream/deckcraft/crates/pdf)
+      Adding deckcraft-pptx v0.6.1 (/home/user/software/upstream/deckcraft/crates/pptx)
+      Adding deckcraft-render v0.6.1 (/home/user/software/upstream/deckcraft/crates/render)
+      Adding deckcraft-text v0.6.1 (/home/user/software/upstream/deckcraft/crates/text)
+      Adding deckcraft-ui-egui v0.6.1 (/home/user/software/upstream/deckcraft/crates/ui-egui)
+      Adding deckcraft-vp9 v0.6.1 (/home/user/software/upstream/deckcraft/crates/vp9)
+      Adding gridcraft-calc v0.6.1 (/home/user/software/upstream/gridcraft/crates/calc)
+      Adding gridcraft-chart v0.6.1 (/home/user/software/upstream/gridcraft/crates/chart)
+      Adding gridcraft-core v0.6.1 (/home/user/software/upstream/gridcraft/crates/core)
+      Adding gridcraft-engine v0.6.1 (/home/user/software/upstream/gridcraft/crates/engine)
+      Adding gridcraft-formula v0.6.1 (/home/user/software/upstream/gridcraft/crates/formula)
+      Adding gridcraft-functions v0.6.1 (/home/user/software/upstream/gridcraft/crates/functions)
+      Adding gridcraft-model v0.6.1 (/home/user/software/upstream/gridcraft/crates/model)
+      Adding gridcraft-numfmt v0.6.1 (/home/user/software/upstream/gridcraft/crates/numfmt)
+      Adding gridcraft-pdf v0.6.1 (/home/user/software/upstream/gridcraft/crates/pdf)
+      Adding gridcraft-ui-egui v0.6.1 (/home/user/software/upstream/gridcraft/crates/ui-egui)
+      Adding gridcraft-xlsx v0.6.1 (/home/user/software/upstream/gridcraft/crates/xlsx)
+      Adding wordcraft-control-key v0.6.1 (/home/user/software/upstream/wordcraft/crates/control-key)
+      Adding wordcraft-doc v0.6.1 (/home/user/software/upstream/wordcraft/crates/doc)
+      Adding wordcraft-docbin v0.6.1 (/home/user/software/upstream/wordcraft/crates/docbin)
+      Adding wordcraft-docx v0.6.1 (/home/user/software/upstream/wordcraft/crates/docx)
+      Adding wordcraft-engine v0.6.1 (/home/user/software/upstream/wordcraft/crates/engine)
+      Adding wordcraft-fonts v0.6.1 (/home/user/software/upstream/wordcraft/crates/fonts)
+      Adding wordcraft-formats v0.6.1 (/home/user/software/upstream/wordcraft/crates/formats)
+      Adding wordcraft-geom v0.6.1 (/home/user/software/upstream/wordcraft/crates/geom)
+      Adding wordcraft-layout v0.6.1 (/home/user/software/upstream/wordcraft/crates/layout)
+      Adding wordcraft-metafile v0.6.1 (/home/user/software/upstream/wordcraft/crates/metafile)
+      Adding wordcraft-pdf v0.6.1 (/home/user/software/upstream/wordcraft/crates/pdf)
+      Adding wordcraft-proof v0.6.1 (/home/user/software/upstream/wordcraft/crates/proof)
+      Adding wordcraft-render v0.6.1 (/home/user/software/upstream/wordcraft/crates/render)
+      Adding wordcraft-ui-egui v0.6.1 (/home/user/software/upstream/wordcraft/crates/ui-egui)
+      Adding wordcraft-zotero v0.6.1 (/home/user/software/upstream/wordcraft/crates/zotero)
+ Downloading crates ...
+  Downloaded iana-time-zone-haiku v0.1.2
+  Downloaded symphonia-codec-alac v0.5.5
+  Downloaded dasp_sample v0.11.0
+  Downloaded symphonia-codec-adpcm v0.5.5
+  Downloaded symphonia-format-caf v0.5.5
+  Downloaded windows-targets v0.42.2
+  Downloaded core_detect v1.0.0
+  Downloaded extended v0.1.0
+  Downloaded num-derive v0.4.2
+  Downloaded symphonia-codec-pcm v0.5.5
+  Downloaded windows-core v0.54.0
+  Downloaded alsa-sys v0.3.1
+  Downloaded i_tree v0.19.0
+  Downloaded cesu8 v1.1.0
+  Downloaded symphonia-bundle-flac v0.5.5
+  Downloaded symphonia-format-isomp4 v0.5.5
+  Downloaded symphonia-utils-xiph v0.5.5
+  Downloaded i_key_sort v0.11.0
+  Downloaded iana-time-zone v0.1.65
+  Downloaded mach2 v0.4.3
+  Downloaded objc2-core-audio-types v0.3.2
+  Downloaded symphonia v0.5.5
+  Downloaded symphonia-codec-aac v0.5.5
+  Downloaded symphonia-format-riff v0.5.5
+  Downloaded coreaudio-rs v0.13.0
+  Downloaded i_shape v5.0.0
+  Downloaded objc2-core-audio v0.3.2
+  Downloaded symphonia-format-mkv v0.5.5
+  Downloaded symphonia-metadata v0.5.5
+  Downloaded i_float v5.0.0
+  Downloaded multiversion_no_op v1.0.0
+  Downloaded symphonia-format-ogg v0.5.5
+  Downloaded windows-result v0.1.2
+  Downloaded alsa v0.9.1
+  Downloaded symphonia-bundle-mp3 v0.5.5
+  Downloaded jni v0.21.1
+  Downloaded symphonia-core v0.5.5
+  Downloaded cpal v0.16.0
+  Downloaded symphonia-codec-vorbis v0.5.5
+  Downloaded objc2-audio-toolbox v0.3.2
+  Downloaded quick-xml v0.38.4
+  Downloaded chrono v0.4.45
+  Downloaded windows_aarch64_gnullvm v0.42.2
+  Downloaded windows_x86_64_gnullvm v0.42.2
+  Downloaded i_overlay v9.0.0
+  Downloaded encoding_rs v0.8.42
+  Downloaded windows_x86_64_gnu v0.42.2
+  Downloaded windows_x86_64_msvc v0.42.2
+  Downloaded windows_aarch64_msvc v0.42.2
+  Downloaded windows_i686_gnu v0.42.2
+  Downloaded windows_i686_msvc v0.42.2
+  Downloaded windows-sys v0.45.0
+  Downloaded windows v0.54.0

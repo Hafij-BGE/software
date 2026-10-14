@@ -1,0 +1,142 @@
+#!/bin/sh
+# craft-suite-update: check for and install a newer Craft Suite .deb.
+#
+#   craft-suite-update            check, and install when there's a newer release (asks first)
+#   craft-suite-update --check    print "up-to-date <version>" (exit 0) or
+#                                 "available <installed> <latest>" (exit 10)
+#   craft-suite-update --install [--yes]
+#                                 download and install the newest release
+#
+# Where releases come from: URL in /etc/craft-suite/update.conf, overridden by
+# ~/.config/craft-suite/update.conf or the CRAFT_SUITE_UPDATE_URL environment variable. The URL
+# is a folder (normally a GitHub "releases/latest/download" link) holding latest.txt, whose lines
+# are "<arch> <version> <file> <sha256>", and the .deb files it names.
+#
+# Private GitHub repository: put a token that may read the repository's contents in
+# ~/.config/craft-suite/update.conf as TOKEN="github_pat_..." (or CRAFT_SUITE_UPDATE_TOKEN).
+# The newest release is then read through the GitHub API with it, from the repository the URL
+# names. Keep that file private: chmod 600 ~/.config/craft-suite/update.conf
+set -eu
+
+# A KEY="..." line of a config file (read, not run).
+conf_value() {
+  [ -r "$2" ] && sed -n "s/^[[:space:]]*$1=[\"']\\{0,1\\}\\([^\"']*\\)[\"']\\{0,1\\}[[:space:]]*\$/\\1/p" "$2" | tail -n1
+}
+system_conf=/etc/craft-suite/update.conf
+user_conf="${XDG_CONFIG_HOME:-$HOME/.config}/craft-suite/update.conf"
+URL="$(conf_value URL "$system_conf" || true)"
+user_url="$(conf_value URL "$user_conf" || true)"
+URL="${CRAFT_SUITE_UPDATE_URL:-${user_url:-$URL}}"
+TOKEN="${CRAFT_SUITE_UPDATE_TOKEN:-$(conf_value TOKEN "$user_conf" || true)}"
+API="${CRAFT_SUITE_UPDATE_API:-https://api.github.com}"
+
+die() { echo "craft-suite-update: $*" >&2; exit 1; }
+
+[ -n "$URL" ] || die "no update URL configured (/etc/craft-suite/update.conf)"
+command -v curl >/dev/null 2>&1 || die "curl is needed to check for updates (sudo apt install curl)"
+
+mode=interactive
+yes=0
+for a in "$@"; do
+  case "$a" in
+    --check) mode=check ;;
+    --install) mode=install ;;
+    --yes | -y) yes=1 ;;
+    -h | --help) sed -n '2,18p' "$0"; exit 0 ;;
+    *) die "unknown argument: $a" ;;
+  esac
+done
+
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+# With a token, files come from the GitHub API: the release's asset list, then each asset by id.
+# The token goes to curl in a header file, not on its command line, where other users could see
+# it. curl drops the header when GitHub redirects the download to its storage host.
+if [ -n "$TOKEN" ]; then
+  REPO="$(echo "$URL" | sed -nE 's#^https://github\.com/([^/]+/[^/]+)/releases/.*#\1#p')"
+  [ -n "$REPO" ] || die "a TOKEN needs a GitHub releases URL (https://github.com/OWNER/REPO/releases/latest/download); URL is $URL"
+  command -v python3 >/dev/null 2>&1 || die "python3 is needed to read GitHub's release list"
+  umask 077
+  printf 'Authorization: Bearer %s\n' "$TOKEN" >"$tmp/auth"
+  status="$(curl -sSL -H @"$tmp/auth" -H "Accept: application/vnd.github+json" \
+    -o "$tmp/release.json" -w '%{http_code}' "$API/repos/$REPO/releases/latest" || true)"
+  case "$status" in
+    200) ;;
+    401) die "GitHub refused the token (expired or mistyped?): check TOKEN in $user_conf" ;;
+    403 | 404) die "no release of $REPO the token can read (HTTP $status): the token needs read access to that repository's contents, and the repository needs a release" ;;
+    *) die "could not reach GitHub's API for $REPO (HTTP ${status:-none})" ;;
+  esac
+fi
+
+# fetch NAME DEST: a file of the newest release.
+fetch() {
+  if [ -n "$TOKEN" ]; then
+    id="$(python3 -I -c '
+import json, sys
+for a in json.load(open(sys.argv[1])).get("assets", []):
+    if a.get("name") == sys.argv[2]:
+        print(a["id"])
+        break
+' "$tmp/release.json" "$1")"
+    [ -n "$id" ] || return 1
+    curl -fsSL -H @"$tmp/auth" -H "Accept: application/octet-stream" -o "$2" "$API/repos/$REPO/releases/assets/$id"
+  else
+    curl -fsSL --retry 2 -o "$2" "$URL/$1"
+  fi
+}
+
+arch="$(dpkg --print-architecture)"
+current="$(dpkg-query -W -f='${Version}' craft-suite 2>/dev/null || echo 0)"
+if ! fetch latest.txt "$tmp/latest.txt" 2>/dev/null; then
+  if [ -z "$TOKEN" ]; then
+    die "could not read $URL/latest.txt (for a private repository, add TOKEN=\"...\" to $user_conf)"
+  fi
+  die "the newest release of $REPO has no latest.txt"
+fi
+line="$(awk -v a="$arch" '$1 == a { print; exit }' "$tmp/latest.txt")"
+[ -n "$line" ] || die "the newest release lists no $arch build"
+latest="$(echo "$line" | awk '{ print $2 }')"
+file="$(echo "$line" | awk '{ print $3 }')"
+sum="$(echo "$line" | awk '{ print $4 }')"
+
+newer=0
+if dpkg --compare-versions "$latest" gt "$current"; then newer=1; fi
+
+if [ "$mode" = check ]; then
+  if [ "$newer" = 1 ]; then echo "available $current $latest"; exit 10; fi
+  echo "up-to-date $current"
+  exit 0
+fi
+
+if [ "$newer" = 0 ]; then
+  echo "up-to-date $current"
+  exit 0
+fi
+
+if [ "$mode" = interactive ] && [ "$yes" = 0 ]; then
+  printf 'Craft Suite %s is installed; %s is available. Install it? [Y/n] ' "$current" "$latest"
+  read -r answer || answer=n
+  case "$answer" in [nN]*) exit 0 ;; esac
+fi
+
+deb="$tmp/$file"
+fetch "$file" "$deb" || die "download of $file failed"
+if [ -n "$sum" ]; then
+  echo "$sum  $deb" | sha256sum -c --status - || die "$file does not match its checksum; not installing it"
+fi
+# apt reads the file as its own unprivileged user; the token file stays private.
+chmod 0755 "$tmp"
+chmod 0644 "$deb"
+rm -f "$tmp/auth"
+
+if [ "$(id -u)" = 0 ]; then
+  apt-get install -y "$deb"
+elif [ -t 0 ]; then
+  sudo apt-get install -y "$deb"
+elif command -v pkexec >/dev/null 2>&1; then
+  pkexec apt-get install -y "$deb"
+else
+  die "installing needs root: run 'sudo craft-suite-update' in a terminal"
+fi
+echo "installed $latest"
