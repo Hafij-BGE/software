@@ -23,6 +23,10 @@ jobs:
     # Ubuntu 22.04+, Debian 12+, Linux Mint 21+ and the like.
     container: ubuntu:22.04
     timeout-minutes: 180
+    # Steps in a container run with sh (dash) unless told otherwise; they use bash syntax.
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Build tools and libraries
         run: |
@@ -73,7 +77,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           deb="$(ls dist/*.deb | head -n1)"
-          version="$(basename "$deb" | sed -E 's/^craft-suite_(.*)_[^_]+\.deb$/\1/')"
+          version="$(awk '{ print $2; exit }' dist/latest-*.txt)"
           tag="v${version//+/-}"
           cat dist/latest-*.txt > dist/latest.txt
           api="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY"

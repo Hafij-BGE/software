@@ -211,7 +211,9 @@ echo "/etc/craft-suite/update.conf" >"$STAGE/DEBIAN/conffiles"
 install -m755 "$HERE/postinst" "$STAGE/DEBIAN/postinst"
 install -m755 "$HERE/postinst" "$STAGE/DEBIAN/postrm"
 
-OUT="$DIST/craft-suite_${VERSION}_${ARCH}.deb"
+# The file name spells "+" as "-": "+" in a download or upload URL can turn into a space, and
+# GitHub renames release files with such characters. The package's own version keeps the "+".
+OUT="$DIST/craft-suite_${VERSION//+/-}_${ARCH}.deb"
 dpkg-deb --root-owner-group -Zxz --build "$STAGE" "$OUT"
 # For craft-suite-update: "<arch> <version> <file> <sha256>" (CI publishes it with the release).
 echo "$ARCH $VERSION $(basename "$OUT") $(sha256sum "$OUT" | cut -d' ' -f1)" >"$DIST/latest-$ARCH.txt"
