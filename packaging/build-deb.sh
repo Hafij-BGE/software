@@ -146,6 +146,9 @@ mkdir -p "$STAGE/etc/craft-suite"
 cat >"$STAGE/etc/craft-suite/update.conf" <<EOF
 # Where craft-suite-update finds new releases: a folder with latest.txt and the .deb files it
 # lists (see packaging/craft-suite-update). ~/.config/craft-suite/update.conf overrides this.
+# A private GitHub repository also needs a read-only token, in your own
+# ~/.config/craft-suite/update.conf (never here, where every user can read it):
+#   TOKEN="github_pat_..."
 URL="$UPDATE_URL"
 EOF
 

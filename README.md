@@ -92,10 +92,28 @@ repository settings it needs:
 
 - Settings › Actions › General › Workflow permissions: **Read and write**, and
   **Allow GitHub Actions to create and approve pull requests** (for the pull requests).
-- The update check on installed copies reads `releases/latest/download/latest.txt`, which only
-  works anonymously for a **public** repository. For a private one, host the `.deb` and
-  `latest.txt` somewhere reachable and put that folder's URL in `/etc/craft-suite/update.conf`
-  (or `~/.config/craft-suite/update.conf`, or `CRAFT_SUITE_UPDATE_URL`).
+- The update check on installed copies reads the newest release. For a **public** repository
+  that needs nothing more. For a **private** one, give each computer a read-only token (below).
+
+### Updates from a private repository
+
+1. On GitHub: your picture › **Settings › Developer settings › Personal access tokens ›
+   Fine-grained tokens › Generate new token**. Pick an expiry date; under **Repository access**
+   choose **Only select repositories** and this repository; under **Permissions › Repository
+   permissions** set **Contents** to **Read-only**. Generate it and copy it (`github_pat_...`).
+2. On each computer with Craft Suite (as yourself, not with `sudo`):
+
+   ```sh
+   mkdir -p ~/.config/craft-suite
+   echo 'TOKEN="github_pat_...paste it here..."' >> ~/.config/craft-suite/update.conf
+   chmod 600 ~/.config/craft-suite/update.conf
+   ```
+
+3. Then **Check for updates** on the Home page (or in Settings), or `craft-suite-update` in a
+   terminal, finds and installs new releases; it asks for your password to install.
+
+The token can only read this repository. It is stored in that file as plain text, readable only by
+you (`chmod 600`); when it expires or you revoke it on GitHub, make a new one and replace the line.
 
 ## Your own changes
 
