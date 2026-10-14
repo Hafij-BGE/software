@@ -127,6 +127,9 @@ pub struct SuiteApp {
     allow_close: bool,
     close_requested: bool,
     pub updater: update::Updater,
+    /// Ask AI: its channels, keys, panel and conversations.
+    #[cfg(feature = "ai")]
+    pub ai: crate::ai::Ai,
     pub title_sent: String,
     pub tabbar: crate::tabbar::TabBarState,
     /// A short message at the bottom of the window, and when it appeared.
@@ -229,6 +232,8 @@ impl SuiteApp {
             allow_close: false,
             close_requested: false,
             updater: update::Updater::new(),
+            #[cfg(feature = "ai")]
+            ai: crate::ai::Ai::new(),
             title_sent: String::new(),
             tabbar: Default::default(),
             toast: None,
@@ -933,6 +938,8 @@ impl eframe::App for SuiteApp {
             ctx.send_viewport_cmd(egui::ViewportCommand::BeginResize(dir));
         }
         self.apply_actions(ctx);
+        #[cfg(feature = "ai")]
+        crate::ai::logic(self, ctx);
         if self.tabs.is_empty() {
             let kind = match self.settings.new_tab_opens {
                 NewTabOpens::App(k) => k,
@@ -1010,6 +1017,8 @@ impl eframe::App for SuiteApp {
 
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
         crate::tabbar::show(self, ui);
+        #[cfg(feature = "ai")]
+        crate::ai::panel(self, ui);
         if std::mem::take(&mut self.skip_frame) {
             ui.ctx().request_repaint();
         } else {

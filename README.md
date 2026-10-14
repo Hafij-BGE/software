@@ -31,6 +31,9 @@ repositories, with room for your own changes.
   folder or remove it from the list).
 - **Updates**: a daily GitHub workflow merges new upstream commits; installed copies update with
   `craft-suite-update` or **Check for updates** on the Home page.
+- **Ask AI** (desktop): an assistant beside every tab that answers from the document you're on and
+  makes the changes you accept, live in the tab; through AI providers you choose, with your own
+  free keys ([below](#ask-ai)).
 
 ## Layout
 
@@ -164,17 +167,100 @@ each start opens its own window (no handing files to an open window), and **Get 
 Home page opens the Releases page, where you download the newer installer and run it over the old
 one.
 
+## Ask AI
+
+Click **Ask AI** in the tab bar: a panel opens beside the tab. Each tab has its own conversation
+and the AI sees only that tab (the Home page's conversation sees no document).
+
+- **Answers from your document**: summarise, explain, improve the selected text, suggest a chart…
+  Suggested questions show for each kind of tab; **Copy**, **Stop** and **New chat** are there.
+- **Changes you can see**: when you ask for a change, the answer lists the steps (insert text,
+  apply a style, add slides, fill cells, make a chart…). **Apply** makes them in the tab at once;
+  **Ctrl+Z** undoes them. The AI can only use a short list of editing commands: nothing that opens,
+  saves, prints or deletes files.
+- **Data analyser**: **Attach CSV…** (any tab) or **Analyse sheet** (a spreadsheet tab). Craft Suite
+  computes the statistics itself, per column n, missing, mean ± SD, median (IQR), min–max, group
+  comparisons and correlations, shows them as a table, and sends **only these numbers** to the AI,
+  never the rows. The AI is told to explain them and never calculate.
+- **Private** (on by default, per chat): the AI sees your question, the headings or slide titles,
+  the selected text and the computed statistics. Off: also the full text, speaker notes and the
+  sheet's first rows (up to a size limit). Every question shows what was shared.
+- The AI is told to answer only from what it's given, to say when something is missing, and never
+  to invent numbers, dates, citations or names. Answers show as plain formatted text; only
+  http, https and mailto links are clickable.
+
+### Adding your keys
+
+Settings › **Ask AI** › *Add a channel*: OpenRouter, Google Gemini, Groq or Mistral. Each channel
+has a **Get a free key** link to the provider's key page; paste the key into the app (**never into
+a chat, an issue or a file in this repository**), then **Find models** and **Test this channel**.
+
+- Keys are stored in your system keyring (GNOME/KDE's Secret Service on Linux, Credential Manager on
+  Windows), or, without one, in `~/.config/craft-suite/ai-keys.json` readable only by you. Never in
+  the settings, the program, the `.deb` or this repository. Each key is sent only to its own
+  provider, straight from your computer.
+- Keys don't sync between computers: add them on each one.
+
+### How switching works
+
+Channels are tried in their order (↑/↓). The first that can answer does. On a rate limit (429),
+daily limit, used-up quota, refused key or server error, the question goes to the next channel and
+the answer says why it switched ("Switched channels"). A channel that hit a limit **rests**:
+
+- per-minute limits: for the time the provider says (Retry-After), else a minute;
+- daily limits: until the limit resets, midnight UTC (Google Gemini: midnight Pacific time);
+- OpenRouter's daily free-request limit counts for all its free models together; Craft Suite asks
+  OpenRouter how many free requests are left to tell it from a per-minute limit;
+- a refused key: until you change the key or test the channel again.
+
+Settings shows each channel as **Ready** or **Resting until …**. OpenRouter's model **auto** reads
+its free models live and tries the strongest first (by OpenRouter's intelligence index where it
+lists one, else by size), up to four per question.
+
+### Limits
+
+- Free models are weaker than paid ones, and free limits are low (as of October 2026, OpenRouter's
+  free models allow 50 requests a day, 1000 after buying 10 credits; Google, Groq and Mistral show
+  your limits in their consoles). Check the providers' pages: limits change.
+- Free plans may use what you send to improve their models: Google's terms say so for unpaid use,
+  Mistral's free mode does unless you opt out (Admin › Privacy), and OpenRouter's free models depend
+  on the provider behind each one. Keep Private on for anything sensitive.
+- Ask AI needs an internet connection; it is in the desktop suite (Linux, Windows), not the Android
+  app.
+
+### Turning it off, or removing it
+
+- **Off:** Settings › Ask AI › *Turn on Ask AI*. No button, no panel, nothing is sent. Channels and
+  keys stay for when you turn it back on.
+- **Delete your data:** Settings › Ask AI › *Remove all AI data…* deletes every key (from the
+  keyring too), channel and chat.
+- **Remove it from the program:** everything is in `suite/src/ai/`, behind the `ai` Cargo feature
+  (on by default). Build without it with `cargo build --release --no-default-features` in `suite/`,
+  or remove `"ai"` from `default` in `suite/Cargo.toml`; to delete it for good, delete
+  `suite/src/ai/` and the lines marked `#[cfg(feature = "ai")]`.
+
 ## Android
 
 Every release also has `craft-suite_<version>.apk` (Android 8.0 or newer): a small app that shows
 WordCraft, DeckCraft and GridCraft's **web versions** (the same apps, compiled to WebAssembly) from
-inside the app, so it works offline. Its first page picks Document, Presentation or Spreadsheet;
-**Back** returns there.
+inside the app, so it works offline. Its first page has New Document, Presentation and Spreadsheet,
+**Open a file** and your **Recent** files; **Back** returns there.
 
 - **Install:** download the `.apk` on the phone (logged in to GitHub: the repository is private),
   open it, and allow installing apps from your browser or file manager when Android asks.
-- **Opening and saving:** File › Open in each app picks a file from the phone; saving asks where
-  to put the file (the system's Save screen).
+- **Opening and saving:** **Open a file** (or File › Open in each app) picks a file from the
+  phone; saving asks where to put the file (the system's Save screen).
+- **Open with:** documents, presentations and spreadsheets in your file manager, mail or chat apps
+  list **Craft Suite** (to edit) and **Craft Suite Viewer** (to read) under *Open with* and
+  *Share*: tap the file, pick one, and it opens in the right app.
+- **Read-only:** Craft Suite Viewer, or the **Read-only** switch on the first page (for Open a file
+  and Recent), opens a file to read: a document in Read Mode, a presentation as a slide show, a
+  spreadsheet as it is; typing, the on-screen keyboard and saving are off, and the file itself is
+  never changed. **Edit** (bottom left) opens the same file again, editable.
+- **Touch:** drag with **two fingers** to scroll, **pinch** to zoom; one finger selects and taps as
+  before. Scroll bars are wider and always shown, so a finger can grab them.
+- **Stylus:** a pen writes and selects at once, and a hand resting on the screen is ignored while
+  the pen is down.
 - **Not the desktop suite:** one document at a time, no tabs, and the apps' desktop layout (made
   for a mouse and a wide screen: a tablet, or a phone held sideways, works best). Printing, the
   spelling dictionary and other desktop-only parts depend on what each web version supports.
@@ -327,6 +413,11 @@ git stops with a conflict to resolve (`git status`, edit, `git add`, `git commit
 workflow opens a pull request with the conflict instead.
 
 Changes to the suite itself (the tab bar, settings, Home page) go in `suite/src/`.
+
+The Android app's changes to the apps (wider scroll bars, the commands its read-only mode runs) are
+patches in `android/patches/`, applied to `upstream/` only while `packaging/build-apk.sh` builds
+the web apps and undone afterwards, so they never conflict with upstream updates. A patch an update
+no longer fits is left out with a warning (the APK still builds, without that change).
 
 `upstream.conf` names the repositories and branches; point an app at your own fork there (then
 `git subtree pull` from it once by hand, or let the script do it on the next run).
