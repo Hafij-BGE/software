@@ -566,7 +566,5 @@ fn grid_open_with_system(target: &str) {
         log::warn!("refused to open {target:?}: only http, https and mailto links are opened");
         return;
     };
-    if let Err(e) = std::process::Command::new("xdg-open").arg(target.as_str()).spawn() {
-        log::warn!("xdg-open {target}: {e}");
-    }
+    crate::system::open(target.as_str());
 }

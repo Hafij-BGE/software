@@ -2,8 +2,9 @@
 
 [WordCraft](https://github.com/storytold/wordcraft), [DeckCraft](https://github.com/storytold/deckcraft)
 and [GridCraft](https://github.com/storytold/gridcraft) (open-source Rust reimplementations of Word,
-PowerPoint and Excel by the ArtCraft team) in **one window with tabs**, packaged as **one `.deb`**,
-kept up to date from the upstream repositories, with room for your own changes.
+PowerPoint and Excel by the ArtCraft team) in **one window with tabs**, packaged as **one `.deb`**
+(plus a **Windows** installer and an **Android** app), kept up to date from the upstream
+repositories, with room for your own changes.
 
 - **Tabs that mix apps**: a Word document, a slide deck and a spreadsheet side by side, each in its
   own tab with its app's icon and colour.
@@ -34,7 +35,9 @@ upstream/deckcraft/   DeckCraft, as a git subtree
 upstream/gridcraft/   GridCraft, as a git subtree
 upstream.conf         which repositories and branches upstream/ follows
 suite/                the Craft Suite app: the tabbed window that hosts all three
-packaging/            build-deb.sh, desktop entries, craft-suite-update
+packaging/            build-deb.sh, build-windows.sh, build-apk.sh, desktop entries,
+                      craft-suite-update, publish-release.sh
+android/              the Android app: a WebView around the three apps' web versions
 scripts/              update-upstream.sh, merge-locks.py
 .github/workflows/    build-deb.yml (build + release), sync-upstream.yml (daily upstream merge)
 ```
@@ -136,6 +139,61 @@ installed (it ships the same CLI tools, file types and icons).
 
 Restart Craft Suite after an update. Nothing is installed without your password.
 
+## Windows
+
+Every release also has a Windows (64-bit, Windows 10 or 11) build, the same suite as on Linux:
+
+- `craft-suite_<version>_windows-x64-setup.exe`: the installer. It installs to Program Files (or
+  just for you, if you choose), adds Craft Suite, WordCraft, DeckCraft and GridCraft to the Start
+  menu, offers a desktop shortcut, and lists Craft Suite under **Open with** for documents,
+  presentations and spreadsheets (without taking over your defaults). Uninstall it in
+  Settings › Apps.
+- `craft-suite_<version>_windows-x64.zip`: no installer; unzip it anywhere and run
+  `craft-suite.exe`.
+
+The files aren't code-signed, so Windows SmartScreen warns about an unknown publisher the first
+time: **More info › Run anyway**. Settings are kept in `%APPDATA%\craft-suite`. On Windows, for now,
+each start opens its own window (no handing files to an open window), and **Get updates** on the
+Home page opens the Releases page, where you download the newer installer and run it over the old
+one.
+
+## Android
+
+Every release also has `craft-suite_<version>.apk` (Android 8.0 or newer): a small app that shows
+WordCraft, DeckCraft and GridCraft's **web versions** (the same apps, compiled to WebAssembly) from
+inside the app, so it works offline. Its first page picks Document, Presentation or Spreadsheet;
+**Back** returns there.
+
+- **Install:** download the `.apk` on the phone (logged in to GitHub: the repository is private),
+  open it, and allow installing apps from your browser or file manager when Android asks.
+- **Opening and saving:** File › Open in each app picks a file from the phone; saving asks where
+  to put the file (the system's Save screen).
+- **Not the desktop suite:** one document at a time, no tabs, and the apps' desktop layout (made
+  for a mouse and a wide screen: a tablet, or a phone held sideways, works best). Printing, the
+  spelling dictionary and other desktop-only parts depend on what each web version supports.
+- **Updates:** install the newer `.apk` over the old one. Android only allows that when both are
+  signed with the same key, so the repository needs a signing key of its own (below); until then
+  each build has a new key, and an update needs uninstalling the old app first.
+
+### The Android signing key (once)
+
+On any computer with Java (`sudo apt install default-jdk-headless` on Ubuntu):
+
+```sh
+ keytool -genkeypair -keystore craft-suite.jks -alias craft-suite -keyalg RSA -keysize 3072 \
+   -validity 36500 -dname "CN=Craft Suite"
+base64 -w0 craft-suite.jks > craft-suite.jks.txt
+```
+
+keytool asks for a password: choose one and keep it. Then, on GitHub, Settings › Secrets and
+variables › Actions › **New repository secret**, twice:
+
+- `ANDROID_KEYSTORE_BASE64`: the contents of `craft-suite.jks.txt`
+- `ANDROID_KEYSTORE_PASSWORD`: the password
+
+Keep `craft-suite.jks` and its password somewhere safe (not in the repository): every future
+update must be signed with it. Delete `craft-suite.jks.txt` afterwards.
+
 ## Uninstall
 
 ```sh
@@ -164,6 +222,15 @@ interface fonts) from [craft-fonts](https://github.com/storytold/craft-fonts); l
 quicker build with egui's default fonts. A first build takes a while (three office apps).
 
 To try the window without packaging: `cd suite && cargo run --release`.
+
+**Windows:** in Git Bash, with Rust (`rustup`, MSVC) and, for the installer,
+[Inno Setup 6](https://jrsoftware.org/isinfo.php): `packaging/build-windows.sh --with-fonts`
+(-> `dist/craft-suite_<version>_windows-x64.zip` and `-setup.exe`).
+
+**Android:** with Rust's `wasm32-unknown-unknown` target, [trunk](https://trunkrs.dev), a JDK and
+the Android SDK (`ANDROID_HOME`, a platform and build-tools): `packaging/build-apk.sh`
+(-> `dist/craft-suite_<version>.apk`; set `ANDROID_KEYSTORE` and `ANDROID_KEYSTORE_PASSWORD` to sign
+it with your key).
 
 ## Updates from upstream
 

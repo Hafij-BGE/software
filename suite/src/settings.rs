@@ -352,6 +352,10 @@ pub fn no_prefs() -> bool {
 }
 
 pub fn config_dir() -> Option<std::path::PathBuf> {
+    // Windows: %APPDATA% (C:\Users\<you>\AppData\Roaming), as WordCraft keeps its settings.
+    if cfg!(windows) {
+        return std::env::var_os("APPDATA").filter(|d| !d.is_empty()).map(std::path::PathBuf::from);
+    }
     std::env::var_os("XDG_CONFIG_HOME")
         .filter(|d| !d.is_empty())
         .map(std::path::PathBuf::from)

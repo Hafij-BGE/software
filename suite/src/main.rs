@@ -6,6 +6,9 @@
 //! default), a second `craft-suite` hands its files to the window already open and exits.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
+// No console window behind the suite on Windows (release builds).
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
+
 mod app;
 mod hosts;
 mod instance;
@@ -13,6 +16,7 @@ mod kind;
 mod look;
 mod pages;
 mod settings;
+mod system;
 mod tabbar;
 mod update;
 
@@ -104,6 +108,7 @@ fn main() -> std::process::ExitCode {
         // Tabs in the title bar: the suite draws the window buttons (see `tabbar`).
         .with_decorations(settings.title_bar == settings::TitleBar::System)
         .with_icon(app::icon_data());
+    #[cfg_attr(not(all(unix, not(target_os = "macos"))), allow(unused_mut))]
     let mut options = eframe::NativeOptions { viewport, ..Default::default() };
     // As WordCraft and DeckCraft do: winit has no file drag-and-drop on Wayland, so run through
     // XWayland when it's there. CRAFT_SUITE_WAYLAND=1 keeps the native Wayland backend.

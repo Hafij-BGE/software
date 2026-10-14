@@ -3,21 +3,30 @@
 //!
 //! The protocol is a few lines of text: `open <absolute path>`, `new <word|deck|grid|home>`, and
 //! `focus` when there's nothing else to do.
+//!
+//! On Windows there's no such socket yet: each start opens a window of its own.
 
+#[cfg(unix)]
 use std::io::{BufRead, BufReader, Write};
+#[cfg(unix)]
 use std::os::unix::net::{UnixListener, UnixStream};
+#[cfg(unix)]
 use std::path::PathBuf;
-use std::sync::mpsc::{Receiver, channel};
+use std::sync::mpsc::Receiver;
+#[cfg(unix)]
+use std::sync::mpsc::channel;
 
 use crate::Request;
 use crate::kind::Kind;
 
+#[cfg_attr(not(unix), allow(dead_code))]
 pub enum Message {
     Open(String),
     New(Kind),
     Focus,
 }
 
+#[cfg(unix)]
 fn socket_path() -> PathBuf {
     if let Some(dir) = std::env::var_os("XDG_RUNTIME_DIR").filter(|d| !d.is_empty()) {
         return PathBuf::from(dir).join("craft-suite.sock");
@@ -27,6 +36,7 @@ fn socket_path() -> PathBuf {
     std::env::temp_dir().join(format!("craft-suite-{uid}.sock"))
 }
 
+#[cfg(unix)]
 fn kind_word(k: Kind) -> &'static str {
     match k {
         Kind::Word => "word",
@@ -37,6 +47,21 @@ fn kind_word(k: Kind) -> &'static str {
 }
 
 /// Sends `request` to a running window; true when one took it.
+#[cfg(not(unix))]
+pub fn forward(_request: &Request) -> bool {
+    false
+}
+
+#[cfg(not(unix))]
+pub fn serve(_ctx: egui::Context) -> Option<Receiver<Message>> {
+    None
+}
+
+#[cfg(not(unix))]
+pub fn cleanup() {}
+
+/// Sends `request` to a running window; true when one took it.
+#[cfg(unix)]
 pub fn forward(request: &Request) -> bool {
     let Ok(mut stream) = UnixStream::connect(socket_path()) else { return false };
     let mut text = String::new();
@@ -52,6 +77,7 @@ pub fn forward(request: &Request) -> bool {
 
 /// Listens for other `craft-suite` processes; None when another window already listens (or the
 /// socket can't be made), in which case this window runs on its own.
+#[cfg(unix)]
 pub fn serve(ctx: egui::Context) -> Option<Receiver<Message>> {
     let path = socket_path();
     if UnixStream::connect(&path).is_ok() {
@@ -86,6 +112,7 @@ pub fn serve(ctx: egui::Context) -> Option<Receiver<Message>> {
 }
 
 /// Removes the socket when the window closes.
+#[cfg(unix)]
 pub fn cleanup() {
     let _ = std::fs::remove_file(socket_path());
 }

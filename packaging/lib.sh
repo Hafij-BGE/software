@@ -1,0 +1,44 @@
+# Shared by build-deb.sh, build-windows.sh and build-apk.sh: the version, and what each upstream
+# app is built from. Sourced with ROOT set to the repository.
+
+# ---- version: VERSION + the commit's time (UTC, to the minute), so a newer commit sorts higher
+# however it reached the branch (a squash merge leaves few commits, so a commit count could go
+# down). "r" first: older builds were "+r<count>", and dpkg sorts "+r..." above a bare "+2026...".
+BASE="$(tr -d ' \n\r' <"$ROOT/VERSION")"
+STAMP="$(TZ=UTC git -C "$ROOT" log -1 --format=%cd --date=format-local:%Y%m%d%H%M 2>/dev/null || date -u +%Y%m%d%H%M)"
+VERSION="${CRAFT_SUITE_VERSION:-$BASE+r$STAMP}"
+
+# The upstream commit each app was last merged from (git subtree records it).
+upstream_commit() {
+  git -C "$ROOT" log -1 --grep="^git-subtree-dir: upstream/$1\$" --format=%B 2>/dev/null |
+    sed -n 's/^git-subtree-split: *//p' | head -n1
+}
+upstream_version() {
+  awk '/^\[/ { p = ($0 == "[workspace.package]"); next } p && $1 == "version" { gsub(/[" \r]/, "", $3); print $3; exit }' \
+    "$ROOT/upstream/$1/Cargo.toml"
+}
+# The craft-fonts commit an app's release workflow embeds.
+fonts_ref() {
+  sed -n 's/^ *craft-fonts-ref: *\([0-9a-f]\{7,40\}\).*/\1/p' "$ROOT/upstream/$1/.github/workflows/release.yml" 2>/dev/null | head -n1
+}
+fonts_dir() {
+  local ref="$1" dir="$ROOT/build/craft-fonts-$1"
+  if [ ! -f "$dir/fonts/manifest.txt" ]; then
+    rm -rf "$dir"
+    git init -q "$dir"
+    git -C "$dir" fetch -q --depth 1 https://github.com/storytold/craft-fonts "$ref"
+    git -C "$dir" -c advice.detachedHead=false checkout -q FETCH_HEAD
+  fi
+  echo "$dir"
+}
+
+# What this build is made from, for the About section (upstream.txt).
+upstream_summary() {
+  echo "craft-suite $VERSION ($(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown))"
+  local name url branch sha
+  while read -r name url branch; do
+    case "$name" in '' | \#*) continue ;; esac
+    sha="$(upstream_commit "$name")"
+    echo "$name $(upstream_version "$name") ${sha:0:12} ($url $branch)"
+  done < <(tr -d '\r' <"$ROOT/upstream.conf")
+}

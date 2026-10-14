@@ -390,9 +390,7 @@ fn recent_row(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette, columns: &Columns,
         if let Some(dir) = p.parent()
             && ui.add_enabled(dir.exists(), egui::Button::new("Show in folder")).clicked()
         {
-            if let Err(e) = std::process::Command::new("xdg-open").arg(dir).spawn() {
-                log::warn!("xdg-open {}: {e}", dir.display());
-            }
+            crate::system::open(dir);
             ui.close();
         }
         ui.separator();
