@@ -254,9 +254,9 @@ inside the app, so it works offline. Its first page has New Document, Presentati
   list **Craft Suite** (to edit) and **Craft Suite Viewer** (to read) under *Open with* and
   *Share*: tap the file, pick one, and it opens in the right app.
 - **Read-only:** Craft Suite Viewer, or the **Read-only** switch on the first page (for Open a file
-  and Recent), opens a file to read: a document in Read Mode with editing restricted, a
-  presentation as a slide show, a spreadsheet with its sheets protected; typing, the on-screen
-  keyboard and saving are off. **Edit** (bottom right) opens the same file again, editable.
+  and Recent), opens a file to read: a document in Read Mode, a presentation as a slide show, a
+  spreadsheet as it is; typing, the on-screen keyboard and saving are off, and the file itself is
+  never changed. **Edit** (bottom left) opens the same file again, editable.
 - **Touch:** drag with **two fingers** to scroll, **pinch** to zoom; one finger selects and taps as
   before. Scroll bars are wider and always shown, so a finger can grab them.
 - **Stylus:** a pen writes and selects at once, and a hand resting on the screen is ignored while

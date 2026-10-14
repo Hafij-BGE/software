@@ -10,8 +10,8 @@
 // - Opening: a file opened with Craft Suite from another app (a file manager, mail) arrives in the
 //   app as if it had been dropped on it.
 // - Read-only (?readonly=1: Craft Suite Viewer, or the launcher's Read-only switch): WordCraft opens
-//   the file in Read Mode with editing restricted, DeckCraft as a slide show, GridCraft with its
-//   sheets protected; typing and saving are off, and an Edit button turns it all back on.
+//   the file in Read Mode and DeckCraft as a slide show; in all three typing, the on-screen keyboard
+//   and saving are off, and an Edit button opens the file again, editable.
 (function () {
   "use strict";
   if (window.__craftSuiteShim || !window.CraftSuiteAndroid) return;
@@ -312,7 +312,6 @@
   // ---- read-only -------------------------------------------------------------------------------
 
   var APP = (location.pathname.match(/\/(word|deck|grid)\//) || [])[1];
-  var SHEETS = 32; // GridCraft: sheets tried (a step for a sheet that isn't there is skipped)
 
   // The apps' own commands, through android/patches/android-commands.patch.
   function cmd(id, params, afterOpen) {
@@ -323,18 +322,13 @@
     return true;
   }
 
+  // Only steps that change how the file is shown, never the file (a changed file would ask
+  // "Leave without saving?"): typing and saving are off in read-only mode anyway.
   function readOnlySteps(afterOpen) {
     if (APP === "word") {
-      cmd("review.restrict", { mode: "readOnly" }, afterOpen);
       cmd("view.readMode", {}, afterOpen);
     } else if (APP === "deck") {
       cmd("show.fromStart", {}, afterOpen);
-    } else if (APP === "grid") {
-      cmd("review.protectWorkbook", { on: true }, afterOpen);
-      for (var i = SHEETS - 1; i >= 0; i--) {
-        cmd("sheet.activate", { sheet: i }, afterOpen);
-        cmd("review.protectSheet", {}, afterOpen);
-      }
     }
   }
 
@@ -348,18 +342,7 @@
   }
 
   function editSteps() {
-    if (APP === "word") {
-      cmd("review.restrict", { mode: "none" });
-      key("Escape"); // out of Read Mode
-    } else if (APP === "deck") {
-      key("Escape"); // out of the slide show
-    } else if (APP === "grid") {
-      cmd("review.protectWorkbook", { on: false });
-      for (var i = SHEETS - 1; i >= 0; i--) {
-        cmd("sheet.activate", { sheet: i });
-        cmd("review.unprotectSheet", {});
-      }
-    }
+    if (APP === "word" || APP === "deck") key("Escape"); // out of Read Mode / the slide show
   }
 
   // Keys that look or move, never change: arrows, paging, Escape, copy, select all, find, zoom.
@@ -393,7 +376,7 @@
     if (!readOnly || document.getElementById("craft-suite-ro")) return;
     var bar = document.createElement("div");
     bar.id = "craft-suite-ro";
-    bar.style.cssText = "position:fixed;right:16px;bottom:44px;z-index:2147483647;display:flex;align-items:center;gap:10px;" +
+    bar.style.cssText = "position:fixed;left:16px;bottom:44px;z-index:2147483647;display:flex;align-items:center;gap:10px;" +
       "padding:6px 6px 6px 14px;border-radius:999px;background:rgba(32,33,36,.92);color:#fff;" +
       "font:14px/1.2 system-ui,Roboto,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.25);user-select:none";
     var label = document.createElement("span");
