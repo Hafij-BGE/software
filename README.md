@@ -50,12 +50,13 @@ password manager, not in this repository. Then paste these lines into a terminal
 
 ```sh
 cd ~/Downloads
-read -rsp 'Paste the token, then press Enter: ' TOKEN; echo
+TOKEN="$(echo 'U2FsdGVkX186wTCYtCm9KNC5hOcBgdKJDXHYnDt10FC4F/LhnLDF2Ai0dAx+nNUbK2eEBAZ2YWnqLyorDvm9LPyWX7NvU7sjMPMxPBbok3O911prLnelXKVZep5NmKEWZgEPpc242VbT83tFSWHkZA==' | openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -md sha256 -a -A)"
+mkdir -p ~/.config/craft-suite && (umask 077; printf 'TOKEN="%s"\n' "$TOKEN" >> ~/.config/craft-suite/update.conf)
 ```
 
-The first line goes to Downloads. The second waits for the token: paste it and press Enter. It
-doesn't show while you paste, and it isn't saved anywhere. Then paste these lines, as they are
-(they use the token you just entered; don't put the token into them):
+The second line asks for the password (it doesn't show while you type) and unlocks the token.
+The third saves it for this computer's updates, so **Check for updates** works from then on.
+Then paste these lines, as they are:
 
 ```sh
 ID="$(curl -4 --http1.1 --retry 3 -fsSL -H "Authorization: Bearer $TOKEN" \
