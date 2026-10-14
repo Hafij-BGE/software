@@ -39,11 +39,26 @@ compiled straight from `upstream/*/apps/*/src`, so upstream fixes to them carry 
 
 ## Install
 
-Download `craft-suite_<version>_amd64.deb` from this repository's Releases page, then:
+Works on 64-bit PCs (amd64) with Ubuntu 22.04 or newer, Debian 12 or newer, Linux Mint 21 or
+newer, and similar distributions.
 
-```sh
-sudo apt install ./craft-suite_*_amd64.deb
-```
+1. Open this repository's [**Releases**](https://github.com/Hafij-BGE/software/releases) page (log in to GitHub first: the
+   repository is private) and, under **Assets** of the newest release, download
+   `craft-suite_<version>_amd64.deb`, for example `craft-suite_0.1.0-r202610141015_amd64.deb`.
+2. In a terminal, go to the folder the file was saved in (usually Downloads) and install it:
+
+   ```sh
+   cd ~/Downloads
+   ls craft-suite_*.deb                      # check the file is there
+   sudo apt install ./craft-suite_*_amd64.deb
+   ```
+
+   Keep the `./`: it tells apt to install that file. apt also installs the system libraries the
+   suite needs. `Error: Unsupported file ./craft-suite_*_amd64.deb` means the file isn't in the
+   folder you're in: `cd` to where it is (`find ~ -name 'craft-suite*.deb'` finds it).
+
+A build from the **Actions** page (a run of "Build .deb" › **Artifacts** › `craft-suite-deb`)
+downloads as a zip: `unzip craft-suite-deb.zip` first, then the same `apt install` line.
 
 Start **Craft Suite** from the applications menu (there are also WordCraft, DeckCraft and GridCraft
 entries, which open a new tab of that app), or from a terminal:
@@ -58,6 +73,32 @@ wordcraft-cli --help              # the headless converters/command runners are 
 The package replaces the upstream `wordcraft`, `deckcraft` and `gridcraft` packages if they're
 installed (it ships the same CLI tools, file types and icons).
 
+## Update
+
+- **From the app:** **Check for updates** on the Home page (or Settings › Updates) shows
+  "Update available" when there's a newer release; **Install update** installs it after asking for
+  your password. Settings › Starting › **Check for updates** checks each time the suite opens.
+  Because this repository is private, this needs a read-only token on each computer, set up once:
+  see [Updates from a private repository](#updates-from-a-private-repository).
+- **From a terminal:** `craft-suite-update` (asks before installing), or
+  `craft-suite-update --check` to only look.
+- **By hand:** download the newer `.deb` from Releases and run the same
+  `sudo apt install ./craft-suite_*_amd64.deb` in its folder. Settings and the files you had open
+  are kept.
+
+Restart Craft Suite after an update. Nothing is installed without your password.
+
+## Uninstall
+
+```sh
+sudo apt remove craft-suite     # the program, menu entries, file types and icons
+sudo apt purge craft-suite      # the same, and /etc/craft-suite/update.conf
+```
+
+Your settings stay in your home folder, in case you reinstall. To delete them too:
+`rm -rf ~/.config/craft-suite` (the suite's) and, only if you don't also use the standalone apps,
+`~/.config/wordcraft ~/.config/deckcraft ~/.config/gridcraft`. Your documents are never touched.
+
 ## Build it yourself
 
 On Ubuntu 22.04 or newer (or Debian 12+):
@@ -67,7 +108,7 @@ sudo apt install build-essential pkg-config git curl python3 libasound2-dev libx
   libwayland-dev libx11-dev libxcursor-dev libxrandr-dev libxi-dev libgl1-mesa-dev \
   libfontconfig1-dev libfreetype-dev
 curl https://sh.rustup.rs -sSf | sh            # Rust 1.90 or newer
-packaging/build-deb.sh --with-fonts            # -> dist/craft-suite_<version>_<arch>.deb
+packaging/build-deb.sh --with-fonts            # -> dist/craft-suite_0.1.0-r<time>_amd64.deb
 ```
 
 `--with-fonts` embeds the fonts the official releases embed (including the Japanese and Chinese
@@ -84,14 +125,32 @@ scripts/update-upstream.sh           # merge them (all apps, or name some: wordc
 packaging/build-deb.sh               # build the new package
 ```
 
-On GitHub, `.github/workflows/sync-upstream.yml` does this every day: it merges the upstream changes
-on a branch, checks that the suite still compiles, and opens a pull request; merging it builds and
-publishes a new release, which installed copies then find. Set the repository variable
-`AUTO_UPDATE` to `true` to skip the pull request when the merge is clean and compiles. Two
-repository settings it needs:
+### What happens automatically
 
+1. **Every day at 03:17 UTC**, `.github/workflows/sync-upstream.yml` checks WordCraft, DeckCraft and
+   GridCraft for new commits. With nothing new, it stops there.
+2. With new commits, it merges them into `upstream/` (keeping your own changes) on the branch
+   `upstream-sync`, checks that the suite still compiles, and opens a pull request.
+3. **Merging a pull request into `main` builds the `.deb` and publishes a release**
+   (`.github/workflows/build-deb.yml`, about 35 minutes). Any push to `main` does, so every change
+   to `main` becomes a release.
+4. Installed copies find it with **Check for updates** (above).
+
+To skip the pull request in step 2, set the repository variable **`AUTO_UPDATE`** to `true`
+(Settings › Secrets and variables › Actions › Variables › New repository variable): an update that
+merges cleanly and compiles is then pushed to `main` and released with no click. An update that
+conflicts with your changes, or doesn't compile, always comes as a pull request instead, so nothing
+broken is released.
+
+Releases are named after the time of the commit they're built from:
+`Craft Suite 0.1.0+r202610141015` is 2026-10-14 10:15 UTC, so a newer build always has a higher
+version. (The file names spell the `+` as `-`.) `VERSION` holds the `0.1.0` part.
+
+Repository settings this needs:
+
+- Settings › General › **Default branch: `main`** (releases are published from it).
 - Settings › Actions › General › Workflow permissions: **Read and write**, and
-  **Allow GitHub Actions to create and approve pull requests** (for the pull requests).
+  **Allow GitHub Actions to create and approve pull requests** (for the sync pull requests).
 - The update check on installed copies reads the newest release. For a **public** repository
   that needs nothing more. For a **private** one, give each computer a read-only token (below).
 
