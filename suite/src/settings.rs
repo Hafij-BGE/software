@@ -119,6 +119,25 @@ impl SuiteTheme {
     }
 }
 
+/// Where the window's title bar (move, minimize, maximize, close) is.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TitleBar {
+    /// Drawn by the suite: the tabs sit in the title bar, with the window buttons beside them.
+    Integrated,
+    /// The desktop's own title bar above the tabs.
+    System,
+}
+
+impl TitleBar {
+    pub const ALL: [TitleBar; 2] = [TitleBar::Integrated, TitleBar::System];
+    pub fn label(self) -> &'static str {
+        match self {
+            TitleBar::Integrated => "Tabs in the title bar",
+            TitleBar::System => "The desktop's title bar",
+        }
+    }
+}
+
 /// What a new tab (the + button, Ctrl+Alt+T) opens.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum NewTabOpens {
@@ -183,6 +202,9 @@ pub struct Settings {
     pub tint_bar_with_active: bool,
     pub theme: SuiteTheme,
 
+    // ---- window
+    pub title_bar: TitleBar,
+
     // ---- behaviour
     pub new_tab_opens: NewTabOpens,
     /// Opening a file reuses an untouched blank tab of the same app instead of adding a tab.
@@ -232,6 +254,7 @@ impl Default for Settings {
             home_color: Rgb([0x6b, 0x6f, 0x7a]),
             tint_bar_with_active: false,
             theme: SuiteTheme::System,
+            title_bar: TitleBar::Integrated,
             new_tab_opens: NewTabOpens::Home,
             reuse_blank_tab: true,
             restore_tabs: true,
