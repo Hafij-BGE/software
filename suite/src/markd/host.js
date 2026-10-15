@@ -2,12 +2,17 @@
 // It provides the `MarkdHost` the page's native.ts looks for (the Android app's is injected by
 // androidx.webkit), reports the document's name and unsaved state, and hands the suite's tab
 // shortcuts to the window.
+//
+// Every message carries this tab's secret (`token`, filled in by the suite), which only this
+// script knows: the suite drops messages without it, such as ones from frames inside a document.
 (() => {
   if (window.top !== window || window.MarkdHost) return
   const ipc = window.ipc
-  const post = (message) => ipc.postMessage(JSON.stringify(message))
+  const token = '@TOKEN@'
+  const send = (message) => ipc.postMessage(JSON.stringify({ t: token, m: message }))
+  const post = (message) => send(JSON.stringify(message))
 
-  window.MarkdHost = { postMessage: (message) => ipc.postMessage(message), onmessage: null }
+  window.MarkdHost = { postMessage: (message) => send(String(message)), onmessage: null }
   // Answers to the page's calls.
   window.__craftSuiteReply = (data) => {
     const handler = window.MarkdHost.onmessage

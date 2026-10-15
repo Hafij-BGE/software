@@ -33,6 +33,8 @@ use crate::kind::Kind;
 /// tab, the web view's thread and the bridge's workers.
 pub struct Shared {
     pub id: u64,
+    /// The secret the page's messages carry (see host.js).
+    token: String,
     state: Mutex<State>,
 }
 
@@ -106,7 +108,7 @@ fn repaint() {
     }
 }
 
-/// The page sends `json` to the suite (an answer to a call is sent from a worker thread).
+/// Hands `cmd` to the views' thread.
 fn send(cmd: Cmd) {
     host::send(cmd);
 }
@@ -226,10 +228,32 @@ fn serve(view: &str, uri: &str) -> (u16, &'static str, Vec<u8>) {
 }
 
 /// The script every page gets before its own: the `MarkdHost` the page's `native.ts` looks for.
-const HOST_JS: &str = include_str!("host.js");
+fn host_js(tab: &Shared) -> String {
+    include_str!("host.js").replace("@TOKEN@", &tab.token)
+}
+
+/// A secret no page can guess: the std hasher's random keys, the time and the tab.
+fn new_token(id: u64) -> String {
+    use std::hash::{BuildHasher, Hasher};
+    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+    (0..4u64)
+        .map(|i| {
+            let mut h = std::collections::hash_map::RandomState::new().build_hasher();
+            h.write_u64(id ^ i);
+            h.write_u128(now);
+            format!("{:016x}", h.finish())
+        })
+        .collect()
+}
 
 /// Handles a message from the page: a bridge call, or one of the suite's own.
 fn on_message(tab: &Arc<Shared>, text: &str) {
+    let Ok(envelope) = serde_json::from_str::<serde_json::Value>(text) else { return };
+    if envelope.get("t").and_then(|v| v.as_str()) != Some(tab.token.as_str()) {
+        log::warn!("tab {}: a message without the page's secret, ignored", tab.id);
+        return;
+    }
+    let Some(text) = envelope.get("m").and_then(|v| v.as_str()) else { return };
     log::debug!("tab {}: {}", tab.id, text.chars().take(200).collect::<String>());
     let Ok(msg) = serde_json::from_str::<serde_json::Value>(text) else { return };
     if let Some(kind) = msg.get("suite").and_then(|v| v.as_str()) {
@@ -297,6 +321,7 @@ impl MarkTab {
         let id = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let shared = Arc::new(Shared {
             id,
+            token: new_token(id),
             state: Mutex::new(State {
                 name: launch.and_then(|p| Path::new(p).file_name()).map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "Untitled.md".into()),
                 path: launch.map(PathBuf::from),

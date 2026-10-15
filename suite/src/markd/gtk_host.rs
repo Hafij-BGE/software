@@ -157,7 +157,7 @@ fn create(tab: Arc<Shared>, parent: u64, rect: PxRect) -> Result<(), String> {
         let messages = tab.clone();
         let mut builder = wry::WebViewBuilder::new_with_web_context(context)
             .with_id(&view_id)
-            .with_initialization_script_for_main_only(super::HOST_JS, true)
+            .with_initialization_script_for_main_only(super::host_js(&tab), true)
             .with_ipc_handler(move |req| super::on_message(&messages, req.body()))
             .with_navigation_handler(allow_navigation)
             .with_new_window_req_handler(|url, _| {

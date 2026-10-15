@@ -359,26 +359,28 @@
   ["keydown", "keypress", "keyup", "beforeinput", "input", "paste", "cut", "compositionstart", "compositionupdate", "compositionend"]
     .forEach(function (t) { window.addEventListener(t, guard, { capture: true, passive: false }); });
 
-  // No on-screen keyboard while reading: eframe's hidden text field asks for none.
+  // No on-screen keyboard while reading: eframe's hidden text field asks for none. It stays an
+  // ordinary (not readOnly) field: eframe refocuses it on every tap, and a focused readOnly field
+  // makes Android's keyboard service restart its connection each time, which the app felt as lag.
+  // Typing is blocked by `guard` anyway.
   function quietKeyboard() {
     var input = document.querySelector("input[type=text]");
-    if (!input) return;
-    if (readOnly) {
-      input.setAttribute("inputmode", "none");
-      input.readOnly = true;
-    } else {
-      input.removeAttribute("inputmode");
-      input.readOnly = false;
-    }
+    if (!input) return false;
+    if (readOnly) input.setAttribute("inputmode", "none");
+    else input.removeAttribute("inputmode");
+    input.readOnly = false;
+    return true;
   }
 
   function banner() {
     if (!readOnly || document.getElementById("craft-suite-ro")) return;
     var bar = document.createElement("div");
     bar.id = "craft-suite-ro";
+    // Opaque, no shadow, its own layer: the app's canvas under it redraws every frame, and a
+    // translucent, shadowed overlay made each of those frames costlier to put on screen.
     bar.style.cssText = "position:fixed;left:16px;bottom:44px;z-index:2147483647;display:flex;align-items:center;gap:10px;" +
-      "padding:6px 6px 6px 14px;border-radius:999px;background:rgba(32,33,36,.92);color:#fff;" +
-      "font:14px/1.2 system-ui,Roboto,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.25);user-select:none";
+      "padding:6px 6px 6px 14px;border-radius:999px;background:#202124;color:#fff;border:1px solid #3c4043;" +
+      "font:14px/1.2 system-ui,Roboto,sans-serif;user-select:none;contain:layout paint;will-change:transform";
     var label = document.createElement("span");
     label.textContent = "Read-only";
     var edit = document.createElement("button");
@@ -408,13 +410,19 @@
     document.body.appendChild(bar);
   }
 
+  // The banner as soon as there's a body; the keyboard setting once eframe has added its field.
   if (readOnly) {
-    var tries = 0;
-    var timer = setInterval(function () {
-      quietKeyboard();
+    var setUp = function () {
       if (document.body) banner();
-      if (++tries > 100 || document.querySelector("input[type=text]")) clearInterval(timer);
-    }, 100);
+      return document.body && quietKeyboard();
+    };
+    if (!setUp()) {
+      var watcher = new MutationObserver(function () {
+        if (setUp()) watcher.disconnect();
+      });
+      watcher.observe(document.documentElement, { childList: true, subtree: true });
+      setTimeout(function () { watcher.disconnect(); }, 20000);
+    }
   }
 
   // ---- a file opened from another app ------------------------------------------------------------
