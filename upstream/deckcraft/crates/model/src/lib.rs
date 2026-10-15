@@ -8,6 +8,7 @@
 #![forbid(unsafe_code)]
 
 pub mod anim;
+pub mod bidi;
 pub mod chart;
 pub mod defaults;
 pub mod edit;
@@ -27,6 +28,7 @@ pub use deckcraft_geom::{Rect, Size, Xfrm};
 use serde::{Deserialize, Serialize};
 
 pub use anim::{AnimClass, AnimStart, Animation, Transition};
+pub use bidi::{first_strong_is_rtl, is_rtl_script};
 pub use chart::Chart;
 pub use style::{ColorBase, ColorRef, Effects, Fill, Line, ShapeStyle};
 pub use table::{Cell, Table};
@@ -250,7 +252,8 @@ pub struct MediaClip {
     pub height: u32,
 }
 
-/// One ink stroke (Draw tab): points in slide coordinates with pressure.
+/// One ink stroke (Draw tab): points in slide coordinates with pressure (`0..=1`,
+/// where `1` is [`InkStroke::width`]).
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct InkStroke {
@@ -258,6 +261,24 @@ pub struct InkStroke {
     pub color: Rgba,
     pub width: f64,
     pub highlighter: bool,
+}
+
+/// True when every sample is the placeholder `0.5` written before a device reported pressure.
+/// Those strokes were drawn at [`InkStroke::width`] and still are.
+pub fn ink_pressure_is_legacy(points: &[(f64, f64, f32)]) -> bool {
+    !points.is_empty() && points.iter().all(|p| (p.2 - 0.5).abs() <= 1.0e-3)
+}
+
+/// Width of one ink sample. `pressure` of `1` is the pen width. A legacy flat stroke
+/// (`legacy`) draws at the pen width. A missing reading draws at the pen width too.
+/// A light touch stays visible (at least 8% of the pen).
+pub fn ink_sample_width(pen: f64, pressure: f32, legacy: bool) -> f64 {
+    let pen = if pen.is_finite() { pen.abs() } else { 0.0 };
+    if legacy {
+        return pen;
+    }
+    let p = if pressure.is_finite() { pressure.clamp(0.08, 1.0) } else { 1.0 };
+    pen * f64::from(p)
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -296,6 +317,10 @@ pub enum ShapeKind {
         xml: String,
         preview: Option<MediaId>,
         label: String,
+        /// The parts its XML points to (SmartArt data, an OLE embedding…), so a save writes them
+        /// back: (relationship id used in `xml`, relationship type, the part as a media item).
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        parts: Vec<(String, String, MediaId)>,
     },
 }
 
@@ -974,9 +999,21 @@ pub struct Presentation {
     /// sensitivity label and custom document properties.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub kept_parts: Vec<KeptPart>,
+    /// Drawing guides (View › Guides), shared by every slide (`p:guideLst` in viewProps).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub guides: Vec<DrawGuide>,
     /// Unmodelled presentation-level XML kept for round-trip.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub raw_ext: Option<String>,
+}
+
+/// A drawing guide: a vertical line at `pos` points from the slide's left edge, or a horizontal
+/// one from its top.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DrawGuide {
+    pub vertical: bool,
+    pub pos: f64,
 }
 
 impl Default for Presentation {
@@ -986,10 +1023,13 @@ impl Default for Presentation {
 }
 
 impl Presentation {
-    /// A fresh id, unique across slides, shapes, layouts, masters and media in this deck.
-    pub fn alloc_id(&mut self) -> u32 {
-        self.next_id = self.next_id.max(1).saturating_add(1);
-        self.next_id
+    /// A fresh id, unique across slides, shapes, layouts, masters and media in this deck. `None`
+    /// once every id is in use (a hostile file can arrive that way): the deck cannot grow
+    /// further, and callers must refuse the change rather than duplicate ids (#407).
+    pub fn alloc_id(&mut self) -> Option<u32> {
+        let next = self.next_id.max(1).checked_add(1)?;
+        self.next_id = next;
+        Some(next)
     }
     /// Make sure `next_id` is above every id in use (after loading a file).
     pub fn fix_next_id(&mut self) {
@@ -1045,13 +1085,13 @@ impl Presentation {
         self.media.iter().find(|m| m.id == id)
     }
     /// Add media bytes, reusing an identical existing item.
-    pub fn add_media(&mut self, name: &str, content_type: &str, data: Vec<u8>) -> MediaId {
+    pub fn add_media(&mut self, name: &str, content_type: &str, data: Vec<u8>) -> Option<MediaId> {
         if let Some(m) = self.media.iter().find(|m| m.data.len() == data.len() && *m.data == data) {
-            return m.id;
+            return Some(m.id);
         }
-        let id = MediaId(self.alloc_id());
+        let id = MediaId(self.alloc_id()?);
         self.media.push(MediaItem { id, name: name.into(), content_type: content_type.into(), data: Arc::new(data), link: None });
-        id
+        Some(id)
     }
     /// Section index containing a slide (by position), when sections exist.
     pub fn section_of(&self, slide: SlideId) -> Option<usize> {
