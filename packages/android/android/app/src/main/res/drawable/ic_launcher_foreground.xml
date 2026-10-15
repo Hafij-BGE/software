@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Page with a Markdown "M↓" mark, inside the 66dp adaptive-icon safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,28h32l10,10v42a2,2 0 0,1 -2,2H34a2,2 0 0,1 -2,-2V30a2,2 0 0,1 2,-2z" />
+    <path
+        android:fillColor="#C9DAF5"
+        android:pathData="M66,28v10h10z" />
+    <path
+        android:fillColor="#185ABD"
+        android:pathData="M38,72V48h6l5,7 5,-7h6v24h-6V58l-5,7 -5,-7v14z" />
+    <path
+        android:fillColor="#185ABD"
+        android:pathData="M64,48h6v12h5l-8,10 -8,-10h5z" />
+</vector>

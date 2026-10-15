@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Markd</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="titlebar">
+        <button id="btn-menu" type="button" class="icon-btn" aria-label="Files and recent documents"></button>
+        <div class="doc-title">
+          <span id="doc-name">Untitled.md</span>
+          <span id="dirty-dot" class="dirty-dot" title="Unsaved changes" hidden></span>
+        </div>
+        <button id="btn-undo" type="button" class="icon-btn" aria-label="Undo"></button>
+        <button id="btn-redo" type="button" class="icon-btn" aria-label="Redo"></button>
+        <button id="btn-save" type="button" class="icon-btn" aria-label="Save"></button>
+      </header>
+
+      <nav id="ribbon" class="ribbon" aria-label="Ribbon">
+        <div id="ribbon-tabs" class="ribbon-tabs" role="tablist"></div>
+        <div id="ribbon-body" class="ribbon-body" role="toolbar"></div>
+      </nav>
+
+      <div id="find-bar" class="find-bar" hidden>
+        <div class="find-row">
+          <input id="find-input" type="search" class="field" placeholder="Find" aria-label="Find" enterkeyhint="search" />
+          <span id="find-count" class="find-count"></span>
+          <button id="find-prev" type="button" class="icon-btn small" aria-label="Previous match">&#8593;</button>
+          <button id="find-next" type="button" class="icon-btn small" aria-label="Next match">&#8595;</button>
+          <button id="find-close" type="button" class="icon-btn small" aria-label="Close find">&#10005;</button>
+        </div>
+        <div class="replace-row">
+          <input id="replace-input" type="text" class="field" placeholder="Replace with" aria-label="Replace with" />
+          <button id="replace-one" type="button" class="btn small">Replace</button>
+          <button id="replace-all" type="button" class="btn small">All</button>
+        </div>
+      </div>
+
+      <main id="desk" class="desk">
+        <div id="page" class="page">
+          <div id="editor-host"></div>
+        </div>
+        <textarea id="source" class="source" spellcheck="false" aria-label="Markdown source"></textarea>
+      </main>
+
+      <footer class="statusbar">
+        <span id="status-pages"></span>
+        <span id="status-words"></span>
+        <span id="status-pen" class="status-pen" hidden></span>
+        <button id="status-zoom" type="button" class="status-zoom" aria-label="Toggle zoom"></button>
+      </footer>
+    </div>
+
+    <div id="drawer-scrim" class="drawer-scrim"></div>
+    <aside id="drawer" class="drawer" aria-label="Files">
+      <div class="drawer-header">
+        <span class="drawer-brand">Markd</span>
+        <button id="drawer-close" type="button" class="icon-btn" aria-label="Close">&#10005;</button>
+      </div>
+      <div id="drawer-body" class="drawer-body"></div>
+    </aside>
+
+    <div id="dialog-root"></div>
+    <div id="toast" class="toast" role="status" hidden></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

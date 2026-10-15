@@ -1,0 +1,150 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import os from 'os'
+import path from 'pathe'
+import { moveImageToFolder } from '@/util/fileSystem'
+
+// moveImageToFolder relies on the preload contextBridge surface (window.path,
+// window.fileUtils). Stub them with pathe (matching preload) and in-memory fakes
+// so the relative-path persistence logic can be exercised (real window.crypto
+// hashes a pasted File; a path is hashed and copied by the main process).
+const copyWithContentHash = vi.fn((_src: string, outputDir: string) =>
+  Promise.resolve(path.join(outputDir, 'content-hash.png'))
+)
+const writeFile = vi.fn(() => Promise.resolve())
+
+const win = window as unknown as {
+  path: typeof path
+  fileUtils: Record<string, unknown>
+}
+
+beforeEach(() => {
+  copyWithContentHash.mockClear()
+  writeFile.mockClear()
+  win.path = path
+  win.fileUtils = {
+    ensureDir: vi.fn(() => Promise.resolve()),
+    isImageFile: vi.fn(() => Promise.resolve(true)),
+    // Models a case-insensitive filesystem (Windows, default macOS), where the
+    // real helper's stat check finds both spellings to be one file.
+    isSamePathSync: vi.fn(
+      (a: string, b: string) => path.normalize(a).toLowerCase() === path.normalize(b).toLowerCase()
+    ),
+    copyWithContentHash,
+    writeFile
+  }
+})
+
+describe('moveImageToFolder relative-directory persistence', () => {
+  const docPath = '/tmp/notes/a.md'
+  const assetsDir = '/tmp/notes/assets'
+
+  it('returns a relative path for a binary File when isRelative is set', async() => {
+    const file = new File([new Uint8Array([1, 2, 3])], 'pic.png', { type: 'image/png' })
+    const result = await moveImageToFolder(docPath, file, assetsDir, true, docPath)
+    expect(result.startsWith('assets/')).toBe(true)
+    expect(path.isAbsolute(result)).toBe(false)
+  })
+
+  it('returns a relative path for a local path string when isRelative is set', async() => {
+    const source = '/Users/someone/pictures/pic.png'
+    const result = await moveImageToFolder(docPath, source, assetsDir, true, docPath)
+    // The image must be copied into the assets dir...
+    expect(copyWithContentHash).toHaveBeenCalledTimes(1)
+    expect(copyWithContentHash).toHaveBeenCalledWith(source, assetsDir)
+    // ...and the inserted reference must be the portable relative path.
+    expect(result).toBe(path.join('assets', 'content-hash.png'))
+  })
+
+  it('returns the absolute hashed path for a local path string when isRelative is false', async() => {
+    const source = '/Users/someone/pictures/pic.png'
+    const result = await moveImageToFolder(docPath, source, assetsDir, false, docPath)
+    expect(copyWithContentHash).toHaveBeenCalledWith(source, assetsDir)
+    // With isRelative=false the reference is the absolute hashed destination
+    // the main process copied to.
+    expect(result).toBe(path.join(assetsDir, 'content-hash.png'))
+  })
+
+  it('short-circuits without copying when the image already lives in outputDir', async() => {
+    // The resolved imagePath is already path.join(outputDir, basename), so the
+    // copy step is skipped.
+    const inPlace = path.join(assetsDir, 'already.png')
+    const result = await moveImageToFolder(docPath, inPlace, assetsDir, false, docPath)
+    expect(copyWithContentHash).not.toHaveBeenCalled()
+    // The original absolute path is returned unchanged (isRelative=false).
+    expect(result).toBe(inPlace)
+  })
+
+  it('short-circuits to a relative reference when isRelative is set and the image is in outputDir', async() => {
+    const inPlace = path.join(assetsDir, 'already.png')
+    const result = await moveImageToFolder(docPath, inPlace, assetsDir, true, docPath)
+    expect(copyWithContentHash).not.toHaveBeenCalled()
+    expect(path.isAbsolute(result)).toBe(false)
+    expect(result.startsWith('assets/')).toBe(true)
+  })
+
+  // Item 114: editor.vue imageInsertAction='path'. The string-path branch
+  // (typeof image==='string' → destImagePath = image, verbatim, no copy) lives
+  // in editor.vue:917-920 and is not importable. The automatable slice is its
+  // binary fallback (editor.vue:926-932): a saved-on-disk tab with
+  // preferRelative routes a File through moveImageToFolder(null, file, relDir,
+  // true, currentPathname). pathname is null there because a File needs no
+  // source dir — assert that path stays portable and never dereferences null.
+  it('routes a binary File through the relative branch with a null pathname (path-action fallback)', async() => {
+    const file = new File([new Uint8Array([4, 5, 6])], 'pasted.png', { type: 'image/png' })
+    const result = await moveImageToFolder(
+      null as unknown as string,
+      file,
+      assetsDir,
+      true,
+      docPath
+    )
+    // No copy for a binary File — it is written, not copied.
+    expect(copyWithContentHash).not.toHaveBeenCalled()
+    expect(writeFile).toHaveBeenCalledTimes(1)
+    // The written destination is inside the assets dir, named by the SHA-1 of
+    // its bytes (the same dedup scheme as the string-path branch)...
+    expect((writeFile.mock.calls[0] as unknown[])[0] as string).toMatch(
+      /e809c5d1cea47b45e34701d23f608a9a58034dc9\.png$/
+    )
+    expect(((writeFile.mock.calls[0] as unknown[])[0] as string).startsWith(assetsDir)).toBe(true)
+    // ...and the inserted reference is the portable relative path.
+    expect(path.isAbsolute(result)).toBe(false)
+    expect(result.startsWith('assets/')).toBe(true)
+    expect(result.endsWith('e809c5d1cea47b45e34701d23f608a9a58034dc9.png')).toBe(true)
+  })
+
+  it('a string local path already inside outputDir is returned verbatim when isRelative is false (path-action string passthrough analog)', async() => {
+    // Mirrors the editor.vue 'path' string branch intent: an absolute local
+    // path that already lives in the output dir is neither copied nor uploaded;
+    // the absolute reference is preserved unchanged.
+    const local = path.join(assetsDir, 'pic.png')
+    const result = await moveImageToFolder(docPath, local, assetsDir, false, docPath)
+    expect(copyWithContentHash).not.toHaveBeenCalled()
+    expect(writeFile).not.toHaveBeenCalled()
+    expect(result).toBe(local)
+    expect(path.isAbsolute(result)).toBe(true)
+  })
+
+  describe('image already in outputDir under different casing', () => {
+    // A dropped file carries its on-disk casing, while outputDir carries the
+    // casing of the preference and of the path the document was opened with.
+    const dir = path.join(os.tmpdir(), 'marktext-case-test')
+    const doc = path.join(dir, 'a.md')
+    const out = path.join(dir, 'assets')
+    const inPlace = path.join(out.toUpperCase(), 'Already.PNG')
+
+    it('reuses the image when the path differs only by case', async() => {
+      const result = await moveImageToFolder(doc, inPlace, out, false, doc)
+      expect(copyWithContentHash).not.toHaveBeenCalled()
+      expect(result).toBe(path.join(out, 'Already.PNG'))
+    })
+
+    it('links the reused image through outputDir when an ancestor folder differs by case', async() => {
+      // Relativizing the image's own casing against the document folder would
+      // climb out through the mismatched ancestors instead of into outputDir.
+      const result = await moveImageToFolder(doc, inPlace, out, true, doc)
+      expect(copyWithContentHash).not.toHaveBeenCalled()
+      expect(result).toBe(path.join('assets', 'Already.PNG'))
+    })
+  })
+})
