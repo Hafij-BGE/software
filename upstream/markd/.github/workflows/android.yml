@@ -1,0 +1,57 @@
+name: Android Build
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'packages/android/**'
+      - 'packages/muya/src/**'
+      # Shared with the desktop app: Word themes and the DOCX HTML preparer.
+      - 'packages/desktop/src/renderer/src/assets/themes/**'
+      - 'packages/desktop/src/renderer/src/util/docxHtml.ts'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/android.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'packages/android/**'
+      - 'packages/muya/src/**'
+      - 'packages/desktop/src/renderer/src/assets/themes/**'
+      - 'packages/desktop/src/renderer/src/util/docxHtml.ts'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: Cache Gradle
+        uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('packages/android/android/**/*.gradle', 'packages/android/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Build web bundle
+        run: pnpm --filter @markd/android build:web
+
+      - name: Build debug APK
+        working-directory: packages/android/android
+        # The runner image ships the Android SDK and JDK 17 (not the default JDK).
+        run: JAVA_HOME="$JAVA_HOME_17_X64" ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: markd-android-debug
+          retention-days: 7
+          if-no-files-found: error
+          path: packages/android/android/app/build/outputs/apk/debug/*.apk
