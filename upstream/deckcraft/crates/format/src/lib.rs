@@ -4,6 +4,8 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 #![forbid(unsafe_code)]
 
+mod finite;
+
 use std::io::{Cursor, Read, Write};
 use std::sync::Arc;
 
@@ -66,7 +68,7 @@ pub fn save(p: &Presentation) -> Result<Vec<u8>> {
             generator: format!("DeckCraft {}", env!("CARGO_PKG_VERSION")),
             presentation: p.clone(),
         };
-        let json = serde_json::to_vec(&m).map_err(|e| FormatError::Write(e.to_string()))?;
+        let json = serde_json::to_vec(&finite::Finite(&m)).map_err(|e| FormatError::Write(e.to_string()))?;
         z.start_file("presentation.json", deflate).map_err(w)?;
         z.write_all(&json).map_err(|e| FormatError::Write(e.to_string()))?;
         for item in &p.media {
@@ -132,7 +134,7 @@ pub fn load_checked(bytes: &[u8]) -> Result<(Presentation, Vec<String>)> {
 fn load_within(bytes: &[u8], budget: Budget) -> Result<(Presentation, Vec<String>)> {
     let mut z = zip::ZipArchive::new(Cursor::new(bytes)).map_err(|e| FormatError::NotOurs(e.to_string()))?;
     let json = read_entry(&mut z, "presentation.json").map_err(|_| FormatError::NotOurs("no presentation.json".into()))?;
-    let m: Manifest = serde_json::from_slice(&json).map_err(|e| FormatError::Damaged(e.to_string()))?;
+    let m = parse_manifest(&json)?;
     if m.format != "deckcraft" {
         return Err(FormatError::NotOurs(m.format));
     }
@@ -165,8 +167,9 @@ fn load_within(bytes: &[u8], budget: Budget) -> Result<(Presentation, Vec<String
     Ok((p, damaged))
 }
 
-/// Make a loaded presentation safe to edit: a master exists, every slide's layout exists,
-/// ids are unique, tables are rectangular.
+/// Make a loaded presentation safe to edit: a master exists, every slide's layout exists, tables
+/// are rectangular, and duplicate ids are re-id'd — unless the deck has used every id, in which
+/// case a duplicate stays (growth is refused; see the comment in the loop).
 pub fn repair(p: &mut Presentation) {
     if p.masters.is_empty() {
         let fresh = defaults::blank_presentation(p.slide_size, Default::default(), false);
@@ -179,7 +182,10 @@ pub fn repair(p: &mut Presentation) {
         let needs_layout = p.slides.get(i).is_some_and(|s| p.layout(s.layout).is_none());
         let dup = p.slides.get(i).is_some_and(|s| !seen.insert(s.id));
         if needs_layout || dup {
-            let new_id = if dup { Some(deckcraft_model::SlideId(p.alloc_id())) } else { None };
+            // An exhausted id space leaves a duplicate slide as it is: the engine refuses to
+            // grow such a deck (edits by id stay ambiguous for the duplicate), and the duplicate
+            // stays visible rather than the file failing to open (#407).
+            let new_id = if dup { p.alloc_id().map(deckcraft_model::SlideId) } else { None };
             if let Some(s) = p.slides.get_mut(i) {
                 let s = Arc::make_mut(s);
                 if needs_layout {
@@ -196,6 +202,7 @@ pub fn repair(p: &mut Presentation) {
     if !(p.notes_size.width.is_finite() && p.notes_size.width > 0.0 && p.notes_size.height.is_finite() && p.notes_size.height > 0.0) {
         p.notes_size = Presentation::default().notes_size;
     }
+    sane_numbers(p);
 }
 
 /// Smallest and largest slide side, in points: PowerPoint's 1–56 in, as Design › Slide Size allows.
@@ -217,9 +224,10 @@ type OutlineSlides = Vec<(String, Vec<(u8, String)>)>;
 /// Append a Title and Content slide per outline entry; the number made.
 fn add_outline_slides(p: &mut Presentation, slides: OutlineSlides) -> usize {
     let Some(lay) = defaults::layout_of_kind(p, LayoutType::TitleAndContent) else { return 0 };
-    let made = slides.len();
+    let mut made = 0;
     for (title, body) in slides {
-        let mut s = defaults::new_slide(p, lay);
+        // An exhausted id space makes no new slides: what fit is kept (#407).
+        let Some(mut s) = defaults::new_slide(p, lay) else { break };
         if let Some(t) = s.shapes.first_mut() {
             t.text = Some(TextBody::from_text(&title));
         }
@@ -232,8 +240,171 @@ fn add_outline_slides(p: &mut Presentation, slides: OutlineSlides) -> usize {
             }
         }
         p.slides.push(Arc::new(s));
+        made += 1;
     }
     made
+}
+
+/// Most `null`s standing in for numbers that [`parse_manifest`] patches in one file, and the
+/// candidates it tries for each.
+const MAX_NULL_FIXES: usize = 256;
+const MAX_TRIES_PER_FIX: usize = 32;
+/// Bytes [`parse_manifest`] may re-parse in all while patching, so a hostile file full of `null`s
+/// can't keep it busy: past this the file is reported damaged.
+const MAX_REPARSE_BYTES: usize = 256 * 1024 * 1024;
+
+/// Where a parse failed, comparable: later is progress.
+fn failure(src: &[u8]) -> std::result::Result<Manifest, (String, (usize, usize))> {
+    serde_json::from_slice::<Manifest>(src).map_err(|e| (e.to_string(), (e.line(), e.column())))
+}
+
+/// Parse `presentation.json`. serde_json writes a NaN or infinite number as `null`, which then
+/// fails to read back as a number ("invalid type: null, expected f64"), so DeckCraft could save
+/// a file it couldn't open. Each such `null` is read as 0 instead ([`repair`] then brings the
+/// value into range); anything else that doesn't parse is damage.
+///
+/// serde reports the failing `null` exactly, except inside tagged enums (buffered), where it
+/// reports the end of the enclosing object: there the `null`s before that point are tried
+/// nearest first, and a patch is kept only if the parse then gets further. (Files saved since
+/// [`finite::Finite`] never contain such `null`s; this reads older ones.)
+fn parse_manifest(json: &[u8]) -> Result<Manifest> {
+    let mut src = json.to_vec();
+    let mut last = match failure(&src) {
+        Ok(m) => return Ok(m),
+        Err(f) => f,
+    };
+    let mut budget = MAX_REPARSE_BYTES;
+    'fixes: for _ in 0..MAX_NULL_FIXES {
+        let (msg, pos) = &last;
+        let number = msg.starts_with("invalid type: null, expected f") || msg.starts_with("invalid type: null, expected a number");
+        if !number {
+            break;
+        }
+        let end = offset(&src, pos.0, pos.1).unwrap_or(src.len());
+        let mut progressed = false;
+        let candidates: Vec<usize> = value_nulls_before(&src, end + 4).take(MAX_TRIES_PER_FIX).collect();
+        for at in candidates {
+            let (Some(head), Some(tail)) = (src.get(..at), src.get(at.saturating_add(4)..)) else { continue };
+            let Some(left) = budget.checked_sub(src.len()) else { break 'fixes };
+            budget = left;
+            let mut next = Vec::with_capacity(src.len());
+            next.extend_from_slice(head);
+            next.push(b'0');
+            next.extend_from_slice(tail);
+            match failure(&next) {
+                Ok(m) => return Ok(m),
+                // The patch shortened the text by 3 bytes before the error: compare positions
+                // allowing for that.
+                Err(f) if f.1 > (pos.0, pos.1.saturating_sub(3)) => {
+                    src = next;
+                    last = f;
+                    progressed = true;
+                    break;
+                }
+                Err(_) => {}
+            }
+        }
+        if !progressed {
+            break;
+        }
+    }
+    Err(FormatError::Damaged(last.0))
+}
+
+/// Byte offset of a 1-based `line`:`column`.
+fn offset(src: &[u8], line: usize, column: usize) -> Option<usize> {
+    let mut start = 0;
+    for _ in 1..line {
+        start += src.get(start..)?.iter().position(|b| *b == b'\n')? + 1;
+    }
+    Some((start + column).min(src.len()))
+}
+
+/// Starts of `null` tokens in value position (after `:`, `[` or `,`) before `end`, nearest first.
+fn value_nulls_before(src: &[u8], end: usize) -> impl Iterator<Item = usize> + '_ {
+    let end = end.min(src.len());
+    (0..end.saturating_sub(3)).rev().filter(move |&i| {
+        src.get(i..i + 4) == Some(b"null")
+            && src[..i].iter().rev().find(|b| !b.is_ascii_whitespace()).is_some_and(|b| matches!(b, b':' | b'[' | b','))
+            && src.get(i + 4).is_none_or(|b| !b.is_ascii_alphanumeric())
+    })
+}
+
+/// Largest coordinate or size kept, in points (about 350 m; PowerPoint's own limit is far smaller).
+const MAX_COORD: f64 = 1.0e6;
+
+/// Numbers no view can draw or no file should keep: non-finite positions, sizes and angles become
+/// 0, huge ones are clamped, angles are brought into 0–360, crops into a sane range, font sizes
+/// into 1–4000 pt and line widths into 0–1584 pt (PowerPoint's limits).
+fn sane_xfrm(x: &mut deckcraft_model::Xfrm) {
+    let fin = |v: f64| if v.is_finite() { v } else { 0.0 };
+    x.x = fin(x.x).clamp(-MAX_COORD, MAX_COORD);
+    x.y = fin(x.y).clamp(-MAX_COORD, MAX_COORD);
+    x.w = fin(x.w).clamp(0.0, MAX_COORD);
+    x.h = fin(x.h).clamp(0.0, MAX_COORD);
+    x.rot = fin(x.rot).rem_euclid(360.0);
+    if x.rot >= 360.0 {
+        x.rot = 0.0;
+    }
+}
+
+fn sane_run(p: &mut deckcraft_model::text::RunProps) {
+    p.size = p.size.filter(|v| v.is_finite() && *v > 0.0).map(|v| v.clamp(1.0, 4000.0));
+}
+
+fn sane_shapes(shapes: &mut [deckcraft_model::Shape], depth: usize) {
+    if depth > 64 {
+        return;
+    }
+    for sh in shapes {
+        if let Some(x) = sh.xfrm.as_mut() {
+            sane_xfrm(x);
+        }
+        if let Some(l) = sh.line.as_mut() {
+            l.width = l.width.filter(|v| v.is_finite() && *v >= 0.0).map(|v| v.min(1584.0));
+        }
+        if let Some(t) = sh.text.as_mut() {
+            for para in &mut t.paragraphs {
+                sane_run(&mut para.end_props);
+                for r in &mut para.runs {
+                    sane_run(&mut r.props);
+                }
+            }
+        }
+        match &mut sh.kind {
+            deckcraft_model::ShapeKind::Picture { fill } => {
+                for c in &mut fill.crop {
+                    *c = if c.is_finite() { c.clamp(-10.0, 1.0) } else { 0.0 };
+                }
+            }
+            deckcraft_model::ShapeKind::Group { children, child } => {
+                sane_xfrm(child);
+                sane_shapes(children, depth + 1);
+            }
+            _ => {}
+        }
+    }
+}
+
+/// [`sane_shapes`] over every slide, layout and master; slides are only copied when they change.
+pub fn sane_numbers(p: &mut Presentation) {
+    for slide in &mut p.slides {
+        let mut fixed = (**slide).clone();
+        sane_shapes(&mut fixed.shapes, 0);
+        if fixed != **slide {
+            *slide = Arc::new(fixed);
+        }
+    }
+    for m in p.masters.iter_mut().chain(p.notes_master.iter_mut()).chain(p.handout_master.iter_mut()) {
+        let mut fixed = (**m).clone();
+        sane_shapes(&mut fixed.shapes, 0);
+        for l in &mut fixed.layouts {
+            sane_shapes(&mut l.shapes, 0);
+        }
+        if fixed != **m {
+            *m = Arc::new(fixed);
+        }
+    }
 }
 
 /// Outline text: one slide per unindented line; tab-indented lines become body bullets at their
@@ -359,7 +530,7 @@ mod tests {
     #[test]
     fn missing_or_corrupt_media_is_reported() {
         let mut p = Presentation::default();
-        let id = p.add_media("a.png", "image/png", b"PICTURE-BYTES-0123456789".to_vec());
+        let id = p.add_media("a.png", "image/png", b"PICTURE-BYTES-0123456789".to_vec()).expect("media");
         let good = save(&p).unwrap();
         assert!(load_checked(&good).unwrap().1.is_empty());
         // Missing member.
@@ -374,7 +545,7 @@ mod tests {
         assert_eq!(damaged.len(), 1, "{damaged:?}");
         // Linked media saved without its bytes isn't damage.
         let mut l = Presentation::default();
-        let lid = l.add_media("v.mp4", "video/mp4", vec![]);
+        let lid = l.add_media("v.mp4", "video/mp4", vec![]).expect("media");
         if let Some(m) = l.media.iter_mut().find(|m| m.id == lid) {
             m.link = Some("file:///movies/v.mp4".into());
         }
@@ -429,7 +600,7 @@ mod tests {
     #[test]
     fn roundtrip_with_media() {
         let mut p = Presentation::default();
-        let id = p.add_media("a.png", "image/png", vec![1, 2, 3, 4]);
+        let id = p.add_media("a.png", "image/png", vec![1, 2, 3, 4]).expect("media");
         let bytes = save(&p).unwrap();
         assert!(sniff(&bytes));
         let q = load(&bytes).unwrap();
@@ -447,6 +618,114 @@ mod tests {
         let n = b.len();
         b.truncate(n / 2);
         assert!(load(&b).is_err());
+    }
+
+    /// Non-finite numbers are written as `null` by serde_json; the file still opens, with each
+    /// such number repaired (it failed as "invalid type: null, expected f64").
+    #[test]
+    fn a_file_saved_with_non_finite_numbers_reopens() {
+        use deckcraft_model::{Shape, ShapeKind, Xfrm};
+        let mut p = Presentation::default();
+        let nan = f64::NAN;
+        let inf = f64::INFINITY;
+        let mut pic = Shape { xfrm: Some(Xfrm { x: nan, y: -inf, w: 1e300, h: -4.0, rot: 725.0, ..Default::default() }), ..Default::default() };
+        pic.kind = ShapeKind::Picture { fill: deckcraft_model::style::PictureFill { crop: [nan, inf, 0.25, -1e9], ..Default::default() } };
+        pic.line = Some(deckcraft_model::Line { width: Some(1e9), ..Default::default() });
+        let mut text = Shape { xfrm: Some(Xfrm { rot: inf, w: 100.0, h: 50.0, ..Default::default() }), ..Default::default() };
+        let mut body = deckcraft_model::text::TextBody::default();
+        let mut para = deckcraft_model::text::Paragraph::default();
+        para.runs.push(deckcraft_model::text::Run::with("x", deckcraft_model::text::RunProps { size: Some(-3.0), ..Default::default() }));
+        para.end_props.size = Some(1e9);
+        body.paragraphs.push(para);
+        text.text = Some(body);
+        let group = Shape {
+            xfrm: Some(Xfrm { w: 10.0, h: 10.0, ..Default::default() }),
+            kind: ShapeKind::Group { children: vec![pic, text], child: Xfrm { x: nan, w: inf, h: 10.0, ..Default::default() } },
+            ..Default::default()
+        };
+        Arc::make_mut(&mut p.slides[0]).shapes.push(group);
+        let bytes = save(&p).unwrap();
+        let back = load(&bytes).unwrap_or_else(|e| panic!("{e}"));
+        let g = back.slides[0].shapes.last().unwrap();
+        let ShapeKind::Group { children, child } = &g.kind else { panic!("group") };
+        assert_eq!((child.x, child.w), (0.0, 0.0));
+        let x = children[0].xfrm.unwrap();
+        assert_eq!((x.x, x.y, x.w, x.h, x.rot), (0.0, 0.0, MAX_COORD, 0.0, 5.0));
+        let ShapeKind::Picture { fill } = &children[0].kind else { panic!("picture") };
+        assert_eq!(fill.crop, [0.0, 0.0, 0.25, -10.0]);
+        assert_eq!(children[0].line.as_ref().unwrap().width, Some(1584.0));
+        assert_eq!(children[1].xfrm.unwrap().rot, 0.0);
+        let para = &children[1].text.as_ref().unwrap().paragraphs[0];
+        assert_eq!(para.runs[0].props.size, None);
+        assert_eq!(para.end_props.size, Some(4000.0));
+        // Saved again, it is clean.
+        assert_eq!(load(&save(&back).unwrap()).unwrap(), back);
+    }
+
+    /// Files written before [`finite::Finite`] (plain serde_json: NaN as `null`) open too,
+    /// including a `null` inside a tagged enum, where serde reports only the enclosing object.
+    #[test]
+    fn older_files_with_null_numbers_open() {
+        use deckcraft_model::{Shape, ShapeKind, Xfrm};
+        let nan = f64::NAN;
+        for case in 0..3 {
+            let mut p = Presentation::default();
+            let sh = match case {
+                0 => Shape { xfrm: Some(Xfrm { x: nan, rot: nan, w: 5.0, h: 5.0, ..Default::default() }), ..Default::default() },
+                1 => Shape {
+                    kind: ShapeKind::Group { children: vec![], child: Xfrm { x: nan, w: 1.0, h: 1.0, ..Default::default() } },
+                    ..Default::default()
+                },
+                _ => Shape {
+                    kind: ShapeKind::Picture { fill: deckcraft_model::style::PictureFill { crop: [0.1, nan, 0.0, 0.0], ..Default::default() } },
+                    ..Default::default()
+                },
+            };
+            Arc::make_mut(&mut p.slides[0]).shapes.push(sh);
+            let m = Manifest { format: "deckcraft".into(), version: VERSION, generator: "old".into(), presentation: p };
+            let json = serde_json::to_vec(&m).unwrap();
+            assert!(json.windows(4).any(|w| w == b"null"));
+            let back = parse_manifest(&json).unwrap_or_else(|e| panic!("case {case}: {e}"));
+            assert_eq!(back.presentation.slides[0].shapes.len(), m.presentation.slides[0].shapes.len(), "case {case}");
+        }
+    }
+
+    /// A body whose file had no `fontScale` (`<a:normAutofit/>`) keeps that state through the
+    /// native format: it is drawn at 100 % and only fitted when its text changes (#724).
+    #[test]
+    fn a_bare_normautofit_body_round_trips() {
+        use deckcraft_model::text::{AutoFit, TextBody};
+        let mut p = Presentation::default();
+        let mut body = TextBody::from_text("Overflowing");
+        body.body.autofit = Some(AutoFit::Shrink { font_scale: None, line_reduction: 0.0 });
+        let sh = deckcraft_model::Shape { text: Some(body), ..Default::default() };
+        Arc::make_mut(&mut p.slides[0]).shapes.push(sh);
+        let back = load(&save(&p).unwrap()).unwrap_or_else(|e| panic!("{e}"));
+        let body = back.slides[0].shapes.last().unwrap().text.clone().unwrap();
+        assert_eq!(body.body.autofit, Some(AutoFit::Shrink { font_scale: None, line_reduction: 0.0 }));
+        // A scale the file saved round-trips as itself.
+        let mut body = TextBody::from_text("Overflowing");
+        body.body.autofit = Some(AutoFit::Shrink { font_scale: Some(0.62), line_reduction: 0.2 });
+        let sh = deckcraft_model::Shape { text: Some(body), ..Default::default() };
+        Arc::make_mut(&mut p.slides[0]).shapes.push(sh);
+        let back = load(&save(&p).unwrap()).unwrap_or_else(|e| panic!("{e}"));
+        let body = back.slides[0].shapes.last().unwrap().text.clone().unwrap();
+        assert_eq!(body.body.autofit, Some(AutoFit::Shrink { font_scale: Some(0.62), line_reduction: 0.2 }));
+    }
+
+    /// Only `null`s where numbers belong are patched: other damage still fails.
+    #[test]
+    fn other_damage_is_still_reported() {
+        let ok = serde_json::to_vec(&serde_json::json!({"format": "deckcraft", "version": 1, "generator": "t", "presentation": {}})).unwrap();
+        assert!(parse_manifest(&ok).is_ok());
+        let bad = br#"{"format": null, "version": 1, "generator": "t", "presentation": {}}"#;
+        assert!(parse_manifest(bad).is_err());
+        let truncated = &ok[..ok.len() - 3];
+        assert!(parse_manifest(truncated).is_err());
+        // A null number on a later line (pretty-printed by another tool) is found too.
+        let pretty = b"{\n  \"format\": \"deckcraft\",\n  \"version\": 1,\n  \"generator\": \"t\",\n  \"presentation\": {\"slides\": [{\"shapes\": [{\"xfrm\": {\"x\": null, \"y\": 1, \"w\": 2, \"h\": 3}}]}]}\n}";
+        let m = parse_manifest(pretty).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(m.presentation.slides[0].shapes[0].xfrm.unwrap().x, 0.0);
     }
 
     #[test]
@@ -510,6 +789,17 @@ mod tests {
         repair(&mut p);
         assert!(p.validate().is_empty());
         assert_eq!(p.slide_size.width, 960.0);
+    }
+
+    /// A duplicate slide in a deck whose ids are used up cannot be re-id'd: it stays as it is
+    /// (the engine refuses edits to such a deck) instead of a duplicated fresh id (#407).
+    #[test]
+    fn repair_keeps_a_duplicate_it_cannot_reid() {
+        let mut p = Presentation { next_id: u32::MAX, ..Default::default() };
+        p.slides.push(p.slides[0].clone());
+        repair(&mut p);
+        assert_eq!(p.slides.len(), 2, "the duplicate stays visible");
+        assert_eq!(p.slides[0].id, p.slides[1].id, "no fresh id was invented");
     }
 
     #[test]
