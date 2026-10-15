@@ -6,7 +6,10 @@
 #
 # The installer puts the suite in Program Files (or, for one user, in their own folder), adds it to
 # the Start menu, offers a desktop shortcut, lists it under "Open with" for documents,
-# presentations and spreadsheets, and has an uninstaller (Settings › Apps).
+# presentations, spreadsheets and Markdown, and has an uninstaller (Settings › Apps).
+#
+# Markd tabs need Markd's web files (packaging/build-markd-web.sh: Node.js and pnpm) and the
+# WebView2 runtime, which Windows 10 and 11 have.
 #
 # Usage: packaging/build-windows.sh [--with-fonts] [--skip-build] [--target TRIPLE]
 #   --with-fonts   embed the craft-fonts each upstream release embeds (see build-deb.sh)
@@ -64,6 +67,7 @@ if [ "$SKIP_BUILD" = 0 ]; then
     env WORDCRAFT_BUILD_SHA="$(upstream_commit wordcraft)" ${fonts:+CRAFT_FONTS_DIR="$fonts"} \
       ${RELEASES_URL:+CRAFT_SUITE_RELEASES_URL="$RELEASES_URL"} \
       cargo build --release "${TARGET_ARGS[@]}")
+  "$HERE/build-markd-web.sh" "$ROOT/build/markd/www"
 fi
 BIN="$CARGO_TARGET_DIR/${TARGET:+$TARGET/}release"
 
@@ -74,6 +78,8 @@ rm -rf "$WORK"
 mkdir -p "$STAGE/licences"
 cp "$BIN/craft-suite.exe" "$STAGE/"
 for app in "${APPS[@]}"; do cp "$BIN/$app-cli.exe" "$STAGE/"; done
+# Markd's web files, next to the program (src/markd finds them there).
+cp -R "$ROOT/build/markd/www" "$STAGE/markd"
 echo "$VERSION" >"$STAGE/VERSION"
 upstream_summary >"$STAGE/upstream.txt"
 cp "$ROOT/README.md" "$STAGE/README.md"
@@ -82,6 +88,7 @@ for app in "${APPS[@]}"; do
     if [ -f "$ROOT/upstream/$app/$f" ]; then cp "$ROOT/upstream/$app/$f" "$STAGE/licences/$app-$f"; fi
   done
 done
+cp "$ROOT/upstream/markd/LICENSE" "$STAGE/licences/markd-LICENSE"
 if [ "$WITH_FONTS" = 1 ]; then
   for d in "$ROOT"/build/craft-fonts-*/fonts/*/; do
     if [ -f "$d/OFL.txt" ]; then cp "$d/OFL.txt" "$STAGE/licences/OFL-$(basename "$d").txt"; fi
@@ -144,16 +151,17 @@ LicenseFile=$(win "$ROOT/upstream/wordcraft/LICENSE-MIT")
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; Flags: unchecked
-Name: "openwith"; Description: "List Craft Suite under ""Open with"" for documents, presentations and spreadsheets"
+Name: "openwith"; Description: "List Craft Suite under ""Open with"" for documents, presentations, spreadsheets and Markdown"
 
 [Files]
 Source: "$(win "$STAGE")\\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
 [Icons]
 Name: "{autoprograms}\\Craft Suite"; Filename: "{app}\\craft-suite.exe"
-Name: "{autoprograms}\\WordCraft (Craft Suite)"; Filename: "{app}\\craft-suite.exe"; Parameters: "--new word"
-Name: "{autoprograms}\\DeckCraft (Craft Suite)"; Filename: "{app}\\craft-suite.exe"; Parameters: "--new deck"
-Name: "{autoprograms}\\GridCraft (Craft Suite)"; Filename: "{app}\\craft-suite.exe"; Parameters: "--new grid"
+Name: "{autoprograms}\\Word (Craft Suite)"; Filename: "{app}\\craft-suite.exe"; Parameters: "--new word"
+Name: "{autoprograms}\\Slide (Craft Suite)"; Filename: "{app}\\craft-suite.exe"; Parameters: "--new deck"
+Name: "{autoprograms}\\Spreadsheet (Craft Suite)"; Filename: "{app}\\craft-suite.exe"; Parameters: "--new grid"
+Name: "{autoprograms}\\Markd (Craft Suite)"; Filename: "{app}\\craft-suite.exe"; Parameters: "--new mark"
 Name: "{autodesktop}\\Craft Suite"; Filename: "{app}\\craft-suite.exe"; Tasks: desktopicon
 
 [Registry]
@@ -161,8 +169,8 @@ Root: HKA; Subkey: "Software\\Classes\\Applications\\craft-suite.exe"; ValueType
 Root: HKA; Subkey: "Software\\Classes\\Applications\\craft-suite.exe\\shell\\open\\command"; ValueType: string; ValueData: """{app}\\craft-suite.exe"" ""%1"""
 EOF
   # One file type per app, listed under "Open with" for its extensions (not made the default).
-  for pair in "Document:docx docm dotx dotm doc dot odt rtf md markdown tex html htm txt" \
-    "Presentation:pptx potx ppsx deckcraft" "Spreadsheet:xlsx xlsm xlsb ods csv tsv"; do
+  for pair in "Document:docx docm dotx dotm doc dot odt rtf tex html htm txt" \
+    "Presentation:pptx potx ppsx deckcraft" "Spreadsheet:xlsx xlsm xlsb ods csv tsv" "Markdown:md markdown mdown mkd"; do
     kind="${pair%%:*}" exts="${pair#*:}" progid="CraftSuite.${pair%%:*}"
     cat <<EOF
 Root: HKA; Subkey: "Software\\Classes\\$progid"; ValueType: string; ValueData: "$kind (Craft Suite)"; Flags: uninsdeletekey; Tasks: openwith

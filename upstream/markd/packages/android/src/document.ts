@@ -88,7 +88,8 @@ const setCurrent = (info: { uri: string | null, name: string, hasFolder: boolean
   notify()
 }
 
-const confirmDiscard = async(): Promise<boolean> => {
+/** Save, discard or keep unsaved changes; false when the user keeps them. */
+export const confirmDiscard = async(): Promise<boolean> => {
   if (!isDirty()) return true
   if (doc.uri && settings.autoSave) {
     return saveDocument()

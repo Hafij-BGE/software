@@ -204,7 +204,7 @@ impl SuiteApp {
     pub fn new(ctx: &egui::Context, settings: Settings, request: Request, incoming: Option<Receiver<instance::Message>>) -> SuiteApp {
         let mut icons = HashMap::new();
         let mut big_icons = HashMap::new();
-        for k in [Kind::Word, Kind::Deck, Kind::Grid, Kind::Home, Kind::Settings] {
+        for k in Kind::APPS.into_iter().chain([Kind::Home, Kind::Settings]) {
             if let Some(t) = texture(ctx, &format!("icon-{k:?}"), k.icon_png()) {
                 icons.insert(k, t);
             }
@@ -642,6 +642,19 @@ impl SuiteApp {
         }
     }
 
+    /// The suite's shortcuts pressed while a Markd page had the keyboard.
+    #[cfg(feature = "markd")]
+    fn markd_shortcuts(&mut self) {
+        let active = self.active;
+        let mut actions = Vec::new();
+        for t in &mut self.tabs {
+            if let Content::Doc(Doc::Mark(m)) = &mut t.content {
+                m.take_actions(&self.settings, active, &mut actions);
+            }
+        }
+        self.actions.extend(actions);
+    }
+
     /// The suite's keyboard shortcuts, taken out of the input before the app sees them.
     fn take_shortcuts(&mut self, raw: &mut egui::RawInput) {
         let active = self.active;
@@ -927,6 +940,8 @@ impl eframe::App for SuiteApp {
             self.home_look = Some(home);
         }
         self.drain_incoming(ctx);
+        #[cfg(feature = "markd")]
+        self.markd_shortcuts();
         let decorations = !self.integrated();
         if self.decorations_sent != Some(decorations) {
             if self.decorations_sent.is_some() {
@@ -958,7 +973,10 @@ impl eframe::App for SuiteApp {
         }
         // WordCraft tabs whose Save prompt was answered (or File › Close chosen) close.
         let done: Vec<u64> =
-            self.tabs.iter().filter(|t| matches!(&t.content, Content::Doc(d) if d.close_confirmed())).map(|t| t.id).collect();
+            self.tabs.iter_mut().filter_map(|t| match &mut t.content {
+                Content::Doc(d) => d.close_confirmed().then_some(t.id),
+                _ => None,
+            }).collect();
         for id in done {
             self.remove(ctx, id);
         }
@@ -1019,6 +1037,7 @@ impl eframe::App for SuiteApp {
         crate::tabbar::show(self, ui);
         #[cfg(feature = "ai")]
         crate::ai::panel(self, ui);
+        let skipped = self.skip_frame;
         if std::mem::take(&mut self.skip_frame) {
             ui.ctx().request_repaint();
         } else {
@@ -1046,6 +1065,17 @@ impl eframe::App for SuiteApp {
         if self.integrated() {
             self.window_frame(ui.ctx());
         }
+        #[cfg(feature = "markd")]
+        {
+            let active = self.active;
+            let views = self.tabs.iter_mut().filter_map(|t| match &mut t.content {
+                Content::Doc(Doc::Mark(m)) => Some((t.id, m.as_mut())),
+                _ => None,
+            });
+            crate::markd::sync(ui.ctx(), frame, Some(active), views, skipped);
+        }
+        #[cfg(not(feature = "markd"))]
+        let _ = skipped;
         self.update_title(ui.ctx());
         self.save_settings();
     }

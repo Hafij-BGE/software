@@ -151,9 +151,10 @@ fn home_body(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette) {
     ui.add_space(26.0);
     ui.label(RichText::new("New").size(16.0).strong());
     ui.add_space(10.0);
-    // Four tiles across, growing with the window up to a point.
+    // A tile per app and Open across, growing with the window up to a point.
     let gap = 18.0;
-    let w = ((ui.available_width() - 3.0 * gap) / 4.0).clamp(150.0, 250.0);
+    let n = app.settings.app_order.len() as f32 + 1.0;
+    let w = (((ui.available_width() - (n - 1.0) * gap) / n).floor() - 1.0).clamp(150.0, 250.0);
     let size = vec2(w, (w * 0.7).round());
     ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().item_spacing = vec2(gap, gap);
@@ -162,7 +163,7 @@ fn home_body(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette) {
                 app.actions.push(Action::New { kind: k, replace_page: true });
             }
         }
-        if tile(app, ui, pal, None, size).on_hover_text("Open documents, presentations or spreadsheets").clicked() {
+        if tile(app, ui, pal, None, size).on_hover_text("Open documents, presentations, spreadsheets or Markdown").clicked() {
             app.actions.push(Action::OpenDialog);
         }
     });
@@ -230,6 +231,27 @@ fn tile(app: &SuiteApp, ui: &mut Ui, pal: &Palette, kind: Option<Kind>, size: Ve
                 p.line_segment([pos2(sheet.left(), y), pos2(sheet.right(), y)], line);
             }
         }
+        Some(Kind::Mark) => {
+            let h = area.height();
+            let page = Rect::from_center_size(area.center(), vec2(h * 0.78, h));
+            page_shadow(p, page, paper, pal);
+            let left = page.left() + 9.0;
+            let w = page.width() - 18.0;
+            // A heading with its #, a list and a quote: Markdown as Markd shows it.
+            p.text(pos2(left, page.top() + 7.0), Align2::LEFT_TOP, "#", FontId::monospace(10.0), accent);
+            p.rect_filled(Rect::from_min_size(pos2(left + 10.0, page.top() + 10.0), vec2(w * 0.5, 5.0)), CornerRadius::same(2), accent);
+            for (i, f) in [0.8f32, 0.65, 0.72].iter().enumerate() {
+                let y = page.top() + 24.0 + i as f32 * 9.0;
+                p.circle_filled(pos2(left + 2.0, y + 1.5), 1.6, ink);
+                p.rect_filled(Rect::from_min_size(pos2(left + 7.0, y), vec2((w - 7.0) * f, 3.0)), CornerRadius::same(1), ink);
+            }
+            let y = page.top() + 54.0;
+            if y + 12.0 < page.bottom() {
+                p.rect_filled(Rect::from_min_size(pos2(left, y), vec2(2.0, 12.0)), CornerRadius::ZERO, accent.gamma_multiply(0.6));
+                p.rect_filled(Rect::from_min_size(pos2(left + 6.0, y + 1.0), vec2(w * 0.7, 3.0)), CornerRadius::same(1), ink);
+                p.rect_filled(Rect::from_min_size(pos2(left + 6.0, y + 8.0), vec2(w * 0.5, 3.0)), CornerRadius::same(1), ink);
+            }
+        }
         _ => {
             paint_folder(p, Rect::from_center_size(area.center(), vec2(72.0, 58.0)), accent);
         }
@@ -263,7 +285,8 @@ fn recent(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette) {
         ui.label(RichText::new("Recent").size(16.0).strong());
         ui.add_space(14.0);
         ui.spacing_mut().item_spacing.x = 6.0;
-        for (f, label) in [(None, "All"), (Some(Kind::Word), "Documents"), (Some(Kind::Deck), "Presentations"), (Some(Kind::Grid), "Spreadsheets")] {
+        let filters = [(None, "All"), (Some(Kind::Word), "Documents"), (Some(Kind::Deck), "Presentations"), (Some(Kind::Grid), "Spreadsheets"), (Some(Kind::Mark), "Markdown")];
+        for (f, label) in filters.into_iter().filter(|(f, _)| f.is_none_or(|k| k.is_app())) {
             if chip(ui, pal, label, view.filter == f).clicked() {
                 view.filter = f;
             }
@@ -620,7 +643,7 @@ fn settings_body(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette) {
             radio_row(ui, &mut s.color_style, &styles);
             ui.end_row();
 
-            for k in [Kind::Word, Kind::Deck, Kind::Grid, Kind::Home] {
+            for k in Kind::APPS.into_iter().chain([Kind::Home]) {
                 ui.label(if k == Kind::Home { "Home and Settings".to_string() } else { format!("{} colour", k.app_name()) });
                 ui.horizontal(|ui| {
                     let c = s.color_mut(k);
@@ -711,6 +734,8 @@ fn settings_body(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette) {
             ui.hyperlink_to("DeckCraft", "https://github.com/storytold/deckcraft");
             ui.label(" and ");
             ui.hyperlink_to("GridCraft", "https://github.com/storytold/gridcraft");
+            ui.label(" (as Word, Slide and Spreadsheet); ");
+            ui.hyperlink_to("Markd", "https://github.com/Hafij-BGE/markd");
         });
         ui.add_space(4.0);
         let upstream = update::upstream_summary();

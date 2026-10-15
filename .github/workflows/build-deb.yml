@@ -35,10 +35,17 @@ jobs:
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             ca-certificates curl git build-essential pkg-config python3 file xz-utils \
             libasound2-dev libxkbcommon-dev libwayland-dev libx11-dev libxcursor-dev \
-            libxrandr-dev libxi-dev libgl1-mesa-dev libfontconfig1-dev libfreetype-dev
+            libxrandr-dev libxi-dev libgl1-mesa-dev libfontconfig1-dev libfreetype-dev \
+            libwebkit2gtk-4.1-dev libgtk-3-dev
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # the version counts commits; the subtree records name upstream commits
+      # Markd's web version (packaging/build-markd-web.sh).
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: pnpm
+        run: corepack enable
       - name: Rust
         run: |
           curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
@@ -64,6 +71,7 @@ jobs:
           wordcraft-cli --version
           deckcraft-cli --version || deckcraft-cli --help >/dev/null
           gridcraft-cli --version || gridcraft-cli --help >/dev/null
+          test -f /usr/share/craft-suite/markd/index.html
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: craft-suite-deb
@@ -94,6 +102,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: pnpm
+        run: corepack enable
       - name: Rust
         run: rustup update stable --no-self-update && rustup default stable
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
@@ -117,6 +130,7 @@ jobs:
           "$dir/deckcraft-cli.exe" --version || "$dir/deckcraft-cli.exe" --help >/dev/null
           "$dir/gridcraft-cli.exe" --version || "$dir/gridcraft-cli.exe" --help >/dev/null
           test -s "$dir/craft-suite.exe"
+          test -f "$dir/markd/index.html"
           ls -la dist
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

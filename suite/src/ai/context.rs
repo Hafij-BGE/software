@@ -64,12 +64,17 @@ pub fn gather(doc: &mut Doc, title: &str, private: bool) -> Gathered {
         Kind::Word => word(doc, title, private),
         Kind::Deck => deck(doc, title, private),
         Kind::Grid => grid(doc, title, private),
+        Kind::Mark => {
+            // Markd's text lives in its web page; the AI sees the document's name only.
+            let p = format!("Document: {title} (a Markdown file in Markd; its text isn't shared with Ask AI)\n");
+            Gathered { shared: p.clone(), prompt: p }
+        }
         _ => Gathered { prompt: String::new(), shared: String::new() },
     }
 }
 
 fn word(doc: &mut Doc, title: &str, private: bool) -> Gathered {
-    let mut p = format!("Document: {title} (WordCraft)\n");
+    let mut p = format!("Document: {title} (Word)\n");
     let inspect = doc.command("document.inspect", json!({})).unwrap_or(Value::Null);
     let text = as_text(&doc.command("document.text", json!({})).unwrap_or(Value::Null));
     let words = text.split_whitespace().count();
@@ -108,7 +113,7 @@ fn word(doc: &mut Doc, title: &str, private: bool) -> Gathered {
 }
 
 fn deck(doc: &mut Doc, title: &str, private: bool) -> Gathered {
-    let mut p = format!("Presentation: {title} (DeckCraft)\n");
+    let mut p = format!("Presentation: {title} (Slide)\n");
     let inspect = doc.command("document.inspect", json!({})).unwrap_or(Value::Null);
     let slides = inspect.get("slides").and_then(Value::as_array).cloned().unwrap_or_default();
     let current = inspect.pointer("/selection/slide").and_then(Value::as_u64);
@@ -154,7 +159,7 @@ fn deck(doc: &mut Doc, title: &str, private: bool) -> Gathered {
 }
 
 fn grid(doc: &mut Doc, title: &str, private: bool) -> Gathered {
-    let mut p = format!("Workbook: {title} (GridCraft)\n");
+    let mut p = format!("Workbook: {title} (Spreadsheet)\n");
     let inspect = doc.command("document.inspect", json!({})).unwrap_or(Value::Null);
     for s in inspect.get("sheets").and_then(Value::as_array).cloned().unwrap_or_default() {
         let tables: Vec<String> = s.get("tables").and_then(Value::as_array).map(|t| t.iter().filter_map(|x| x.get("name").and_then(Value::as_str).map(str::to_string)).collect()).unwrap_or_default();
@@ -245,9 +250,10 @@ pub fn allowed(kind: Kind) -> &'static [(&'static str, &'static str, &'static st
 
 pub fn system_prompt(kind: Kind, context: &str, data: &str) -> String {
     let what = match kind {
-        Kind::Word => "a WordCraft document",
-        Kind::Deck => "a DeckCraft presentation",
-        Kind::Grid => "a GridCraft workbook",
+        Kind::Word => "a Word document",
+        Kind::Deck => "a Slide presentation",
+        Kind::Grid => "a Spreadsheet workbook",
+        Kind::Mark => "a Markdown document in Markd",
         _ => "no document (the Home page)",
     };
     let mut s = format!(

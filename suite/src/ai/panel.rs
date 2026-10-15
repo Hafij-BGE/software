@@ -61,6 +61,7 @@ fn suggestions(kind: Kind) -> &'static [&'static str] {
         Kind::Word => &["Summarise this document", "Suggest a clearer title", "Improve the selected text", "Make an outline with headings"],
         Kind::Deck => &["Summarise this presentation", "Suggest a slide outline for this topic", "Write speaker notes for the current slide", "Add a closing slide with key takeaways"],
         Kind::Grid => &["Analyse this sheet", "Explain what this sheet shows", "Suggest a chart for this data", "Add a total row"],
+        Kind::Mark => &["Explain Markdown table syntax", "How do I add a footnote in Markdown?", "Attach a CSV file to analyse"],
         _ => &["What can you help me with?", "Attach a CSV file to analyse"],
     }
 }

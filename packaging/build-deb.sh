@@ -3,9 +3,9 @@
 #
 #   dist/craft-suite_<version>_<arch>.deb
 #
-# It holds craft-suite (the tabbed window: WordCraft, DeckCraft and GridCraft in one), the three
-# command-line tools (wordcraft-cli, deckcraft-cli, gridcraft-cli), craft-suite-update, desktop
-# entries, file types and icons.
+# It holds craft-suite (the tabbed window: WordCraft, DeckCraft, GridCraft and Markd in one), the
+# three command-line tools (wordcraft-cli, deckcraft-cli, gridcraft-cli), Markd's web files,
+# craft-suite-update, desktop entries, file types and icons.
 #
 # Usage: packaging/build-deb.sh [--skip-build] [--with-fonts] [--update-url URL]
 #
@@ -19,7 +19,8 @@
 # Environment: CRAFT_SUITE_VERSION (default: VERSION file + "+r<commit time, UTC>"),
 # CRAFT_SUITE_MAINTAINER, CARGO_TARGET_DIR (default: target/), DIST (default: dist/).
 #
-# Needs: cargo, dpkg-deb, the build libraries listed in README.md.
+# Needs: cargo, dpkg-deb, the build libraries listed in README.md, and Node.js with pnpm for
+# Markd (packaging/build-markd-web.sh).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -78,6 +79,11 @@ if [ "$SKIP_BUILD" = 0 ]; then
   (cd "$ROOT/suite" &&
     env WORDCRAFT_BUILD_SHA="$(upstream_commit wordcraft)" ${fonts:+CRAFT_FONTS_DIR="$fonts"} \
       cargo build --release)
+  "$HERE/build-markd-web.sh" "$ROOT/build/markd/www"
+fi
+if [ ! -f "$ROOT/build/markd/www/index.html" ]; then
+  echo "error: no build/markd/www (run packaging/build-markd-web.sh)" >&2
+  exit 1
 fi
 BIN="$CARGO_TARGET_DIR/release"
 
@@ -99,14 +105,25 @@ for f in "$HERE"/craft-suite*.desktop; do
 done
 mkdir -p "$STAGE/usr/share/icons"
 cp -R "$ROOT/assets/hicolor" "$STAGE/usr/share/icons/"
-for app in "${APPS[@]}"; do
-  cp -R "$ROOT/upstream/$app/assets/app-icon/hicolor" "$STAGE/usr/share/icons/"
+for d in "$ROOT"/upstream/markd/packages/desktop/build/icons/*x*/; do
+  size="$(basename "$d")"
+  install -Dm644 "$d/marktext.png" "$STAGE/usr/share/icons/hicolor/$size/apps/craft-suite-markd.png"
+done
+# The apps' icons are the suite's own (scripts/make-app-icons.py), also under the upstream names
+# the file types use (ai.storyteller.<app>), so files show them too.
+for pair in wordcraft:word deckcraft:slide gridcraft:sheet; do
+  app="${pair%%:*}" icon="${pair##*:}"
+  for f in "$ROOT"/assets/hicolor/*/apps/craft-suite-$icon.*; do
+    dir="$(dirname "$f")"
+    install -Dm644 "$f" "$STAGE/usr/share/icons/hicolor/${dir#"$ROOT/assets/hicolor/"}/ai.storyteller.$app.${f##*.}"
+  done
   install -Dm644 "$ROOT/upstream/$app/packaging/linux/ai.storyteller.$app.mime.xml" \
     "$STAGE/usr/share/mime/packages/ai.storyteller.$app.xml"
 done
 
 # What this build is, for the About section and craft-suite-update.
 mkdir -p "$STAGE/usr/share/craft-suite"
+cp -R "$ROOT/build/markd/www" "$STAGE/usr/share/craft-suite/markd"
 echo "$VERSION" >"$STAGE/usr/share/craft-suite/VERSION"
 upstream_summary >"$STAGE/usr/share/craft-suite/upstream.txt"
 
@@ -129,6 +146,7 @@ for app in "${APPS[@]}"; do
     if [ -f "$ROOT/upstream/$app/$f" ]; then cp "$ROOT/upstream/$app/$f" "$DOC/$app-$f"; fi
   done
 done
+cp "$ROOT/upstream/markd/LICENSE" "$DOC/markd-LICENSE"
 if [ "$WITH_FONTS" = 1 ]; then
   for d in "$ROOT"/build/craft-fonts-*/fonts/*/; do
     if [ -f "$d/OFL.txt" ]; then cp "$d/OFL.txt" "$DOC/OFL-$(basename "$d").txt"; fi
@@ -138,10 +156,14 @@ cat >"$DOC/copyright" <<'EOF'
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: craft-suite
 Comment: WordCraft, DeckCraft and GridCraft (https://github.com/storytold) by the ArtCraft team,
- combined in one tabbed window. Each app's licence files are in this folder as <app>-LICENSE-*.
+ and Markd (https://github.com/Hafij-BGE/markd, based on MarkText), combined in one tabbed
+ window. Each app's licence files are in this folder as <app>-LICENSE*.
 
 Files: *
 License: MIT or Apache-2.0
+
+Files: usr/share/craft-suite/markd/*
+License: MIT
 EOF
 
 # ---- control files ------------------------------------------------------------------------------
@@ -155,7 +177,7 @@ Version: $VERSION
 Architecture: $ARCH
 Maintainer: $MAINTAINER
 Installed-Size: $SIZE
-Depends: libc6 (>= $GLIBC), libgcc-s1, libxkbcommon0, libxkbcommon-x11-0, libasound2t64 | libasound2, libvulkan1 | libegl1
+Depends: libc6 (>= $GLIBC), libgcc-s1, libxkbcommon0, libxkbcommon-x11-0, libasound2t64 | libasound2, libvulkan1 | libegl1, libwebkit2gtk-4.1-0, libgtk-3-0t64 | libgtk-3-0
 Recommends: libwayland-client0, libx11-6, libx11-xcb1, libxcursor1, libxi6, libxrandr2, mesa-vulkan-drivers, xdg-desktop-portal, curl
 Suggests: zenity
 Conflicts: wordcraft, deckcraft, gridcraft
@@ -163,18 +185,21 @@ Replaces: wordcraft, deckcraft, gridcraft
 Section: editors
 Priority: optional
 Homepage: https://github.com/storytold
-Description: WordCraft, DeckCraft and GridCraft in one tabbed window
- Craft Suite puts three open-source office apps in one window, one document per
- tab: WordCraft (Word documents: .docx, .odt, .rtf, .md), DeckCraft
- (PowerPoint presentations: .pptx) and GridCraft (Excel spreadsheets: .xlsx,
- .ods, .csv). Tabs of different apps can be mixed, grouped or kept in a row per
- app, along any edge of the window, with app colours and per-tab colours.
+Description: Word, Slide, Spreadsheet and Markd in one tabbed window
+ Craft Suite puts four open-source apps in one window, one document per tab:
+ Word (documents: .docx, .odt, .rtf), Slide (PowerPoint presentations:
+ .pptx), Spreadsheet (Excel workbooks: .xlsx, .ods, .csv), built from ArtCraft's
+ WordCraft, DeckCraft and GridCraft, and Markd (Markdown: .md, with HTML, PDF
+ and Word export). Tabs of different apps
+ can be mixed, grouped or kept in a row per app, along any edge of the window,
+ with app colours and per-tab colours.
  .
  Includes wordcraft-cli, deckcraft-cli and gridcraft-cli, headless converters
  and command runners, and craft-suite-update, which installs newer releases.
  .
  Created by Md. Hafijur Rahman. Source: WordCraft, DeckCraft and GridCraft by
- ArtCraft (https://github.com/storytold).
+ ArtCraft (https://github.com/storytold); Markd (https://github.com/Hafij-BGE/markd),
+ based on MarkText.
 EOF
 echo "/etc/craft-suite/update.conf" >"$STAGE/DEBIAN/conffiles"
 install -m755 "$HERE/postinst" "$STAGE/DEBIAN/postinst"

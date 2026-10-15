@@ -2,29 +2,34 @@
 Type=Application
 Name=Craft Suite
 GenericName=Office Suite
-Comment=Documents, presentations and spreadsheets in tabs: WordCraft, DeckCraft and GridCraft
+Comment=Documents, presentations, spreadsheets and Markdown in tabs: Word, Slide, Spreadsheet and Markd
 Exec=craft-suite %F
 TryExec=craft-suite
 Icon=craft-suite
 Terminal=false
 StartupNotify=true
 StartupWMClass=craft-suite
-Categories=Office;WordProcessor;Presentation;Spreadsheet;
-Keywords=office;word;document;docx;presentation;slides;pptx;spreadsheet;excel;xlsx;csv;tabs;
-MimeType=application/vnd.openxmlformats-officedocument.wordprocessingml.document;application/vnd.ms-word.document.macroEnabled.12;application/vnd.openxmlformats-officedocument.wordprocessingml.template;application/vnd.ms-word.template.macroEnabled.12;application/msword;application/msword-template;application/vnd.oasis.opendocument.text;application/rtf;text/rtf;text/markdown;application/x-deckcraft;application/vnd.openxmlformats-officedocument.presentationml.presentation;application/vnd.openxmlformats-officedocument.presentationml.template;application/vnd.openxmlformats-officedocument.presentationml.slideshow;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;application/vnd.ms-excel.sheet.macroEnabled.12;application/vnd.ms-excel.sheet.binary.macroEnabled.12;application/vnd.oasis.opendocument.spreadsheet;text/csv;text/tab-separated-values;
-Actions=new-document;new-presentation;new-spreadsheet;
+Categories=Office;WordProcessor;Presentation;Spreadsheet;TextEditor;
+Keywords=office;word;document;docx;presentation;slides;pptx;spreadsheet;excel;xlsx;csv;markdown;md;tabs;
+MimeType=application/vnd.openxmlformats-officedocument.wordprocessingml.document;application/vnd.ms-word.document.macroEnabled.12;application/vnd.openxmlformats-officedocument.wordprocessingml.template;application/vnd.ms-word.template.macroEnabled.12;application/msword;application/msword-template;application/vnd.oasis.opendocument.text;application/rtf;text/rtf;text/markdown;application/x-deckcraft;application/vnd.openxmlformats-officedocument.presentationml.presentation;application/vnd.openxmlformats-officedocument.presentationml.template;application/vnd.openxmlformats-officedocument.presentationml.slideshow;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;application/vnd.ms-excel.sheet.macroEnabled.12;application/vnd.ms-excel.sheet.binary.macroEnabled.12;application/vnd.oasis.opendocument.spreadsheet;text/csv;text/tab-separated-values;text/x-markdown;
+Actions=new-document;new-presentation;new-spreadsheet;new-markdown;
 
 [Desktop Action new-document]
 Name=New Document
-Icon=ai.storyteller.wordcraft
+Icon=craft-suite-word
 Exec=craft-suite --new word
 
 [Desktop Action new-presentation]
 Name=New Presentation
-Icon=ai.storyteller.deckcraft
+Icon=craft-suite-slide
 Exec=craft-suite --new deck
 
 [Desktop Action new-spreadsheet]
 Name=New Spreadsheet
-Icon=ai.storyteller.gridcraft
+Icon=craft-suite-sheet
 Exec=craft-suite --new grid
+
+[Desktop Action new-markdown]
+Name=New Markdown
+Icon=craft-suite-markd
+Exec=craft-suite --new mark

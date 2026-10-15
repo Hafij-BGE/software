@@ -197,6 +197,7 @@ pub struct Settings {
     pub word_color: Rgb,
     pub deck_color: Rgb,
     pub grid_color: Rgb,
+    pub mark_color: Rgb,
     pub home_color: Rgb,
     /// Colour the whole tab bar with the active tab's app colour.
     pub tint_bar_with_active: bool,
@@ -253,6 +254,7 @@ impl Default for Settings {
             word_color: Rgb([0x3b, 0x5b, 0xdb]),
             deck_color: Rgb([0xf2, 0x6b, 0x1d]),
             grid_color: Rgb([0x1f, 0x9d, 0x55]),
+            mark_color: Rgb([0x6d, 0x4a, 0xe8]),
             home_color: Rgb([0x6b, 0x6f, 0x7a]),
             tint_bar_with_active: false,
             theme: SuiteTheme::System,
@@ -279,6 +281,7 @@ impl Settings {
             Kind::Word => self.word_color,
             Kind::Deck => self.deck_color,
             Kind::Grid => self.grid_color,
+            Kind::Mark => self.mark_color,
             Kind::Home | Kind::Settings => self.home_color,
         }
     }
@@ -288,6 +291,7 @@ impl Settings {
             Kind::Word => &mut self.word_color,
             Kind::Deck => &mut self.deck_color,
             Kind::Grid => &mut self.grid_color,
+            Kind::Mark => &mut self.mark_color,
             Kind::Home | Kind::Settings => &mut self.home_color,
         }
     }

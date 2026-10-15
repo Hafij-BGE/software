@@ -3,6 +3,7 @@ import { wordCount } from '@muyajs/core'
 import { ICONS } from './icons'
 import { currentMarkdown, getMuya, initEditor } from './editor'
 import {
+  confirmDiscard,
   doc,
   flushOnPause,
   isDirty,
@@ -18,6 +19,7 @@ import {
 import { applyHandwriting, initFindBar, initSourceView, isSourceMode, redo, undo } from './commands'
 import { closeDrawer, initDrawer, openDrawer } from './drawer'
 import { callNative, isNative, onNativeEvent } from './native'
+import { initKeys } from './keys'
 import { initPenStatus } from './pen'
 import { initRibbon, refreshRibbon } from './ribbon'
 import { onSettingsChange, settings, updateSettings } from './settings'
@@ -86,6 +88,9 @@ const wireNativeEvents = (): void => {
     const { uri } = payload as { uri: string }
     openUri(uri)
   })
+  // A host closing the document (a desktop tab): resolves true once it is saved or discarded.
+  onNativeEvent('close', () => confirmDiscard())
+  onNativeEvent('save', () => saveDocument())
 }
 
 const boot = async(): Promise<void> => {
@@ -106,6 +111,7 @@ const boot = async(): Promise<void> => {
   initFindBar()
   initSourceView()
   initPenStatus()
+  initKeys()
   wireNativeEvents()
   onDocChange(() => {
     updateTitle()

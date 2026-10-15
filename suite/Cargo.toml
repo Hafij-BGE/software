@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 publish = false
-description = "Craft Suite: WordCraft, DeckCraft and GridCraft in one tabbed window"
+description = "Craft Suite: WordCraft, DeckCraft, GridCraft and Markd in one tabbed window"
 
 # A workspace of its own: the apps under upstream/ stay members of their own workspaces (their
 # `workspace = true` settings resolve there), and this crate only depends on their library crates.
@@ -42,11 +42,21 @@ craft-print = { git = "https://github.com/storytold/craft-libs", rev = "d27646a5
 ureq = { version = "3", default-features = false, features = ["rustls", "platform-verifier", "json", "gzip"], optional = true }
 keyring-core = { version = "1", optional = true }
 
+# Markd tabs (src/markd): the system's web view (WebKitGTK on Linux, WebView2 on Windows) showing
+# Markd's web version. Only with the `markd` feature (on by default).
+wry = { version = "0.57", optional = true }
+base64 = { version = "0.22", optional = true }
+
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
 winit = { version = "0.30", default-features = false, features = ["x11"] }
 zbus = { version = "5", default-features = false, features = ["async-io", "blocking-api"] }
 wl-clipboard-rs = "0.9"
 zbus-secret-service-keyring-store = { version = "1", features = ["rt-async-io-crypto-rust"], optional = true }
+# Markd tabs: the versions wry 0.57 uses.
+gtk = { version = "0.18", optional = true }
+gdkx11 = { version = "0.18", optional = true }
+webkit2gtk = { version = "=2.0.2", features = ["v2_38"], optional = true }
+x11-dl = { version = "2.21", optional = true }
 
 # As WordCraft's Windows build: the system's animation setting and home region (WinRT), and the
 # clipboard's Rich Text Format, read by the modules compiled from upstream/wordcraft.
@@ -56,9 +66,12 @@ clipboard-win = { version = "5.4", features = ["std"] }
 windows-native-keyring-store = { version = "1", optional = true }
 
 [features]
-default = ["ai"]
+default = ["ai", "markd"]
 # Ask AI. To build without it: cargo build --no-default-features (or remove "ai" above).
 ai = ["dep:ureq", "dep:keyring-core", "dep:zbus-secret-service-keyring-store", "dep:windows-native-keyring-store"]
+# Markd tabs. Linux needs WebKitGTK 4.1 (libwebkit2gtk-4.1-dev to build). To build without them:
+# cargo build --no-default-features --features ai.
+markd = ["dep:wry", "dep:base64", "dep:gtk", "dep:gdkx11", "dep:webkit2gtk", "dep:x11-dl"]
 
 [build-dependencies]
 # Icon and version information for craft-suite.exe (build.rs; nothing on other systems).

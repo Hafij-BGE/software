@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Markd
+GenericName=Markdown Editor
+Comment=Write Markdown with a Word-style ribbon; export HTML, PDF and Word (a new tab in Craft Suite)
+Exec=craft-suite --new mark
+TryExec=craft-suite
+Icon=craft-suite-markd
+Terminal=false
+StartupNotify=true
+StartupWMClass=craft-suite
+Categories=Office;TextEditor;
+Keywords=markdown;md;notes;writing;editor;

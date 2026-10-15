@@ -1,7 +1,7 @@
 //! One window: a second `craft-suite` (a double-click in the file manager, the desktop menu)
 //! hands its files to the window already open, over a Unix socket in the runtime directory.
 //!
-//! The protocol is a few lines of text: `open <absolute path>`, `new <word|deck|grid|home>`, and
+//! The protocol is a few lines of text: `open <absolute path>`, `new <word|deck|grid|mark|home>`, and
 //! `focus` when there's nothing else to do.
 //!
 //! On Windows there's no such socket yet: each start opens a window of its own.
@@ -42,6 +42,7 @@ fn kind_word(k: Kind) -> &'static str {
         Kind::Word => "word",
         Kind::Deck => "deck",
         Kind::Grid => "grid",
+        Kind::Mark => "mark",
         Kind::Home | Kind::Settings => "home",
     }
 }
