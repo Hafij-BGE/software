@@ -36,6 +36,65 @@ fn shape_fill_uses_theme_accent() {
 }
 
 #[test]
+fn render_shapes_draws_the_selection_on_a_transparent_canvas() {
+    let sh = Shape {
+        id: ShapeId(880),
+        xfrm: Some(Xfrm::new(100.0, 80.0, 60.0, 40.0)),
+        fill: Some(deckcraft_model::Fill::solid(ColorRef::rgb(deckcraft_color::Rgba::rgb(255, 0, 0)))),
+        line: Some(deckcraft_model::Line::none()),
+        ..Default::default()
+    };
+    let p = deck_with(vec![sh]);
+    let img = render_shapes(&p, &p.slides[0], &[ShapeId(880)], 1.0).expect("picture");
+    let mid = img.pixel(img.width / 2, img.height / 2);
+    assert!(mid[0] > 200 && mid[1] < 40 && mid[3] > 200, "{mid:?}");
+    assert_eq!(img.pixel(0, 0)[3], 0, "{:?}", img.pixel(0, 0));
+}
+
+#[test]
+fn ink_pressure_tapers_the_stroke_and_a_flat_half_stays_full_width() {
+    let opts = RenderOpts { scale: 1.0, ..Default::default() };
+    let tapered = render_slide(&ink_line(1.0, 0.12), 0, &opts);
+    let flat = render_slide(&ink_line(0.5, 0.5), 0, &opts);
+    let full = render_slide(&ink_line(1.0, 1.0), 0, &opts);
+    let heavy = dark_in(&tapered, 50, 140, 70, 130);
+    let light = dark_in(&tapered, 280, 360, 70, 130);
+    assert!(heavy > light * 3, "a firm point covers more of the slide than a light one ({heavy} vs {light})");
+    let (a, b) = (dark_in(&flat, 40, 370, 70, 130), dark_in(&full, 40, 370, 70, 130));
+    assert!(a > 100 && (a as i32 - b as i32).unsigned_abs() * 10 < a as u32, "the old constant 0.5 still draws at the pen width ({a} vs {b})");
+}
+
+fn ink_line(left: f32, right: f32) -> Presentation {
+    let points = (0..=40)
+        .map(|i| {
+            let pressure = if i < 20 { left } else { right };
+            (40.0 + f64::from(i) * 8.0, 100.0, pressure)
+        })
+        .collect();
+    let sh = Shape {
+        id: ShapeId(7),
+        xfrm: Some(Xfrm::new(0.0, 0.0, 960.0, 540.0)),
+        kind: ShapeKind::Ink {
+            strokes: vec![deckcraft_model::InkStroke { points, color: deckcraft_color::Rgba::rgb(0, 0, 0), width: 24.0, highlighter: false }],
+        },
+        ..Default::default()
+    };
+    deck_with(vec![sh])
+}
+
+fn dark_in(img: &Image, x0: u32, x1: u32, y0: u32, y1: u32) -> usize {
+    let mut n = 0;
+    for y in y0..y1 {
+        for x in x0..x1 {
+            if img.pixel(x, y)[0] < 200 {
+                n += 1;
+            }
+        }
+    }
+    n
+}
+
+#[test]
 fn text_draws_ink() {
     let mut sh = Shape { id: ShapeId(501), xfrm: Some(Xfrm::new(0.0, 0.0, 960.0, 540.0)), text_box: true, ..Default::default() };
     let mut t = TextBody::from_text("HELLO WORLD");
@@ -345,6 +404,34 @@ fn horizontal_bars_list_the_first_category_at_the_bottom_unless_reversed() {
 }
 
 #[test]
+fn glow_of_an_unfilled_shape_follows_its_line() {
+    // A frame (no fill, thin line) with a strong glow: the glow lines its edge, the inside stays
+    // the slide's white, as PowerPoint draws it.
+    let glow = |fill: Option<Fill>| {
+        let mut sh = Shape {
+            id: ShapeId(610),
+            xfrm: Some(Xfrm::new(100.0, 100.0, 400.0, 300.0)),
+            fill,
+            line: Some(deckcraft_model::style::Line::solid(ColorRef::rgb(deckcraft_color::Rgba::rgb(0, 176, 240)), 0.25)),
+            ..Default::default()
+        };
+        sh.effects = Some(deckcraft_model::Effects {
+            glow: Some(deckcraft_model::style::Glow { color: ColorRef::rgb(deckcraft_color::Rgba::rgb(0, 0, 255)), radius: 8.0 }),
+            ..Default::default()
+        });
+        render_slide(&deck_with(vec![sh]), 0, &RenderOpts { scale: 1.0, ..Default::default() })
+    };
+    let img = glow(Some(Fill::None));
+    let inside = img.pixel(300, 250);
+    assert!(inside[0] > 245 && inside[1] > 245, "{inside:?}");
+    let edge = img.pixel(300, 97);
+    assert!(edge[0] < 230, "{edge:?}");
+    // A filled shape's glow is still the whole silhouette's (the fill covers its inside).
+    let img = glow(Some(Fill::solid(ColorRef::rgb(deckcraft_color::Rgba::rgb(255, 255, 255)))));
+    assert!(img.pixel(300, 94)[0] < 240);
+}
+
+#[test]
 fn placeholder_prompts_only_in_edit_view() {
     let p = Presentation::default();
     let edit = render_slide(&p, 0, &RenderOpts { scale: 0.5, edit: true, ..Default::default() });
@@ -569,7 +656,7 @@ fn two_frame_gif() -> Vec<u8> {
 #[test]
 fn animated_gif_shows_the_frame_for_its_time() {
     let mut p = Presentation::default();
-    let media = p.add_media("a.gif", "image/gif", two_frame_gif());
+    let media = p.add_media("a.gif", "image/gif", two_frame_gif()).expect("media");
     let fill = deckcraft_model::style::PictureFill { media, ..Default::default() };
     let sh = Shape { id: ShapeId(600), xfrm: Some(Xfrm::new(0.0, 0.0, 960.0, 540.0)), kind: ShapeKind::Picture { fill }, ..Default::default() };
     std::sync::Arc::make_mut(&mut p.slides[0]).shapes = vec![sh];
@@ -654,6 +741,29 @@ fn morph_path_fades_a_fill_only_one_side_has() {
     assert!(full[0] < 128, "{full:?}");
     // Halfway the fill is half there: between the full colour and the white slide.
     assert!(half[0] > full[0] + 40 && half[0] < 215, "{half:?} vs {full:?}");
+}
+
+#[test]
+fn morph_path_aligns_once_per_transition() {
+    let (from, to) = (Xfrm::new(0.0, 0.0, 200.0, 200.0), Xfrm::new(0.0, 0.0, 300.0, 150.0));
+    let star = Shape { geom: Geom::preset("star5"), ..Default::default() };
+    let pm = |t: f64| PathMorph { id: ShapeId(10), from: Geom::preset("ellipse"), from_box: from, to_box: to, t };
+    let els = |(g, f): (deckcraft_geom::preset::Geometry, Vec<_>)| (g.paths.iter().map(|p| p.path.elements().to_vec()).collect::<Vec<_>>(), f);
+    let mut cache = morph_path::Cache::default();
+    for t in [0.0, 0.3, 0.7, 1.0] {
+        let got = els(cache.geometry(&pm(t), &star, 250.0, 175.0));
+        // The same as aligning afresh.
+        assert_eq!(got, els(morph_path::Cache::default().geometry(&pm(t), &star, 250.0, 175.0)));
+        cache.sweep();
+    }
+    assert_eq!(cache.len(), 1);
+    // Another target outline is another morph.
+    let _ = cache.geometry(&pm(0.5), &Shape { geom: Geom::preset("rect"), ..Default::default() }, 250.0, 175.0);
+    assert_eq!(cache.len(), 2);
+    // A frame without morphs ends the transition: the cache empties.
+    cache.sweep();
+    cache.sweep();
+    assert_eq!(cache.len(), 0);
 }
 
 #[test]
@@ -753,6 +863,7 @@ fn hyperlinks_draw_in_the_hyperlink_colour_underlined() {
         highlight_click: false,
         sound: None,
         stop_sound: false,
+        zoom_return: None,
     });
     let hlink = Some(Fill::solid(ColorRef::scheme(deckcraft_color::SchemeSlot::Hlink)));
     let red = Some(Fill::solid(ColorRef::rgb(Rgba::rgb(200, 0, 0))));
@@ -867,7 +978,7 @@ fn a_background_is_laid_over_white() {
     let mut png = std::io::Cursor::new(Vec::new());
     image::DynamicImage::ImageRgb8(image::RgbImage::from_pixel(4, 4, image::Rgb([0, 0, 200]))).write_to(&mut png, image::ImageFormat::Png).unwrap();
     let mut p = deck_with(vec![]);
-    let media = p.add_media("bg.png", "image/png", png.into_inner());
+    let media = p.add_media("bg.png", "image/png", png.into_inner()).expect("media");
     let pf = PictureFill { media, mode: PictureMode::Stretch { fill_rect: [0.5, 0.5, 0.0, 0.0] }, ..Default::default() };
     std::sync::Arc::make_mut(&mut p.slides[0]).background = Some(deckcraft_model::Background::Fill { fill: Fill::Picture(pf) });
     let img = render_slide(&p, 0, &RenderOpts { scale: 0.5, ..Default::default() });
@@ -1363,7 +1474,7 @@ fn half_red_wmf() -> Vec<u8> {
 #[test]
 fn metafile_pictures_draw_their_vectors() {
     let mut p = Presentation::default();
-    let media = p.add_media("image1.wmf", "image/x-wmf", half_red_wmf());
+    let media = p.add_media("image1.wmf", "image/x-wmf", half_red_wmf()).expect("media");
     let fill = deckcraft_model::style::PictureFill { media, ..Default::default() };
     let sh = Shape { id: ShapeId(600), xfrm: Some(Xfrm::new(100.0, 100.0, 400.0, 200.0)), kind: ShapeKind::Picture { fill }, ..Default::default() };
     std::sync::Arc::make_mut(&mut p.slides[0]).shapes = vec![sh];
@@ -1388,7 +1499,7 @@ fn broken_metafiles_draw_nothing_and_never_panic() {
     cases.push(huge);
     for bytes in cases {
         let mut p = Presentation::default();
-        let media = p.add_media("image1.emf", "image/x-emf", bytes);
+        let media = p.add_media("image1.emf", "image/x-emf", bytes).expect("media");
         let fill = deckcraft_model::style::PictureFill { media, ..Default::default() };
         let sh = Shape { id: ShapeId(600), xfrm: Some(Xfrm::new(0.0, 0.0, 400.0, 200.0)), kind: ShapeKind::Picture { fill }, ..Default::default() };
         std::sync::Arc::make_mut(&mut p.slides[0]).shapes = vec![sh];
@@ -1409,11 +1520,11 @@ fn an_object_deckcraft_doesnt_model_shows_its_preview_picture() {
     };
     for with_preview in [true, false] {
         let mut p = Presentation::default();
-        let media = p.add_media("image1.png", "image/png", png.clone());
+        let media = p.add_media("image1.png", "image/png", png.clone()).expect("media");
         let sh = Shape {
             id: ShapeId(600),
             xfrm: Some(Xfrm::new(100.0, 100.0, 400.0, 200.0)),
-            kind: ShapeKind::Opaque { xml: String::new(), preview: with_preview.then_some(media), label: "Package".into() },
+            kind: ShapeKind::Opaque { xml: String::new(), preview: with_preview.then_some(media), label: "Package".into(), parts: vec![] },
             ..Default::default()
         };
         std::sync::Arc::make_mut(&mut p.slides[0]).shapes = vec![sh];
@@ -1781,7 +1892,7 @@ fn a_picture_casts_its_shadow_from_its_pixels() {
     };
     for as_fill in [false, true] {
         let mut p = Presentation::default();
-        let media = p.add_media("logo.png", "image/png", png.clone());
+        let media = p.add_media("logo.png", "image/png", png.clone()).expect("media");
         let pf = deckcraft_model::style::PictureFill { media, ..Default::default() };
         let mut sh = Shape { id: ShapeId(600), xfrm: Some(Xfrm::new(100.0, 100.0, 400.0, 200.0)), ..Default::default() };
         if as_fill {
@@ -1929,7 +2040,8 @@ fn east_asian_vertical_text_stands_ideographs_upright() {
 #[test]
 fn placed_shapes_give_the_click_boxes_of_a_slide_in_drawing_order() {
     use deckcraft_model::text::{Action, Hyperlink};
-    let link = Hyperlink { action: Action::NextSlide, tooltip: String::new(), highlight_click: false, sound: None, stop_sound: false };
+    let link =
+        Hyperlink { action: Action::NextSlide, tooltip: String::new(), highlight_click: false, sound: None, stop_sound: false, zoom_return: None };
     let rect = |id: u32, x: f64, click: Option<Hyperlink>| Shape {
         id: ShapeId(id),
         xfrm: Some(Xfrm::new(x, 50.0, 100.0, 40.0)),
@@ -1969,7 +2081,14 @@ fn a_text_hyperlink_belongs_to_the_shape_that_holds_the_text() {
     use deckcraft_model::text::{Action, Hyperlink};
     let mut body = TextBody::from_text("click here");
     for r in &mut body.paragraphs[0].runs {
-        r.props.link = Some(Hyperlink { action: Action::FirstSlide, tooltip: String::new(), highlight_click: false, sound: None, stop_sound: false });
+        r.props.link = Some(Hyperlink {
+            action: Action::FirstSlide,
+            tooltip: String::new(),
+            highlight_click: false,
+            sound: None,
+            stop_sound: false,
+            zoom_return: None,
+        });
     }
     let sh = Shape { id: ShapeId(7), xfrm: Some(Xfrm::new(100.0, 100.0, 300.0, 60.0)), text: Some(body), ..Default::default() };
     let placed = place_slide(&deck_with(vec![sh]), 0);
@@ -2370,10 +2489,82 @@ fn render_an_emf_file_to_look_at() {
     let (Ok(src), Ok(out)) = (std::env::var("DECKCRAFT_EMF_IN"), std::env::var("DECKCRAFT_EMF_PNG")) else { return };
     let Ok(bytes) = std::fs::read(&src) else { return };
     let mut p = Presentation::default();
-    let media = p.add_media("image1.emf", "image/x-emf", bytes);
+    let media = p.add_media("image1.emf", "image/x-emf", bytes).expect("media");
     let fill = deckcraft_model::style::PictureFill { media, ..Default::default() };
     let sh = Shape { id: ShapeId(600), xfrm: Some(Xfrm::new(40.0, 40.0, 840.0, 400.0)), kind: ShapeKind::Picture { fill }, ..Default::default() };
     std::sync::Arc::make_mut(&mut p.slides[0]).shapes = vec![sh];
     let img = render_slide(&p, 0, &RenderOpts { scale: 1.0, ..Default::default() });
     let _ = std::fs::write(out, img.to_png());
+}
+
+#[test]
+fn single_series_column_chart_varies_colours_by_point() {
+    let render = |vary: bool| {
+        let mut c = Chart::sample(ChartType::Column);
+        c.series.truncate(1);
+        c.vary_colors = vary;
+        let sh =
+            Shape { id: ShapeId(800), xfrm: Some(Xfrm::new(50.0, 50.0, 400.0, 300.0)), kind: ShapeKind::Chart(Box::new(c)), ..Default::default() };
+        render_slide(&deck_with(vec![sh]), 0, &RenderOpts { scale: 1.0, ..Default::default() }).pixels
+    };
+    assert_ne!(render(true), render(false));
+}
+
+/// A 1024×1024 PNG of 2 px wide black and white vertical stripes.
+fn fine_stripes_png() -> Vec<u8> {
+    let img =
+        image::RgbaImage::from_fn(1024, 1024, |x, _| if (x / 2) % 2 == 0 { image::Rgba([0, 0, 0, 255]) } else { image::Rgba([255, 255, 255, 255]) });
+    let mut out = std::io::Cursor::new(Vec::new());
+    image::DynamicImage::ImageRgba8(img).write_to(&mut out, image::ImageFormat::Png).expect("png");
+    out.into_inner()
+}
+
+#[test]
+fn a_cropped_picture_is_decoded_at_the_resolution_of_the_whole_image() {
+    // The top-left sixteenth of the image in a 64 pt box: 64 image pixels over 64 output pixels.
+    // Decoding at the box's size instead of the whole image's blurs the stripes to grey (#762).
+    let mut p = Presentation::default();
+    let media = p.add_media("stripes.png", "image/png", fine_stripes_png()).expect("media");
+    let fill = deckcraft_model::style::PictureFill { media, crop: [0.0, 0.0, 15.0 / 16.0, 15.0 / 16.0], ..Default::default() };
+    let sh = Shape { id: ShapeId(600), xfrm: Some(Xfrm::new(100.0, 100.0, 64.0, 64.0)), kind: ShapeKind::Picture { fill }, ..Default::default() };
+    std::sync::Arc::make_mut(&mut p.slides[0]).shapes = vec![sh];
+    let img = render_slide(&p, 0, &RenderOpts { scale: 1.0, ..Default::default() });
+    let (mut sharp, mut total) = (0, 0);
+    for y in 110..154 {
+        for x in 110..154 {
+            let v = img.pixel(x, y)[0];
+            total += 1;
+            if !(48..=208).contains(&v) {
+                sharp += 1;
+            }
+        }
+    }
+    assert!(sharp * 10 >= total * 9, "the stripes stay sharp: {sharp} of {total} pixels black or white");
+}
+
+#[test]
+fn empty_bullet_is_gray_only_while_editing_and_never_in_exports() {
+    use deckcraft_model::text::{Bullet, Paragraph};
+    let mut para = Paragraph::default();
+    para.props.bullet = Some(Bullet::Char { char: "•".into() });
+    para.props.margin_left = Some(24.0);
+    para.props.indent = Some(-24.0);
+    para.end_props.size = Some(32.0);
+    let sh = Shape {
+        id: ShapeId(901),
+        xfrm: Some(Xfrm::new(100.0, 100.0, 400.0, 120.0)),
+        text: Some(TextBody { paragraphs: vec![para], ..Default::default() }),
+        ..Default::default()
+    };
+    let p = deck_with(vec![sh]);
+    let render = |edit, editing_text| render_slide(&p, 0, &RenderOpts { edit, editing_text, ..Default::default() });
+    let plain = render(false, None);
+    assert_eq!(plain.pixels, render(true, None).pixels);
+    assert_eq!(plain.pixels, render(false, Some(ShapeId(901))).pixels, "export ignores editor markers");
+    assert_eq!(plain.pixels, render(true, Some(ShapeId(902))).pixels, "other shapes stay empty");
+    let editing = render(true, Some(ShapeId(901)));
+    let changed: Vec<_> = editing.pixels.as_chunks::<4>().0.iter().zip(plain.pixels.as_chunks::<4>().0).filter(|(a, b)| a != b).collect();
+    assert!(!changed.is_empty(), "an empty bullet must be visible");
+    assert!(changed.iter().any(|(px, _)| px[0] == 179 && px[1] == 179 && px[2] == 179));
+    assert!(changed.iter().all(|(px, _)| px[0] >= 179 && px[0] == px[1] && px[1] == px[2]));
 }

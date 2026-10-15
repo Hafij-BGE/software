@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#2340c4"/></linearGradient><clipPath id="c"><rect x="262" y="196" width="500" height="632" rx="56"/></clipPath></defs>
+<rect x="64" y="64" width="896" height="896" rx="210" fill="url(#g)"/>
+<rect x="262" y="196" width="500" height="632" rx="56" fill="#fff"/>
+<rect x="330" y="280" width="270" height="54" rx="27" fill="#2f55d4" clip-path="url(#c)"/>
+<rect x="330" y="400" width="364" height="30" rx="15" fill="#cdd3de" clip-path="url(#c)"/>
+<rect x="330" y="466" width="330" height="30" rx="15" fill="#cdd3de" clip-path="url(#c)"/>
+<rect x="330" y="532" width="364" height="30" rx="15" fill="#cdd3de" clip-path="url(#c)"/>
+<rect x="330" y="598" width="230" height="30" rx="15" fill="#cdd3de" clip-path="url(#c)"/>
+<rect x="330" y="664" width="364" height="30" rx="15" fill="#cdd3de" clip-path="url(#c)"/>
+<rect x="330" y="730" width="290" height="30" rx="15" fill="#cdd3de" clip-path="url(#c)"/>
+</svg>

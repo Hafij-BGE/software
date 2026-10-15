@@ -14,8 +14,13 @@ upstream_commit() {
     sed -n 's/^git-subtree-split: *//p' | head -n1
 }
 upstream_version() {
-  awk '/^\[/ { p = ($0 == "[workspace.package]"); next } p && $1 == "version" { gsub(/[" \r]/, "", $3); print $3; exit }' \
-    "$ROOT/upstream/$1/Cargo.toml"
+  if [ -f "$ROOT/upstream/$1/Cargo.toml" ]; then
+    awk '/^\[/ { p = ($0 == "[workspace.package]"); next } p && $1 == "version" { gsub(/[" \r]/, "", $3); print $3; exit }' \
+      "$ROOT/upstream/$1/Cargo.toml"
+  else
+    # Markd: the desktop app's package.json.
+    sed -n 's/^  "version": "\([^"]*\)".*/\1/p' "$ROOT/upstream/$1/packages/desktop/package.json" 2>/dev/null | head -n1
+  fi
 }
 # The craft-fonts commit an app's release workflow embeds.
 fonts_ref() {

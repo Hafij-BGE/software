@@ -96,8 +96,9 @@ REPO="${GITHUB_REPOSITORY:-$(git -C "$ROOT" remote get-url origin 2>/dev/null | 
 RELEASES="https://github.com/${REPO:-Hafij-BGE/software}/releases/latest"
 sed -e "s/@VERSION@/$VERSION/" -e "s#@RELEASES@#$RELEASES#" "$ROOT/android/web/index.html" > "$STAGE/assets/web/index.html"
 cp "$ROOT/assets/hicolor/128x128/apps/craft-suite.png" "$STAGE/assets/web/icons/craft-suite.png"
-for app in wordcraft deckcraft gridcraft; do
-  cp "$ROOT/upstream/$app/assets/app-icon/hicolor/128x128/apps/ai.storyteller.$app.png" "$STAGE/assets/web/icons/$app.png"
+# The suite's own app icons (scripts/make-app-icons.py), under the names the launcher uses.
+for pair in wordcraft:word deckcraft:slide gridcraft:sheet; do
+  cp "$ROOT/assets/hicolor/128x128/apps/craft-suite-${pair##*:}.png" "$STAGE/assets/web/icons/${pair%%:*}.png"
 done
 
 echo "== compile"

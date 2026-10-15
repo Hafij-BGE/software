@@ -90,11 +90,38 @@ if [ ${#updated[@]} -eq 0 ]; then
   exit 0
 fi
 
+# The upstream workspaces patch crates (craft-pdf requires their krilla); the suite, a workspace
+# of its own, needs the same patches: keep its [patch.crates-io] lines at WordCraft's revisions.
+if grep -q '^\[patch.crates-io\]' upstream/wordcraft/Cargo.toml; then
+  python3 -I - <<'PY'
+import re
+from pathlib import Path
+up = Path("upstream/wordcraft/Cargo.toml").read_text()
+suite_path = Path("suite/Cargo.toml")
+suite = suite_path.read_text()
+block = up.split("[patch.crates-io]", 1)[1].split("\n[", 1)[0]
+for line in block.strip().splitlines():
+    m = re.match(r"^([A-Za-z0-9_-]+)\s*=", line)
+    if not m:
+        continue
+    name = m.group(1)
+    pat = re.compile(rf"^{re.escape(name)}\s*=.*$", re.M)
+    tail = suite.split("[patch.crates-io]", 1)
+    if len(tail) == 2 and pat.search(tail[1]):
+        suite = tail[0] + "[patch.crates-io]" + pat.sub(line, tail[1], count=1)
+    elif len(tail) == 2:
+        suite = tail[0] + "[patch.crates-io]\n" + line + tail[1]
+    else:
+        suite = suite.rstrip("\n") + "\n\n[patch.crates-io]\n" + line + "\n"
+suite_path.write_text(suite)
+PY
+fi
+
 echo "==> re-seeding suite/Cargo.lock"
 python3 -I scripts/merge-locks.py
 (cd suite && cargo metadata --format-version 1 >/dev/null)
-if ! git diff --quiet -- suite/Cargo.lock; then
-  git add suite/Cargo.lock
+if ! git diff --quiet -- suite/Cargo.lock suite/Cargo.toml; then
+  git add suite/Cargo.lock suite/Cargo.toml
   git commit -q -m "Refresh suite/Cargo.lock after updating ${updated[*]}"
 fi
 echo "Updated: ${updated[*]}. Build with packaging/build-deb.sh"

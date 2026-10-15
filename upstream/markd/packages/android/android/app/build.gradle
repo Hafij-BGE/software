@@ -1,0 +1,82 @@
+plugins {
+    id 'com.android.application'
+}
+
+// CI passes -PmarkdVersion=1.2.3 from the release tag.
+def markdVersion = (project.findProperty('markdVersion') ?: '0.23.1').toString()
+def versionParts = markdVersion.replaceAll(/[-+].*$/, '').tokenize('.').collect { it.isInteger() ? it.toInteger() : 0 }
+while (versionParts.size() < 3) versionParts << 0
+def markdVersionCode = versionParts[0] * 10000 + versionParts[1] * 100 + versionParts[2]
+
+// Optional release signing from environment variables; without them the
+// release APK is left unsigned (use the debug APK for side-loading).
+def keystorePath = System.getenv('MARKD_KEYSTORE')
+
+android {
+    namespace 'io.github.hafijbge.markd'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'io.github.hafijbge.markd'
+        minSdk 26
+        targetSdk 35
+        versionCode Math.max(1, markdVersionCode)
+        versionName markdVersion
+    }
+
+    signingConfigs {
+        if (keystorePath) {
+            release {
+                storeFile file(keystorePath)
+                storePassword System.getenv('MARKD_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('MARKD_KEY_ALIAS')
+                keyPassword System.getenv('MARKD_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+        }
+        release {
+            minifyEnabled false
+            if (keystorePath) signingConfig signingConfigs.release
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    androidResources {
+        // Keep Vite chunks whose names start with "_" (the default pattern drops them).
+        ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "Markd-${markdVersion}-android-${variant.buildType.name}.apk"
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+}
+
+// The web bundle must exist before packaging: `pnpm build:web` writes it.
+tasks.register('checkWebBundle') {
+    doLast {
+        if (!file('src/main/assets/www/index.html').exists()) {
+            throw new GradleException('Web bundle missing: run `pnpm --filter @markd/android build:web` first.')
+        }
+    }
+}
+preBuild.dependsOn checkWebBundle

@@ -1,15 +1,20 @@
 # Craft Suite
 
-Created by **Md. Hafijur Rahman**. Source: **ArtCraft**'s WordCraft, DeckCraft and GridCraft.
+Created by **Md. Hafijur Rahman**. Source: **ArtCraft**'s WordCraft, DeckCraft and GridCraft, and
+**Markd**.
 
 [WordCraft](https://github.com/storytold/wordcraft), [DeckCraft](https://github.com/storytold/deckcraft)
 and [GridCraft](https://github.com/storytold/gridcraft) (open-source Rust reimplementations of Word,
-PowerPoint and Excel by the ArtCraft team) in **one window with tabs**, packaged as **one `.deb`**
-(plus a **Windows** installer and an **Android** app), kept up to date from the upstream
-repositories, with room for your own changes.
+PowerPoint and Excel by the ArtCraft team, shown in the suite as **Word**, **Slide** and
+**Spreadsheet**, with the suite's own icons), and [Markd](https://github.com/Hafij-BGE/markd) (a
+Markdown editor based on MarkText) in **one window with tabs**, packaged as **one `.deb`** (plus a
+**Windows** installer and an **Android** app), kept up to date from the upstream repositories, with
+room for your own changes.
 
-- **Tabs that mix apps**: a Word document, a slide deck and a spreadsheet side by side, each in its
-  own tab with its app's icon and colour.
+- **Tabs that mix apps**: a Word document, a slide deck, a spreadsheet and a Markdown file side by
+  side, each in its own tab with its app's icon and colour.
+- **Markd tabs** for Markdown (`.md`): Markd's editor with its Word-style ribbon, themes, page
+  layout and HTML, PDF and Word export ([below](#markd)).
 - **Tab settings** (Home › Settings, or the ☰ button on the tab bar):
   - *arrangement*: tab bar at the top, bottom, left or right; tabs **mixed**, **grouped by app**, or
     in a **separate row per app**; the app order; where new tabs open; tab widths; icons; close
@@ -26,10 +31,10 @@ repositories, with room for your own changes.
   maximize and close beside the tabs; drag its empty part to move the window, double-click it to
   maximize, drag the window's edges to resize it. Settings › Window › Title bar switches back to
   the desktop's own title bar.
-- **Home page**: blank document, presentation and spreadsheet tiles, Open, and your recent files
+- **Home page**: blank document, presentation, spreadsheet and Markdown tiles, Open, and your recent files
   with search, a filter by app and when each file last changed (right-click one to show it in its
   folder or remove it from the list).
-- **Updates**: a daily GitHub workflow merges new upstream commits; installed copies update with
+- **Updates**: a weekly GitHub workflow merges new upstream commits; installed copies update with
   `craft-suite-update` or **Check for updates** on the Home page.
 - **Ask AI** (desktop): an assistant beside every tab that answers from the document you're on and
   makes the changes you accept, live in the tab; through AI providers you choose, with your own
@@ -41,21 +46,27 @@ repositories, with room for your own changes.
 upstream/wordcraft/   WordCraft, as a git subtree (edit freely: see "Your own changes")
 upstream/deckcraft/   DeckCraft, as a git subtree
 upstream/gridcraft/   GridCraft, as a git subtree
+upstream/markd/       Markd, as a git subtree
 upstream.conf         which repositories and branches upstream/ follows
-suite/                the Craft Suite app: the tabbed window that hosts all three
-packaging/            build-deb.sh, build-windows.sh, build-apk.sh, desktop entries,
-                      craft-suite-update, publish-release.sh
+suite/                the Craft Suite app: the tabbed window that hosts all four
+packaging/            build-deb.sh, build-windows.sh, build-apk.sh, build-markd-web.sh, desktop
+                      entries, craft-suite-update, publish-release.sh
 android/              the Android app: a WebView around the three apps' web versions
 scripts/              update-upstream.sh, merge-locks.py, backup-deps.sh
 backup/               copies of ArtCraft's craft-libs and craft-fonts, for when github.com/storytold
                       can't be reached
-.github/workflows/    build-deb.yml (build + release), sync-upstream.yml (daily upstream merge)
+.github/workflows/    build-deb.yml (build + release), sync-upstream.yml (weekly upstream merge)
 ```
 
 The tabbed window (`suite/`) links the three apps' own UI libraries (`wordcraft-ui-egui`,
 `deckcraft-ui-egui`, `gridcraft-ui-egui`) and runs each tab's app exactly as the app's own `main.rs`
 does. The host helpers the upstream binaries use (file dialogs, clipboard, printing, audio) are
 compiled straight from `upstream/*/apps/*/src`, so upstream fixes to them carry over.
+
+Markd is a web app (TypeScript), not an egui one: a Markd tab shows the web version Markd's own
+Android app runs (`upstream/markd/packages/android`, built by `packaging/build-markd-web.sh`) in
+the system's web view, placed over the tab (`suite/src/markd/`). The page talks to the suite
+through the same messages it sends Markd's Android app, so it needs no changes for the suite.
 
 ## Install
 
@@ -120,13 +131,14 @@ downloads as a zip: `unzip craft-suite-deb.zip` first, then the same `apt instal
 
 ### After installing
 
-Start **Craft Suite** from the applications menu (there are also WordCraft, DeckCraft and GridCraft
-entries, which open a new tab of that app), or from a terminal:
+Start **Craft Suite** from the applications menu (there are also Word, Slide, Spreadsheet and
+Markd entries, which open a new tab of that app), or from a terminal:
 
 ```sh
 craft-suite                       # the Home page (or last session's files)
 craft-suite report.docx data.xlsx # each file in a tab of its app
-craft-suite --new deck            # a blank presentation
+craft-suite notes.md              # a Markd tab
+craft-suite --new slide           # a blank presentation (--new mark: a blank Markdown file)
 wordcraft-cli --help              # the headless converters/command runners are included
 ```
 
@@ -166,6 +178,40 @@ time: **More info › Run anyway**. Settings are kept in `%APPDATA%\craft-suite`
 each start opens its own window (no handing files to an open window), and **Get updates** on the
 Home page opens the Releases page, where you download the newer installer and run it over the old
 one.
+
+## Markd
+
+Markdown files (`.md`, `.markdown`) open in **Markd** tabs; **Blank markdown** on the Home page (or
+`craft-suite --new mark`, or Ctrl+N in a Markd tab) starts one. A Markd tab is Markd's editor:
+
+- WYSIWYG Markdown (MarkText's muya editor) with a Word-style ribbon: **File, Home, Insert, Draw,
+  Layout, View**; Source view for the raw Markdown; find and replace; word and page counts.
+- Page layout on A4, US Letter or Legal paper; Word Light/Dark themes that follow the system.
+- **Export**: HTML, **PDF** (written straight to the file you choose) and **Word (.docx)**.
+- Pictures you paste or insert, and sketches (Draw), are saved in an `assets` folder next to the
+  `.md` file.
+- The ☰ menu: New, Open, **Open folder** (a folder's Markdown files) and Markd's own recent files.
+- Keys: **Ctrl+S** save, **Ctrl+Shift+S** save as, **Ctrl+O** open, **Ctrl+F** find, **Ctrl+H**
+  replace, **Ctrl+P** export PDF; the suite's tab keys (Ctrl+N, Ctrl+Alt+PageUp/PageDown…) work
+  in the page too.
+- Closing a tab with unsaved changes asks in Markd (Save, Discard, or Cancel by dismissing it).
+  Markd's **AutoSave** (on by default, File tab) saves a file that has a name as you type.
+
+Good to know:
+
+- Markd tabs need the system web view: **WebKitGTK 4.1** on Linux (`libwebkit2gtk-4.1-0`, which
+  the package depends on) and **WebView2** on Windows 10/11 (built in). On a Wayland desktop the
+  suite runs through XWayland, as it already does for drag and drop; with `CRAFT_SUITE_WAYLAND=1`
+  Markd tabs don't open.
+- The page is a native window over the tab: while a menu or prompt of the suite is open over it,
+  the page steps aside.
+- WordCraft still opens Markdown from its own File › Open.
+- Markd's settings and recent files are kept in `~/.local/share/craft-suite/markd` (Windows:
+  `%LOCALAPPDATA%\craft-suite\markd`).
+- Ask AI in a Markd tab sees the file's name only, not its text.
+- To build the suite without Markd (no WebKitGTK needed):
+  `cargo build --release --no-default-features --features ai` in `suite/`.
+- On Windows, **Export PDF** opens the page in your browser, to print it to PDF from there.
 
 ## Ask AI
 
@@ -244,7 +290,8 @@ lists one, else by size), up to four per question.
 Every release also has `craft-suite_<version>.apk` (Android 8.0 or newer): a small app that shows
 WordCraft, DeckCraft and GridCraft's **web versions** (the same apps, compiled to WebAssembly) from
 inside the app, so it works offline. Its first page has New Document, Presentation and Spreadsheet,
-**Open a file** and your **Recent** files; **Back** returns there.
+**Open a file** and your **Recent** files; **Back** returns there. (Markd isn't part of the Android
+app: Markd has its own APK.)
 
 - **Install:** download the `.apk` on the phone (logged in to GitHub: the repository is private),
   open it, and allow installing apps from your browser or file manager when Android asks.
@@ -308,8 +355,9 @@ On Ubuntu 22.04 or newer (or Debian 12+):
 ```sh
 sudo apt install build-essential pkg-config git curl python3 libasound2-dev libxkbcommon-dev \
   libwayland-dev libx11-dev libxcursor-dev libxrandr-dev libxi-dev libgl1-mesa-dev \
-  libfontconfig1-dev libfreetype-dev
+  libfontconfig1-dev libfreetype-dev libwebkit2gtk-4.1-dev libgtk-3-dev nodejs
 curl https://sh.rustup.rs -sSf | sh            # Rust 1.90 or newer
+corepack enable                                # pnpm, for Markd (Node.js 20.19 or newer)
 packaging/build-deb.sh --with-fonts            # -> dist/craft-suite_0.1.0-r<time>_amd64.deb
 ```
 
@@ -317,9 +365,10 @@ packaging/build-deb.sh --with-fonts            # -> dist/craft-suite_0.1.0-r<tim
 interface fonts) from [craft-fonts](https://github.com/storytold/craft-fonts); leave it out for a
 quicker build with egui's default fonts. A first build takes a while (three office apps).
 
-To try the window without packaging: `cd suite && cargo run --release`.
+To try the window without packaging: `packaging/build-markd-web.sh` once (Markd's web files, in
+`build/markd/www`), then `cd suite && cargo run --release`.
 
-**Windows:** in Git Bash, with Rust (`rustup`, MSVC) and, for the installer,
+**Windows:** in Git Bash, with Rust (`rustup`, MSVC), Node.js with pnpm and, for the installer,
 [Inno Setup 6](https://jrsoftware.org/isinfo.php): `packaging/build-windows.sh --with-fonts`
 (-> `dist/craft-suite_<version>_windows-x64.zip` and `-setup.exe`).
 
@@ -338,7 +387,8 @@ packaging/build-deb.sh               # build the new package
 
 ### What happens automatically
 
-1. **Every day at 03:17 UTC**, `.github/workflows/sync-upstream.yml` checks WordCraft, DeckCraft and
+1. **Every Monday at 03:17 UTC** (or any time: Actions › Sync upstream › **Run workflow**),
+   `.github/workflows/sync-upstream.yml` checks WordCraft, DeckCraft and
    GridCraft for new commits. With nothing new, it stops there.
 2. With new commits, it merges them into `upstream/` (keeping your own changes), refreshes
    `backup/` (below) and checks that the suite still compiles.
@@ -368,7 +418,7 @@ Everything needed to keep building is in this repository:
 
 Builds use github.com/storytold as usual; when it can't be reached, `packaging/lib.sh` takes these
 copies instead (the same commits, so nothing else changes), and says so in the build log. The
-daily sync then just warns that there's nothing to fetch. `scripts/backup-deps.sh` refreshes the
+weekly sync then just warns that there's nothing to fetch. `scripts/backup-deps.sh` refreshes the
 copies, and the sync runs it after each update, so they follow the versions the apps use. The
 other libraries come from crates.io, which keeps every published version.
 
@@ -409,10 +459,13 @@ you (`chmod 600`); when it expires or you revoke it on GitHub, make a new one an
 Everything under `upstream/` is ordinary files in this repository: change anything, in any app, and
 commit. `scripts/update-upstream.sh` merges upstream's new commits *with* your commits (`git subtree
 pull`), like merging any branch: your changes stay. When you and upstream changed the same lines,
-git stops with a conflict to resolve (`git status`, edit, `git add`, `git commit`); the daily
+git stops with a conflict to resolve (`git status`, edit, `git add`, `git commit`); the weekly
 workflow opens a pull request with the conflict instead.
 
-Changes to the suite itself (the tab bar, settings, Home page) go in `suite/src/`.
+The app icons are drawn by `scripts/make-app-icons.py` (into `assets/hicolor/`).
+
+Changes to the suite itself (the tab bar, settings, Home page) go in `suite/src/`; how a Markd
+tab hosts its page is `suite/src/markd/`.
 
 The Android app's changes to the apps (wider scroll bars, the commands its read-only mode runs) are
 patches in `android/patches/`, applied to `upstream/` only while `packaging/build-apk.sh` builds
@@ -440,5 +493,5 @@ no longer fits is left out with a warning (the APK still builds, without that ch
 ## Licences
 
 The suite code (`suite/`, `packaging/`, `scripts/`, `assets/`) is MIT OR Apache-2.0, like the
-apps. Each app's licence and attribution files are in its `upstream/<app>/` folder and are
+apps; Markd is MIT (`upstream/markd/LICENSE`). Each app's licence and attribution files are in its `upstream/<app>/` folder and are
 installed to `/usr/share/doc/craft-suite/`.

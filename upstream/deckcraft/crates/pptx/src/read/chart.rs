@@ -1,6 +1,6 @@
 //! Chart parts (`c:chartSpace`) → [`Chart`]. The original XML is kept in `Chart.raw`.
 
-use deckcraft_model::chart::{Chart, ChartType, Series, Trendline, TrendlineType};
+use deckcraft_model::chart::{Chart, ChartType, ErrorBars, Series, Trendline, TrendlineType};
 use deckcraft_model::style::Fill;
 
 use crate::xml::El;
@@ -195,9 +195,8 @@ fn chart_within(root: &El, mut budget: usize) -> Option<Chart> {
             "surfaceChart" | "surface3DChart" => ChartType::Surface,
             _ => continue,
         };
-        if let Some(v) = g.child_val("varyColors") {
-            c.vary_colors = v == "1" || v == "true";
-        }
+        // A missing <c:varyColors> means "vary by point" (the schema default is true), as PowerPoint draws it.
+        c.vary_colors = g.child_val("varyColors").is_none_or(|v| v == "1" || v == "true");
         // A bar group without c:gapWidth / c:overlap takes the schema's defaults (150 %, 0 %),
         // not the 219 % / -27 % PowerPoint writes into its new charts.
         let bar_group = g.is("barChart") || g.is("bar3DChart");
@@ -266,11 +265,30 @@ fn chart_within(root: &El, mut budget: usize) -> Option<Chart> {
             if let Some(v) = s.child("val").or_else(|| s.child("yVal")) {
                 ser.values = numbers(v, &mut budget);
             }
+            // Error bars on the values: a scatter chart's y bars, any other chart's only ones.
+            if let Some(e) = s
+                .children_named("errBars")
+                .find(|e| e.child_val("errDir").is_none_or(|d| d == "y" || !matches!(kind, ChartType::Scatter | ChartType::Bubble)))
+            {
+                let d = ErrorBars::default();
+                ser.error_bars = Some(ErrorBars {
+                    bar_type: e.child_val("errBarType").unwrap_or("both").to_string(),
+                    val_type: e.child_val("errValType").unwrap_or("fixedVal").to_string(),
+                    value: e.child_val("val").and_then(|v| v.parse().ok()).filter(|v: &f64| v.is_finite()).unwrap_or(d.value),
+                    plus: e.child("plus").map(|p| numbers(p, &mut budget)).unwrap_or_default(),
+                    minus: e.child("minus").map(|p| numbers(p, &mut budget)).unwrap_or_default(),
+                    end_cap: e.child("noEndCap").and_then(|v| v.bool("val")) != Some(true),
+                });
+            }
             if let Some(b) = s.child("bubbleSize") {
                 ser.sizes = numbers(b, &mut budget);
             }
             c.series.push(ser);
         }
+    }
+    // `autoTitleDeleted val="0"` without `c:title`: PowerPoint and LibreOffice draw the series name as the title of a single-series chart.
+    if ch.child("title").is_none() && ch.child("autoTitleDeleted").and_then(|a| a.bool("val")) == Some(false) && c.series.len() == 1 {
+        c.title = c.series.first().map(|s| s.name.clone()).filter(|n| !n.is_empty());
     }
     let first = *kinds.first()?;
     c.kind = if kinds.iter().any(|k| *k != first) { ChartType::Combo } else { first };
@@ -390,6 +408,89 @@ fn text_color(e: Option<&El>) -> Option<deckcraft_model::ColorRef> {
     rec(e?, 0)
 }
 
+const MAX_KEPT_PARTS: usize = 256;
+const MAX_KEPT_DEPTH: usize = 8;
+
+/// Relationships and parts a chart points at, so a later save can write them back.
+pub(crate) fn capture_kept(pkg: &crate::opc::Package, chart_part: &str) -> deckcraft_model::chart::ChartKept {
+    use deckcraft_model::chart::{ChartKept, ChartRel};
+
+    let mut kept = ChartKept::default();
+    // The chart document itself is rewritten; don't store a second copy of it.
+    let mut seen = std::collections::HashMap::from([(crate::opc::norm(chart_part), true)]);
+    for r in pkg.rels(chart_part).items {
+        if !safe_rel(&r.id, &r.ty, &r.target_raw) {
+            log::warn!("pptx: skipping chart relationship {}", r.id);
+            continue;
+        }
+        if r.external {
+            kept.rels.push(ChartRel { id: r.id, rel_type: r.ty, target: r.target_raw, part: String::new(), external: true });
+            continue;
+        }
+        if copy_part(pkg, &r.target, &mut kept.parts, &mut seen, 0) {
+            kept.rels.push(ChartRel { id: r.id, rel_type: r.ty, target: r.target_raw, part: r.target, external: false });
+        }
+    }
+    kept
+}
+
+fn safe_rel(id: &str, ty: &str, target: &str) -> bool {
+    [id, ty, target].iter().all(|s| !s.is_empty() && s.len() <= 4096 && !s.chars().any(|c| c.is_control() || matches!(c, '<' | '>' | '"' | '\'')))
+}
+
+/// `true` when `part` is stored (now or from an earlier relationship).
+fn copy_part(
+    pkg: &crate::opc::Package,
+    part: &str,
+    out: &mut Vec<deckcraft_model::chart::ChartPart>,
+    seen: &mut std::collections::HashMap<String, bool>,
+    depth: usize,
+) -> bool {
+    use deckcraft_model::chart::ChartPart;
+
+    if depth > MAX_KEPT_DEPTH || out.len() >= MAX_KEPT_PARTS {
+        log::warn!("pptx: chart part closure stopped at {part}");
+        return false;
+    }
+    let key = crate::opc::norm(part);
+    if let Some(ok) = seen.get(&key) {
+        return *ok;
+    }
+    if !crate::opc::sidecar_part(part) {
+        log::warn!("pptx: chart relationship target {part} is not kept");
+        seen.insert(key, false);
+        return false;
+    }
+    let Some(bytes) = pkg.get(part) else {
+        log::warn!("pptx: chart relationship target {part} is missing");
+        seen.insert(key, false);
+        return false;
+    };
+    let name = pkg.original_name(part).unwrap_or(part).trim_start_matches('/').to_string();
+    if !crate::opc::sidecar_part(&name) {
+        log::warn!("pptx: chart part name {name} is not kept");
+        seen.insert(key, false);
+        return false;
+    }
+    let content_type = pkg.content_type(part).unwrap_or_default();
+    out.push(ChartPart { name, content_type, bytes: bytes.to_vec() });
+    seen.insert(key, true);
+    let rels_name = crate::opc::rels_path(part);
+    if crate::opc::sidecar_part(&rels_name)
+        && seen.get(&crate::opc::norm(&rels_name)).is_none()
+        && let Some(rels_bytes) = pkg.get(&rels_name)
+    {
+        seen.insert(crate::opc::norm(&rels_name), true);
+        let name = pkg.original_name(&rels_name).unwrap_or(&rels_name).trim_start_matches('/').to_string();
+        out.push(ChartPart { name, content_type: "application/vnd.openxmlformats-package.relationships+xml".into(), bytes: rels_bytes.to_vec() });
+        let targets: Vec<String> = pkg.rels(part).items.into_iter().filter(|r| !r.external).map(|r| r.target).collect();
+        for target in targets {
+            copy_part(pkg, &target, out, seen, depth + 1);
+        }
+    }
+    true
+}
+
 /// The size in points of the first `a:defRPr` or `a:rPr` with one under `e` (`sz` in hundredths).
 fn text_size(e: Option<&El>) -> Option<f64> {
     fn rec(e: &El, depth: usize) -> Option<f64> {
@@ -445,16 +546,24 @@ mod tests {
     fn minor_gridlines_are_read_and_written_back() {
         let mut c = Chart::sample(ChartType::Line);
         c.minor_gridlines = true;
-        let back = read_chart_xml(&crate::write::chart::chart_xml(&c)).unwrap();
+        let back = read_chart_xml(&crate::write::chart::chart_xml(&c).0).unwrap();
         assert!(back.gridlines && back.minor_gridlines);
         c.minor_gridlines = false;
-        assert!(!read_chart_xml(&crate::write::chart::chart_xml(&c)).unwrap().minor_gridlines);
+        assert!(!read_chart_xml(&crate::write::chart::chart_xml(&c).0).unwrap().minor_gridlines);
     }
 
     #[test]
     fn log_base_is_read() {
         let xml = br#"<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart><c:plotArea><c:lineChart><c:axId val="1"/><c:axId val="2"/></c:lineChart><c:catAx><c:axId val="1"/></c:catAx><c:valAx><c:axId val="2"/><c:scaling><c:logBase val="10"/><c:orientation val="minMax"/></c:scaling></c:valAx></c:plotArea></c:chart></c:chartSpace>"#;
         assert_eq!(read_chart_xml(xml).unwrap().y_log_base, Some(10.0));
+    }
+
+    #[test]
+    fn error_bars_are_read() {
+        let xml = br#"<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart><c:plotArea><c:barChart><c:barDir val="col"/><c:ser><c:idx val="0"/><c:errBars><c:errBarType val="plus"/><c:errValType val="percentage"/><c:noEndCap val="1"/><c:val val="20"/></c:errBars><c:val><c:numLit><c:ptCount val="1"/><c:pt idx="0"><c:v>5</c:v></c:pt></c:numLit></c:val></c:ser></c:barChart></c:plotArea></c:chart></c:chartSpace>"#;
+        let c = read_chart_xml(xml).unwrap();
+        let e = c.series[0].error_bars.clone().unwrap();
+        assert_eq!((e.bar_type.as_str(), e.val_type.as_str(), e.value, e.end_cap), ("plus", "percentage", 20.0, false));
     }
 
     #[test]
@@ -584,5 +693,53 @@ mod tests {
         assert!(t[0].disp_eq && t[0].disp_r_sqr);
         assert_eq!((t[1].kind, t[1].order), (TrendlineType::Poly, Some(6)));
         assert_eq!((t[2].kind, t[2].period), (TrendlineType::MovingAvg, Some(3)));
+    }
+
+    const NS_C: &str = "http://schemas.openxmlformats.org/drawingml/2006/chart";
+    const NS_A: &str = "http://schemas.openxmlformats.org/drawingml/2006/main";
+
+    fn chart(auto_deleted: &str, title: &str, series: usize) -> Chart {
+        let val = r#"<c:val><c:numLit><c:ptCount val="1"/><c:pt idx="0"><c:v>1</c:v></c:pt></c:numLit></c:val>"#;
+        let ser: String = (0..series).map(|i| format!(r#"<c:ser><c:idx val="{i}"/><c:tx><c:v>S{i}</c:v></c:tx>{val}</c:ser>"#)).collect();
+        let plot = format!(r#"<c:plotArea><c:barChart><c:barDir val="col"/>{ser}</c:barChart></c:plotArea>"#);
+        let xml = format!(r#"<c:chartSpace xmlns:c="{NS_C}" xmlns:a="{NS_A}"><c:chart>{title}{auto_deleted}{plot}</c:chart></c:chartSpace>"#);
+        read_chart_xml(xml.as_bytes()).unwrap()
+    }
+
+    #[test]
+    fn single_series_gets_automatic_title() {
+        assert_eq!(chart(r#"<c:autoTitleDeleted val="0"/>"#, "", 1).title.as_deref(), Some("S0"));
+    }
+
+    #[test]
+    fn no_automatic_title_when_deleted_or_multi_series() {
+        assert_eq!(chart(r#"<c:autoTitleDeleted val="1"/>"#, "", 1).title, None);
+        assert_eq!(chart("", "", 1).title, None);
+        assert_eq!(chart(r#"<c:autoTitleDeleted val="0"/>"#, "", 2).title, None);
+    }
+
+    #[test]
+    fn explicit_title_wins() {
+        let t = "<c:title><c:tx><c:rich><a:p><a:r><a:t>Mine</a:t></a:r></a:p></c:rich></c:tx></c:title>";
+        assert_eq!(chart(r#"<c:autoTitleDeleted val="0"/>"#, t, 1).title.as_deref(), Some("Mine"));
+    }
+
+    const NS_CHART: &str = "http://schemas.openxmlformats.org/drawingml/2006/chart";
+
+    fn vary_xml(vary: &str) -> String {
+        let ser = r#"<c:ser><c:idx val="0"/><c:order val="0"/></c:ser>"#;
+        let bar = format!(r#"<c:barChart><c:barDir val="col"/><c:grouping val="clustered"/>{vary}{ser}</c:barChart>"#);
+        format!(r#"<c:chartSpace xmlns:c="{NS_CHART}"><c:chart><c:plotArea>{bar}</c:plotArea></c:chart></c:chartSpace>"#)
+    }
+
+    #[test]
+    fn missing_vary_colors_means_vary_by_point() {
+        assert!(read_chart_xml(vary_xml("").as_bytes()).is_some_and(|c| c.vary_colors));
+    }
+
+    #[test]
+    fn explicit_vary_colors_is_respected() {
+        assert!(read_chart_xml(vary_xml(r#"<c:varyColors val="0"/>"#).as_bytes()).is_some_and(|c| !c.vary_colors));
+        assert!(read_chart_xml(vary_xml(r#"<c:varyColors val="1"/>"#).as_bytes()).is_some_and(|c| c.vary_colors));
     }
 }

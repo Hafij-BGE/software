@@ -1,11 +1,11 @@
 [Desktop Entry]
 Type=Application
-Name=DeckCraft
+Name=Slide
 GenericName=Presentation
 Comment=Make slides; open and save PowerPoint files (a new tab in Craft Suite)
 Exec=craft-suite --new deck
 TryExec=craft-suite
-Icon=ai.storyteller.deckcraft
+Icon=craft-suite-slide
 Terminal=false
 StartupNotify=true
 StartupWMClass=craft-suite

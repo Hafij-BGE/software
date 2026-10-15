@@ -1,5 +1,6 @@
 //! One tab's app: a WordCraft, DeckCraft or GridCraft instance, set up the way the upstream app's
-//! own `main.rs` sets it up (services, preferences), but living in a tab of the suite's window.
+//! own `main.rs` sets it up (services, preferences), but living in a tab of the suite's window;
+//! or a Markd page (src/markd).
 //!
 //! The host-side helpers the upstream binaries use (native file dialogs, the clipboard, printing,
 //! audio) are compiled straight from `upstream/*/apps/*/src` (see `main.rs`), so they follow
@@ -19,6 +20,8 @@ pub enum Doc {
     Word(Box<WordTab>),
     Deck(Box<DeckTab>),
     Grid(Box<GridTab>),
+    #[cfg(feature = "markd")]
+    Mark(Box<crate::markd::MarkTab>),
 }
 
 pub struct WordTab {
@@ -61,7 +64,9 @@ impl Doc {
                 Doc::Deck(Box::new(tab))
             }
             Kind::Grid => Doc::Grid(Box::new(GridTab::new())),
-            Kind::Home | Kind::Settings => return None,
+            #[cfg(feature = "markd")]
+            Kind::Mark => Doc::Mark(Box::new(crate::markd::MarkTab::new(ctx, None))),
+            _ => return None,
         };
         Some(doc)
     }
@@ -73,7 +78,9 @@ impl Doc {
             Kind::Word => Doc::Word(Box::new(WordTab::new(ctx))),
             Kind::Deck => Doc::Deck(Box::new(DeckTab::new())),
             Kind::Grid => Doc::Grid(Box::new(GridTab::new())),
-            Kind::Home | Kind::Settings => unreachable_kind()?,
+            #[cfg(feature = "markd")]
+            Kind::Mark => return Ok(Doc::Mark(Box::new(crate::markd::MarkTab::new(ctx, Some(path))))),
+            _ => unreachable_kind()?,
         };
         doc.open_here(path)?;
         Ok(doc)
@@ -89,8 +96,13 @@ impl Doc {
                 // GridCraft reports a failed open in its own message box, keeping Book1.
                 match t.app.session.active().and_then(|d| d.path.clone()) {
                     Some(_) => Ok(()),
-                    None => Err(format!("GridCraft could not open {path}")),
+                    None => Err(format!("Spreadsheet could not open {path}")),
                 }
+            }
+            #[cfg(feature = "markd")]
+            Doc::Mark(t) => {
+                t.open_here(path);
+                Ok(())
             }
         }
     }
@@ -100,6 +112,8 @@ impl Doc {
             Doc::Word(_) => Kind::Word,
             Doc::Deck(_) => Kind::Deck,
             Doc::Grid(_) => Kind::Grid,
+            #[cfg(feature = "markd")]
+            Doc::Mark(_) => Kind::Mark,
         }
     }
 
@@ -107,8 +121,10 @@ impl Doc {
     pub fn title(&self) -> String {
         match self {
             Doc::Word(t) => t.app.title_stem(),
-            Doc::Deck(t) => t.app.session.active().map(|d| d.title()).unwrap_or_else(|| "DeckCraft".into()),
-            Doc::Grid(t) => t.app.session.active().map(|d| d.display_title()).unwrap_or_else(|| "GridCraft".into()),
+            Doc::Deck(t) => t.app.session.active().map(|d| d.title()).unwrap_or_else(|| "Slide".into()),
+            Doc::Grid(t) => t.app.session.active().map(|d| d.display_title()).unwrap_or_else(|| "Spreadsheet".into()),
+            #[cfg(feature = "markd")]
+            Doc::Mark(t) => t.title(),
         }
     }
 
@@ -117,6 +133,8 @@ impl Doc {
             Doc::Word(t) => t.app.session.dirty,
             Doc::Deck(t) => t.app.session.documents().iter().any(|d| d.is_dirty()),
             Doc::Grid(t) => t.app.session.documents().iter().any(|d| d.is_dirty()),
+            #[cfg(feature = "markd")]
+            Doc::Mark(t) => t.dirty(),
         }
     }
 
@@ -126,6 +144,8 @@ impl Doc {
             Doc::Word(t) => t.app.session.path.as_ref().map(|p| p.to_string_lossy().to_string()),
             Doc::Deck(t) => t.app.session.active().and_then(|d| d.path.clone()),
             Doc::Grid(t) => t.app.session.active().and_then(|d| d.path.clone()),
+            #[cfg(feature = "markd")]
+            Doc::Mark(t) => t.path(),
         }
     }
 
@@ -135,12 +155,18 @@ impl Doc {
             Doc::Word(_) => true,
             Doc::Deck(t) => t.app.session.documents().len() <= 1,
             Doc::Grid(t) => t.app.session.documents().len() <= 1,
+            #[cfg(feature = "markd")]
+            Doc::Mark(t) => return t.untouched(),
         };
         single && self.path().is_none() && !self.dirty()
     }
 
     /// Called when the tab becomes the active one, after the suite restored its look.
     pub fn activated(&mut self, ctx: &egui::Context) {
+        #[cfg(feature = "markd")]
+        if let Doc::Mark(t) = self {
+            t.focus();
+        }
         if let Doc::Grid(t) = self
             && !t.context_ready
         {
@@ -154,6 +180,13 @@ impl Doc {
             Doc::Word(t) => t.app.raw_input_hook(raw),
             Doc::Deck(t) => t.app.raw_input_hook(raw),
             Doc::Grid(t) => t.app.raw_input_hook(raw),
+            #[cfg(feature = "markd")]
+            Doc::Mark(t) => {
+                // A click on the window outside the page takes the keyboard back from it.
+                if t.has_focus() && raw.events.iter().any(|e| matches!(e, egui::Event::PointerButton { pressed: true, .. })) {
+                    t.unfocus();
+                }
+            }
         }
     }
 
@@ -168,6 +201,8 @@ impl Doc {
                 t.app.logic(ctx);
                 t.app.poll_printing(ctx);
             }
+            #[cfg(feature = "markd")]
+            Doc::Mark(_) => {}
         }
     }
 
@@ -179,6 +214,8 @@ impl Doc {
             }
             Doc::Deck(t) => t.app.ui(ui),
             Doc::Grid(t) => t.app.ui(ui),
+            #[cfg(feature = "markd")]
+            Doc::Mark(t) => t.ui(ui, frame),
         }
     }
 
@@ -190,6 +227,8 @@ impl Doc {
             Doc::Word(t) => t.app.execute(id, params),
             Doc::Deck(t) => t.app.run(id, params),
             Doc::Grid(t) => t.app.run(id, params),
+            #[cfg(feature = "markd")]
+            Doc::Mark(_) => Err(format!("Markd doesn't take the command {id}")),
         }
     }
 
@@ -204,6 +243,11 @@ impl Doc {
                 // done through `quit_requested`.
                 if t.app.close_requested() { CloseCheck::Now } else { CloseCheck::AppAsks }
             }
+            // Markd asks about unsaved changes in its page; its answer closes the tab.
+            #[cfg(feature = "markd")]
+            Doc::Mark(t) => {
+                if t.check_close() { CloseCheck::Now } else { CloseCheck::AppAsks }
+            }
             Doc::Grid(t) if t.app.printing.busy() => {
                 CloseCheck::Busy("Wait for the print job to finish submitting before closing.".into())
             }
@@ -214,9 +258,11 @@ impl Doc {
 
     /// The app wants its tab closed: WordCraft's Save prompt was answered, or File › Close was
     /// chosen with nothing unsaved (in WordCraft on its own, both close the window).
-    pub fn close_confirmed(&self) -> bool {
+    pub fn close_confirmed(&mut self) -> bool {
         match self {
             Doc::Word(t) => t.app.quit_requested,
+            #[cfg(feature = "markd")]
+            Doc::Mark(t) => t.close_confirmed(),
             _ => false,
         }
     }
@@ -240,6 +286,9 @@ impl Doc {
                 result.map_err(|e| e.to_string())?;
                 Ok(!self.dirty())
             }
+            // Not asked: Markd tabs ask in their page (`check_close`).
+            #[cfg(feature = "markd")]
+            Doc::Mark(t) => Ok(!t.dirty()),
         }
     }
 
@@ -263,6 +312,9 @@ impl Doc {
             Doc::Word(t) => word_save_prefs(&t.app),
             Doc::Deck(t) => deck_save_prefs(&t.app),
             Doc::Grid(t) => grid_save_prefs(&t.app),
+            // The page keeps its own settings.
+            #[cfg(feature = "markd")]
+            Doc::Mark(_) => {}
         }
     }
 }

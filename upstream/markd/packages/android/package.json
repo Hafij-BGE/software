@@ -1,0 +1,25 @@
+{
+  "name": "@markd/android",
+  "version": "0.23.1",
+  "private": true,
+  "description": "Markd for Android: WebView app hosting the @muyajs/core editor",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build:web": "pnpm --filter @muyajs/core build:types && tsc --noEmit && vite build",
+    "build:apk": "pnpm run build:web && cd android && ./gradlew assembleDebug",
+    "build:apk:release": "pnpm run build:web && cd android && ./gradlew assembleRelease",
+    "typecheck": "pnpm --filter @muyajs/core build:types && tsc --noEmit"
+  },
+  "dependencies": {
+    "@muyajs/core": "workspace:*",
+    "@turbodocx/html-to-docx": "1.23.1",
+    "buffer": "6.0.3",
+    "jszip": "3.10.1"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vite": "^8.3.4"
+  }
+}

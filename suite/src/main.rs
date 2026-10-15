@@ -1,6 +1,7 @@
-//! Craft Suite: WordCraft, DeckCraft and GridCraft in one window, each document in its own tab.
+//! Craft Suite: Word, Slide, Spreadsheet (ArtCraft's WordCraft, DeckCraft and GridCraft) and Markd
+//! in one window, each document in its own tab.
 //!
-//! Usage: `craft-suite [--new word|deck|grid|home] [--new-window] [FILE...]`
+//! Usage: `craft-suite [--new word|slide|sheet|mark|home] [--new-window] [FILE...]`
 //!
 //! Files open in tabs of the app for their type. With "Open files in the running window" on (the
 //! default), a second `craft-suite` hands its files to the window already open and exits.
@@ -17,6 +18,9 @@ mod hosts;
 mod instance;
 mod kind;
 mod look;
+// Markd tabs (the `markd` feature; see src/markd/mod.rs).
+#[cfg(feature = "markd")]
+mod markd;
 mod pages;
 mod settings;
 mod system;
@@ -62,14 +66,15 @@ pub struct Request {
 pub const CREATOR: &str = "Md. Hafijur Rahman";
 pub const SOURCE: &str = "ArtCraft";
 
-const USAGE: &str = "usage: craft-suite [--new word|deck|grid|home] [--new-window] [FILE...]
+const USAGE: &str = "usage: craft-suite [--new word|slide|sheet|mark|home] [--new-window] [FILE...]
 
-Opens WordCraft documents, DeckCraft presentations and GridCraft spreadsheets as tabs of one
-window. Each FILE opens in the app for its type; --new opens a blank one (repeatable).
---new-window starts a separate window even when one is already open.
+Opens documents (Word), presentations (Slide), spreadsheets (Spreadsheet) and Markdown files
+(Markd) as tabs of one window. Each FILE opens in the app for its type; --new opens a blank
+one (repeatable). --new-window starts a separate window even when one is already open.
 
 Craft Suite, created by Md. Hafijur Rahman. Source: WordCraft, DeckCraft and GridCraft by
-ArtCraft (https://github.com/storytold).";
+ArtCraft (https://github.com/storytold), as Word, Slide and Spreadsheet; Markd
+(https://github.com/Hafij-BGE/markd), based on MarkText.";
 
 fn main() -> std::process::ExitCode {
     log::set_logger(&LOGGER).map(|()| log::set_max_level(log_level())).ok();
@@ -89,7 +94,7 @@ fn main() -> std::process::ExitCode {
             "--new" => match args.next().as_deref().and_then(Kind::from_cli) {
                 Some(k) => request.new.push(k),
                 None => {
-                    eprintln!("craft-suite: --new takes word, deck, grid or home\n\n{USAGE}");
+                    eprintln!("craft-suite: --new takes word, slide, sheet, mark or home\n\n{USAGE}");
                     return std::process::ExitCode::from(2);
                 }
             },

@@ -1,0 +1,231 @@
+<template>
+  <div class="pref-markdown">
+    <h4>{{ t('preferences.markdown.title') }}</h4>
+    <compound>
+      <template #head>
+        <h6 class="title">
+          {{ t('preferences.markdown.lists.title') }}
+        </h6>
+      </template>
+      <template #children>
+        <bool
+          :description="t('preferences.markdown.lists.preferLooseListItem')"
+          :bool="preferLooseListItem"
+          :on-change="(value) => onSelectChange('preferLooseListItem', value)"
+          more="https://spec.commonmark.org/0.29/#loose"
+        />
+        <cur-select
+          :description="t('preferences.markdown.lists.bulletListMarker')"
+          :value="bulletListMarker"
+          :options="bulletListMarkerOptions"
+          :on-change="(value) => onSelectChange('bulletListMarker', value)"
+          more="https://spec.commonmark.org/0.29/#bullet-list-marker"
+        />
+        <cur-select
+          :description="t('preferences.markdown.lists.orderListDelimiter')"
+          :value="orderListDelimiter"
+          :options="orderListDelimiterOptions"
+          :on-change="(value) => onSelectChange('orderListDelimiter', value)"
+          more="https://spec.commonmark.org/0.29/#ordered-list"
+        />
+        <cur-select
+          :description="t('preferences.markdown.lists.listIndentation.title')"
+          :value="listIndentation"
+          :options="getListIndentationOptions()"
+          :on-change="(value) => onSelectChange('listIndentation', value)"
+        />
+      </template>
+    </compound>
+
+    <compound>
+      <template #head>
+        <h6 class="title">
+          {{ t('preferences.markdown.extensions.title') }}
+        </h6>
+      </template>
+      <template #children>
+        <cur-select
+          :description="t('preferences.markdown.extensions.frontmatterType.title')"
+          :value="frontmatterType"
+          :options="getFrontmatterTypeOptions()"
+          :on-change="(value) => onSelectChange('frontmatterType', value)"
+        />
+        <bool
+          :description="t('preferences.markdown.extensions.superSubScript')"
+          :bool="superSubScript"
+          :on-change="(value) => onSelectChange('superSubScript', value)"
+          more="https://pandoc.org/MANUAL.html#superscripts-and-subscripts"
+        />
+        <bool
+          :description="t('preferences.markdown.extensions.footnote')"
+          :notes="t('preferences.markdown.extensions.footnoteNotes')"
+          :bool="footnote"
+          :on-change="(value) => onSelectChange('footnote', value)"
+          more="https://pandoc.org/MANUAL.html#footnotes"
+        />
+        <bool
+          :description="t('preferences.markdown.extensions.texMathDollars')"
+          :bool="texMathDollars"
+          :on-change="(value) => onSelectChange('texMathDollars', value)"
+          more="https://pandoc.org/MANUAL.html#extension-tex_math_dollars"
+        />
+        <bool
+          :description="t('preferences.markdown.extensions.texMathGfm')"
+          :bool="texMathGfm"
+          :on-change="(value) => onSelectChange('texMathGfm', value)"
+          more="https://pandoc.org/MANUAL.html#extension-tex_math_gfm"
+        />
+        <bool
+          :description="t('preferences.markdown.extensions.texMathSingleBackslash')"
+          :bool="texMathSingleBackslash"
+          :on-change="(value) => onSelectChange('texMathSingleBackslash', value)"
+          more="https://pandoc.org/MANUAL.html#extension-tex_math_single_backslash"
+        />
+        <bool
+          :description="t('preferences.markdown.extensions.texMathDoubleBackslash')"
+          :bool="texMathDoubleBackslash"
+          :on-change="(value) => onSelectChange('texMathDoubleBackslash', value)"
+          more="https://pandoc.org/MANUAL.html#extension-tex_math_double_backslash"
+        />
+        <bool
+          :description="t('preferences.markdown.extensions.highlightSyntax')"
+          :bool="highlightSyntax"
+          :on-change="(value) => onSelectChange('highlightSyntax', value)"
+          more="https://www.markdownguide.org/extended-syntax/#highlight"
+        />
+        <bool
+          :description="t('preferences.markdown.extensions.inlineDiff')"
+          :bool="inlineDiff"
+          :on-change="(value) => onSelectChange('inlineDiff', value)"
+          more="https://docs.gitlab.com/user/markdown/#inline-diff"
+        />
+        <bool
+          :description="t('preferences.markdown.extensions.multilineBlockquote')"
+          :bool="multilineBlockquote"
+          :on-change="(value) => onSelectChange('multilineBlockquote', value)"
+          more="https://docs.gitlab.com/user/markdown/#multiline-blockquote"
+        />
+      </template>
+    </compound>
+
+    <compound>
+      <template #head>
+        <h6 class="title">
+          {{ t('preferences.markdown.compatibility.title') }}
+        </h6>
+      </template>
+      <template #children>
+        <bool
+          :description="t('preferences.markdown.compatibility.enableHtml')"
+          :bool="isHtmlEnabled"
+          :on-change="(value) => onSelectChange('isHtmlEnabled', value)"
+        />
+        <bool
+          :description="t('preferences.markdown.compatibility.softNewlineAsSpace')"
+          :bool="softNewlineAsSpace"
+          :on-change="(value) => onSelectChange('softNewlineAsSpace', value)"
+        />
+      </template>
+    </compound>
+
+    <compound>
+      <template #head>
+        <h6 class="title">
+          {{ t('preferences.markdown.diagrams.title') }}
+        </h6>
+      </template>
+      <template #children>
+        <cur-select
+          :description="t('preferences.markdown.diagrams.sequenceTheme.title')"
+          :value="sequenceTheme"
+          :options="getSequenceThemeOptions()"
+          :on-change="(value) => onSelectChange('sequenceTheme', value)"
+          more="https://bramp.github.io/js-sequence-diagrams/"
+        />
+        <text-box
+          :description="t('preferences.markdown.diagrams.plantumlServer.title')"
+          :input="plantumlServer"
+          :on-change="(value) => onSelectChange('plantumlServer', value)"
+          :default-value="'https://www.plantuml.com/plantuml'"
+        />
+      </template>
+    </compound>
+
+    <compound>
+      <template #head>
+        <h6 class="title">
+          {{ t('preferences.markdown.misc.title') }}
+        </h6>
+      </template>
+      <template #children>
+        <cur-select
+          :description="t('preferences.markdown.misc.preferHeadingStyle.title')"
+          :value="preferHeadingStyle"
+          :options="getPreferHeadingStyleOptions()"
+          :on-change="(value) => onSelectChange('preferHeadingStyle', value)"
+          :disable="true"
+        />
+      </template>
+    </compound>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+import Compound from '../common/compound/index.vue'
+import { usePreferencesStore } from '@/store/preferences'
+import type { PreferencesState } from '@/store/preferences'
+import Bool from '../common/bool/index.vue'
+import CurSelect from '../common/select/index.vue'
+import TextBox from '../common/textBox/index.vue'
+import {
+  bulletListMarkerOptions,
+  orderListDelimiterOptions,
+  getPreferHeadingStyleOptions,
+  getListIndentationOptions,
+  getFrontmatterTypeOptions,
+  getSequenceThemeOptions
+} from './config'
+import { storeToRefs } from 'pinia'
+
+const { t } = useI18n()
+
+const preferenceStore = usePreferencesStore()
+
+const {
+  preferLooseListItem,
+  bulletListMarker,
+  orderListDelimiter,
+  preferHeadingStyle,
+  listIndentation,
+  frontmatterType,
+  superSubScript,
+  footnote,
+  texMathDollars,
+  texMathGfm,
+  texMathSingleBackslash,
+  texMathDoubleBackslash,
+  highlightSyntax,
+  inlineDiff,
+  multilineBlockquote,
+  isHtmlEnabled,
+  softNewlineAsSpace,
+  sequenceTheme,
+  plantumlServer
+} = storeToRefs(preferenceStore)
+
+const onSelectChange = (type: keyof PreferencesState, value: unknown): void => {
+  preferenceStore.SET_SINGLE_PREFERENCE({ type, value })
+}
+</script>
+
+<script lang="ts">
+export default {
+  name: 'Markdown'
+}
+</script>
+
+<style scoped>
+.pref-markdown {
+}
+</style>
