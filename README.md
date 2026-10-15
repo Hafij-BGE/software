@@ -34,7 +34,7 @@ room for your own changes.
 - **Home page**: blank document, presentation, spreadsheet and Markdown tiles, Open, and your recent files
   with search, a filter by app and when each file last changed (right-click one to show it in its
   folder or remove it from the list).
-- **Updates**: a daily GitHub workflow merges new upstream commits; installed copies update with
+- **Updates**: a weekly GitHub workflow merges new upstream commits; installed copies update with
   `craft-suite-update` or **Check for updates** on the Home page.
 - **Ask AI** (desktop): an assistant beside every tab that answers from the document you're on and
   makes the changes you accept, live in the tab; through AI providers you choose, with your own
@@ -55,7 +55,7 @@ android/              the Android app: a WebView around the three apps' web vers
 scripts/              update-upstream.sh, merge-locks.py, backup-deps.sh
 backup/               copies of ArtCraft's craft-libs and craft-fonts, for when github.com/storytold
                       can't be reached
-.github/workflows/    build-deb.yml (build + release), sync-upstream.yml (daily upstream merge)
+.github/workflows/    build-deb.yml (build + release), sync-upstream.yml (weekly upstream merge)
 ```
 
 The tabbed window (`suite/`) links the three apps' own UI libraries (`wordcraft-ui-egui`,
@@ -387,7 +387,8 @@ packaging/build-deb.sh               # build the new package
 
 ### What happens automatically
 
-1. **Every day at 03:17 UTC**, `.github/workflows/sync-upstream.yml` checks WordCraft, DeckCraft and
+1. **Every Monday at 03:17 UTC** (or any time: Actions › Sync upstream › **Run workflow**),
+   `.github/workflows/sync-upstream.yml` checks WordCraft, DeckCraft and
    GridCraft for new commits. With nothing new, it stops there.
 2. With new commits, it merges them into `upstream/` (keeping your own changes), refreshes
    `backup/` (below) and checks that the suite still compiles.
@@ -417,7 +418,7 @@ Everything needed to keep building is in this repository:
 
 Builds use github.com/storytold as usual; when it can't be reached, `packaging/lib.sh` takes these
 copies instead (the same commits, so nothing else changes), and says so in the build log. The
-daily sync then just warns that there's nothing to fetch. `scripts/backup-deps.sh` refreshes the
+weekly sync then just warns that there's nothing to fetch. `scripts/backup-deps.sh` refreshes the
 copies, and the sync runs it after each update, so they follow the versions the apps use. The
 other libraries come from crates.io, which keeps every published version.
 
@@ -458,7 +459,7 @@ you (`chmod 600`); when it expires or you revoke it on GitHub, make a new one an
 Everything under `upstream/` is ordinary files in this repository: change anything, in any app, and
 commit. `scripts/update-upstream.sh` merges upstream's new commits *with* your commits (`git subtree
 pull`), like merging any branch: your changes stay. When you and upstream changed the same lines,
-git stops with a conflict to resolve (`git status`, edit, `git add`, `git commit`); the daily
+git stops with a conflict to resolve (`git status`, edit, `git add`, `git commit`); the weekly
 workflow opens a pull request with the conflict instead.
 
 The app icons are drawn by `scripts/make-app-icons.py` (into `assets/hicolor/`).

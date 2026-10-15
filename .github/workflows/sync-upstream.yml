@@ -17,7 +17,8 @@ name: Sync upstream
 
 on:
   schedule:
-    - cron: "17 3 * * *"
+    # Weekly: Mondays at 03:17 UTC (Run workflow on the Actions page syncs at any time).
+    - cron: "17 3 * * 1"
   workflow_dispatch:
 
 permissions:

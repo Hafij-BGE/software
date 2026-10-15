@@ -7,7 +7,7 @@
 #   backup/craft-fonts/<ref>/   the fonts of each craft-fonts commit an app's release embeds
 #
 # The builds use github.com as before; only when it can't be reached do packaging/lib.sh's helpers
-# take these copies instead (same commits, so Cargo.lock still matches). The daily upstream sync
+# take these copies instead (same commits, so Cargo.lock still matches). The weekly upstream sync
 # runs this after merging an update. When storytold can't be reached, the backup is left as it is.
 #
 # Usage: scripts/backup-deps.sh
