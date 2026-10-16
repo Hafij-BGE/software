@@ -55,6 +55,9 @@ pub struct State {
     pub focused: bool,
     /// The page has loaded and reported its state.
     pub ready: bool,
+    /// The document's Markdown and selected text, as the page last reported them (for Ask AI).
+    pub markdown: String,
+    pub selection: String,
 }
 
 impl Shared {
@@ -270,11 +273,21 @@ fn on_message(tab: &Arc<Shared>, text: &str) {
                 }
             }
             "focus" => s.focused = true,
-            "eventResult" => {
-                if msg.get("name").and_then(|v| v.as_str()) == Some("close") {
-                    s.close = Some(msg.get("result").and_then(|v| v.as_bool()).unwrap_or(false));
+            "eventResult" => match msg.get("name").and_then(|v| v.as_str()) {
+                Some("close") => s.close = Some(msg.get("result").and_then(|v| v.as_bool()).unwrap_or(false)),
+                Some("snapshot") => {
+                    let result = msg.get("result");
+                    let field = |k: &str| result.and_then(|r| r.get(k)).and_then(|v| v.as_str()).unwrap_or_default().to_string();
+                    s.markdown = field("markdown");
+                    s.selection = field("selection");
                 }
-            }
+                Some("edit") => {
+                    if let Some(error) = msg.get("result").and_then(|r| r.get("error")).and_then(|v| v.as_str()) {
+                        log::warn!("tab {}: Ask AI's edit: {error}", tab.id);
+                    }
+                }
+                _ => {}
+            },
             _ => {}
         }
         drop(s);
@@ -485,6 +498,23 @@ impl MarkTab {
             s.focused = false;
             drop(s);
             send(Cmd::Unfocus(self.shared.id));
+        }
+    }
+
+    /// Ask AI reads the document and makes the edits it may (`ai::context::allowed`).
+    #[cfg(feature = "ai")]
+    pub fn command(&mut self, id: &str, params: serde_json::Value) -> Result<serde_json::Value, String> {
+        match id {
+            "document.text" => Ok(serde_json::json!({ "text": self.shared.lock().markdown })),
+            "document.selection" => Ok(serde_json::json!({ "text": self.shared.lock().selection })),
+            "text.insert" | "text.append" | "edit.replaceAll" | "document.replace" => {
+                if !self.created {
+                    return Err("Markd isn't open yet".into());
+                }
+                event(self.shared.id, "edit", serde_json::json!({ "command": id, "params": params }));
+                Ok(serde_json::Value::Null)
+            }
+            _ => Err(format!("Markd doesn't take the command {id}")),
         }
     }
 

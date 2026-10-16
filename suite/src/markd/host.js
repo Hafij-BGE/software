@@ -34,10 +34,22 @@
     localStorage.removeItem('markd.draft')
   } catch (_) {}
 
+  // The document's Markdown and selected text, for Ask AI: a while after each change of text or
+  // selection (the page's `snapshot` event answers as an `eventResult`).
+  let snapshotTimer = 0
+  const snapshotSoon = () => {
+    clearTimeout(snapshotTimer)
+    snapshotTimer = setTimeout(() => window.__craftSuiteEvent('snapshot', null), 400)
+  }
+  for (const type of ['input', 'keyup', 'mouseup', 'selectionchange']) {
+    document.addEventListener(type, snapshotSoon, true)
+  }
+
   const report = () => {
     const name = document.getElementById('doc-name')
     const dot = document.getElementById('dirty-dot')
     if (name) post({ suite: 'state', name: name.textContent || 'Untitled.md', dirty: !!dot && !dot.hidden })
+    snapshotSoon()
   }
   document.addEventListener('DOMContentLoaded', () => {
     const observer = new MutationObserver(report)

@@ -1,9 +1,9 @@
 // Keyboard shortcuts for a hardware keyboard (a desktop host, or a tablet's
-// keyboard): the file commands and find, as in other editors. Formatting keys
-// (Ctrl+B, Ctrl+Z…) are muya's own.
+// keyboard): undo, the file commands and find, as in other editors. Formatting
+// keys (Ctrl+B, Ctrl+I…) are muya's own.
 
 import { openDocument, saveDocument, saveDocumentAs } from './document'
-import { closeFind, openFind } from './commands'
+import { closeFind, openFind, redo, undo } from './commands'
 import { exportPdf } from './export'
 
 export const initKeys = (): void => {
@@ -13,7 +13,9 @@ export const initKeys = (): void => {
     const key = event.key.toLowerCase()
     let run: (() => unknown) | null = null
     if (mod && !event.altKey) {
-      if (key === 's') run = event.shiftKey ? saveDocumentAs : saveDocument
+      if (key === 'z') run = event.shiftKey ? redo : undo
+      else if (key === 'y' && !event.shiftKey) run = redo
+      else if (key === 's') run = event.shiftKey ? saveDocumentAs : saveDocument
       else if (key === 'o' && !event.shiftKey) run = openDocument
       else if (key === 'f' && !event.shiftKey) run = () => openFind(false)
       else if (key === 'h' && !event.shiftKey) run = () => openFind(true)

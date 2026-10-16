@@ -64,11 +64,7 @@ pub fn gather(doc: &mut Doc, title: &str, private: bool) -> Gathered {
         Kind::Word => word(doc, title, private),
         Kind::Deck => deck(doc, title, private),
         Kind::Grid => grid(doc, title, private),
-        Kind::Mark => {
-            // Markd's text lives in its web page; the AI sees the document's name only.
-            let p = format!("Document: {title} (a Markdown file in Markd; its text isn't shared with Ask AI)\n");
-            Gathered { shared: p.clone(), prompt: p }
-        }
+        Kind::Mark => mark(doc, title, private),
         _ => Gathered { prompt: String::new(), shared: String::new() },
     }
 }
@@ -107,6 +103,49 @@ fn word(doc: &mut Doc, title: &str, private: bool) -> Gathered {
         p.push_str("Full text: not shared (Private is on).\n");
     } else {
         p.push_str(&format!("Full text:\n\"\"\"\n{}\n\"\"\"\n", cut(&text, MAX_TEXT)));
+        shared.push("the full text");
+    }
+    Gathered { prompt: p, shared: shared.join(", ") }
+}
+
+/// A Markd tab: its Markdown and selection as the page last reported them.
+fn mark(doc: &mut Doc, title: &str, private: bool) -> Gathered {
+    let mut p = format!("Document: {title} (Markdown, in Markd)\n");
+    let text = as_text(&doc.command("document.text", json!({})).unwrap_or(Value::Null));
+    let words = text.split_whitespace().count();
+    // Headings: ATX lines (`# …`) outside fenced code.
+    let mut fenced = false;
+    let headings: Vec<String> = text
+        .lines()
+        .filter_map(|line| {
+            let t = line.trim_start();
+            if t.starts_with("```") || t.starts_with("~~~") {
+                fenced = !fenced;
+                return None;
+            }
+            let level = t.chars().take_while(|c| *c == '#').count();
+            (!fenced && (1..=6).contains(&level) && t[level..].starts_with(' ')).then(|| format!("- [H{level}] {}", t[level..].trim()))
+        })
+        .take(80)
+        .collect();
+    p.push_str(&format!("Words: {words}\n"));
+    if headings.is_empty() {
+        p.push_str("Headings: none\n");
+    } else {
+        p.push_str(&format!("Headings:\n{}\n", headings.join("\n")));
+    }
+    let selection = doc.command("document.selection", json!({})).ok().and_then(|v| v.get("text").and_then(Value::as_str).map(str::to_string)).unwrap_or_default();
+    let mut shared = vec!["headings", "word count"];
+    if !selection.trim().is_empty() {
+        p.push_str(&format!("Selected text:\n\"\"\"\n{}\n\"\"\"\n", cut(&selection, MAX_SELECTION)));
+        shared.push("the selected text");
+    } else {
+        p.push_str("Selected text: none\n");
+    }
+    if private {
+        p.push_str("Full text: not shared (Private is on).\n");
+    } else {
+        p.push_str(&format!("Full text (Markdown):\n\"\"\"\n{}\n\"\"\"\n", cut(&text, MAX_TEXT)));
         shared.push("the full text");
     }
     Gathered { prompt: p, shared: shared.join(", ") }
@@ -243,6 +282,12 @@ pub fn allowed(kind: Kind) -> &'static [(&'static str, &'static str, &'static st
             ("data.sort", r#"{"range"?: "A1:D20", "header"?: true, "keys": [{"column": "B", "order": "asc"|"desc"}]}"#, "sorts a range"),
             ("data.removeDuplicates", r#"{"range"?: "A1:D20", "header"?: true}"#, "removes duplicate rows"),
             ("sheet.rename", r#"{"name": string}"#, "renames the active sheet"),
+        ],
+        Kind::Mark => &[
+            ("text.insert", r#"{"text": markdown}"#, "inserts Markdown as new paragraphs after the paragraph with the cursor"),
+            ("text.append", r#"{"text": markdown}"#, "adds Markdown at the end of the document"),
+            ("edit.replaceAll", r#"{"text": string, "with": string}"#, "replaces every occurrence of exact text in the Markdown source"),
+            ("document.replace", r#"{"markdown": string}"#, "replaces the whole document with this Markdown (for rewrites of the whole text; only when asked)"),
         ],
         _ => &[],
     }

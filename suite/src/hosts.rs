@@ -228,7 +228,7 @@ impl Doc {
             Doc::Deck(t) => t.app.run(id, params),
             Doc::Grid(t) => t.app.run(id, params),
             #[cfg(feature = "markd")]
-            Doc::Mark(_) => Err(format!("Markd doesn't take the command {id}")),
+            Doc::Mark(t) => t.command(id, params),
         }
     }
 
