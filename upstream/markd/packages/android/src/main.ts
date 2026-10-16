@@ -19,6 +19,7 @@ import {
 import { applyHandwriting, initFindBar, initSourceView, isSourceMode, redo, undo } from './commands'
 import { closeDrawer, initDrawer, openDrawer } from './drawer'
 import { callNative, isNative, onNativeEvent } from './native'
+import { applyEdit, snapshot } from './assist'
 import { initKeys } from './keys'
 import { initPenStatus } from './pen'
 import { initRibbon, refreshRibbon } from './ribbon'
@@ -91,6 +92,9 @@ const wireNativeEvents = (): void => {
   // A host closing the document (a desktop tab): resolves true once it is saved or discarded.
   onNativeEvent('close', () => confirmDiscard())
   onNativeEvent('save', () => saveDocument())
+  // A host's assistant: what the document says, and its edits.
+  onNativeEvent('snapshot', () => snapshot())
+  onNativeEvent('edit', (payload) => applyEdit(payload))
 }
 
 const boot = async(): Promise<void> => {

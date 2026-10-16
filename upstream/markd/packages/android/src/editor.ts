@@ -204,26 +204,31 @@ const markdownSrc = (src: string): string =>
   /^(data:|https?:)/i.test(src) ? src : src.split('/').map(encodeURIComponent).join('/')
 
 /**
- * Insert an image as its own paragraph after the block holding the last known
+ * Insert Markdown as its own paragraph after the block holding the last known
  * caret, or append it to the document when there is no caret.
  */
-export const insertImageAtCursor = (src: string, alt: string): void => {
+export const insertMarkdownAtCursor = (markdown: string): void => {
   const editor = getMuya()
-  const image = `![${alt}](${markdownSrc(src)})`
   const before = currentMarkdown()
   if (savedCursor) {
     try {
       editor.setCursorByOffset(savedCursor)
-      editor.insertParagraph('after', image, true)
+      editor.insertParagraph('after', markdown, true)
     } catch {
       savedCursor = null
     }
   }
   if (currentMarkdown() === before) {
     const md = before.replace(/\s*$/, '')
-    editor.setContent(`${md}${md ? '\n\n' : ''}${image}\n`)
+    // One undo step (`setContent` would drop the undo history).
+    editor.replaceContent(`${md}${md ? '\n\n' : ''}${markdown}\n`)
   }
   notifyChange()
+}
+
+/** Insert an image as its own paragraph (see `insertMarkdownAtCursor`). */
+export const insertImageAtCursor = (src: string, alt: string): void => {
+  insertMarkdownAtCursor(`![${alt}](${markdownSrc(src)})`)
 }
 
 /** `setContent` does not emit json-change; callers that replace text use this. */

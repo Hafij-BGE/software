@@ -208,7 +208,9 @@ Good to know:
 - WordCraft still opens Markdown from its own File › Open.
 - Markd's settings and recent files are kept in `~/.local/share/craft-suite/markd` (Windows:
   `%LOCALAPPDATA%\craft-suite\markd`).
-- Ask AI in a Markd tab sees the file's name only, not its text.
+- Ask AI works in Markd tabs as in Word: it reads the Markdown (only the headings and the
+  selection while **Private** is on) and its edits (insert, append, replace) can be undone with
+  Ctrl+Z.
 - To build the suite without Markd (no WebKitGTK needed):
   `cargo build --release --no-default-features --features ai` in `suite/`.
 - On Windows, **Export PDF** opens the page in your browser, to print it to PDF from there.
