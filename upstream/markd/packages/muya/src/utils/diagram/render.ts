@@ -26,6 +26,21 @@ function sizeSvg(svg: Element): boolean {
     return false;
 }
 
+// Draw an `<svg>` at its own width (mermaid's `max-width`, else its viewBox's) rather than
+// shrunk to the column, so its text stays readable: a diagram wider than the column scrolls
+// sideways instead (`.mu-diagram-preview` in blockSyntax.css).
+function naturalWidth(svg: Element): void {
+    if (!(svg instanceof SVGSVGElement))
+        return;
+    const viewBox = (svg.getAttribute('viewBox') ?? '').split(/[\s,]+/).map(Number);
+    const fromStyle = Number.parseFloat(svg.style.maxWidth);
+    const width = fromStyle > 0 ? fromStyle : viewBox[2] > 0 ? viewBox[2] : 0;
+    if (!width)
+        return;
+    svg.style.width = `${width}px`;
+    svg.style.maxWidth = 'none';
+}
+
 function accessibleName(media: Element, fallback: string): string {
     if (media.tagName.toLowerCase() !== 'svg')
         return fallback;
@@ -54,8 +69,14 @@ function applyFinalizations(target: HTMLElement, fallback: string): boolean {
     const media = target.querySelector('svg, img');
     if (!media)
         return false;
-    if (media.tagName.toLowerCase() === 'svg' && !sizeSvg(media))
-        return false;
+    if (media.tagName.toLowerCase() === 'svg') {
+        if (!sizeSvg(media))
+            return false;
+        naturalWidth(media);
+        // A diagram wider than the column opens on its middle, where a top-down chart's root is.
+        if (target.scrollWidth > target.clientWidth)
+            target.scrollLeft = (target.scrollWidth - target.clientWidth) / 2;
+    }
 
     target.setAttribute('role', 'img');
     target.setAttribute('aria-label', accessibleName(media, fallback));
@@ -185,11 +206,25 @@ export async function renderDiagram({
             theme: mermaidTheme,
         });
         await render.parse(code);
-        const { svg, bindFunctions } = await render.render(
-            `mu-mermaid-${++mermaidRenderCount}`,
-            code,
-            target,
-        );
+        // Mermaid sizes each box from its label's measured size, and that measurement includes
+        // the CSS `zoom` of the target's ancestors (an editor whose page is zoomed), while the
+        // drawn label doesn't: boxes came out too small or too large for their text. Render in an
+        // unzoomed scratch box instead, then show the result in `target`.
+        const scratch = document.createElement('div');
+        scratch.style.cssText = 'position: absolute; top: 0; left: -100000px; visibility: hidden;';
+        document.body.appendChild(scratch);
+        let rendered: Awaited<ReturnType<typeof render.render>>;
+        try {
+            rendered = await render.render(
+                `mu-mermaid-${++mermaidRenderCount}`,
+                code,
+                scratch,
+            );
+        }
+        finally {
+            scratch.remove();
+        }
+        const { svg, bindFunctions } = rendered;
         target.innerHTML = svg;
         bindFunctions?.(target);
     }
