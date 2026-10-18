@@ -174,7 +174,7 @@ jobs:
             echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/craft-suite.jks"
             echo "ANDROID_KEYSTORE=$RUNNER_TEMP/craft-suite.jks" >> "$GITHUB_ENV"
           else
-            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret: the APK is signed with a throwaway key, so installing the next one needs an uninstall first. Make the key once with packaging/make-android-key.sh (README › Android)."
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret: the APK is signed with a throwaway key, so installing the next one needs an uninstall first. Make the key once with packaging/make-android-key.sh (README › Build it yourself, Forks)."
           fi
       - name: Build the APK
         env:
