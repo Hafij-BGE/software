@@ -79,10 +79,10 @@ export const applyZoom = (): void => {
   const sheet = document.getElementById('page')
   if (!desk || !sheet) return
   const width = pageWidthPx()
+  // A set zoom applies with or without pages; "fit" (0) fits the page's width, or is 100%.
   let zoom = 1
-  if (width) {
-    zoom = settings.zoom > 0 ? settings.zoom : Math.min(1.5, (desk.clientWidth - 16) / width)
-  }
+  if (settings.zoom > 0) zoom = settings.zoom
+  else if (width) zoom = Math.min(1.5, (desk.clientWidth - 16) / width)
   sheet.style.zoom = String(Math.max(0.2, zoom))
   document.dispatchEvent(new CustomEvent('markd:zoom', { detail: zoom }))
 }

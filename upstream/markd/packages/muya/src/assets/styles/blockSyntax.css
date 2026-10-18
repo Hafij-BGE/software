@@ -217,12 +217,17 @@
 
     color: var(--code-block-color, var(--editor-color));
     font-size: 90%;
-    font-family: 'DejaVu Sans Mono', 'Source Code Pro', 'Droid Sans Mono', Consolas, monospace;
+    font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', 'DejaVu Sans Mono', 'Source Code Pro', 'Droid Sans Mono', Consolas, monospace;
     line-height: 1.6;
 
     background: var(--code-block-bg-color);
     border: 1px solid var(--editor-color-10);
     border-radius: 3px;
+
+    /* No ligatures (Fira Code's are `calt`): ASCII arrows and box drawings keep one glyph per
+       column. */
+    font-feature-settings: 'liga' 0, 'calt' 0;
+    font-variant-ligatures: none;
 }
 
 /* Code-block font via `--mu-code-*`; code blocks only (inline code untouched). */
@@ -230,6 +235,9 @@
     font-size: var(--mu-code-font-size, 90%);
     font-family: var(
         --mu-code-font-family,
+        'Fira Code',
+        'Cascadia Code',
+        'JetBrains Mono',
         'DejaVu Sans Mono',
         'Source Code Pro',
         'Droid Sans Mono',
@@ -244,6 +252,9 @@
 
     /* Override the <code> UA monospace so the block's code font reaches the text. */
     font-family: inherit;
+
+    /* Keep ASCII diagrams aligned: scroll long lines instead of wrapping them. */
+    white-space: pre;
 }
 
 /* wrapCodeBlocks → `.mu-code-wrap`; wraps long lines (overrides prism's `pre`). */
@@ -593,6 +604,11 @@ li.mu-task-list-item > span.mu-checkbox-checked::before {
 .mu-table {
     margin: 0.5em 0 0;
     padding: 0.5em 0;
+
+    /* A table wider than the page scrolls sideways instead of sticking out of it. The cells'
+       borders reach 1px past the table (`width: calc(100% + 1px)` below): room for them. */
+    padding-right: 1px;
+    overflow-x: auto;
 }
 
 .mu-table-inner {
@@ -804,6 +820,11 @@ figure.mu-diagram-block div.mu-diagram-preview {
     text-align: center;
 }
 
+figure.mu-diagram-block div.mu-diagram-preview {
+    display: flex;
+    justify-content: center;
+}
+
 figure.mu-math-block div.mu-math-preview > svg {
     width: 100%;
 }
@@ -1006,7 +1027,9 @@ pre.mu-active.mu-fenced-code::after {
 
     min-width: 2em;
 
-    overflow-wrap: anywhere;
+    /* Break inside a word only when it can't fit a line on its own: `anywhere` let the table
+       squeeze columns to a letter or two, splitting every word ("Provenan / ce"). */
+    overflow-wrap: break-word;
 }
 
 /* Footnote definition block — port of marktext's `figure[data-role='FOOTNOTE']`
