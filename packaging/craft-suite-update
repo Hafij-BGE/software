@@ -12,10 +12,12 @@
 # is a folder (normally a GitHub "releases/latest/download" link) holding latest.txt, whose lines
 # are "<arch> <version> <file> <sha256>", and the .deb files it names.
 #
-# Private GitHub repository: put a token that may read the repository's contents in
-# ~/.config/craft-suite/update.conf as TOKEN="github_pat_..." (or CRAFT_SUITE_UPDATE_TOKEN).
-# The newest release is then read through the GitHub API with it, from the repository the URL
-# names. Keep that file private: chmod 600 ~/.config/craft-suite/update.conf
+# A public repository (as Hafij-BGE/software is) needs nothing more. Only a private GitHub
+# repository needs a token that may read its contents, in ~/.config/craft-suite/update.conf as
+# TOKEN="github_pat_..." (or CRAFT_SUITE_UPDATE_TOKEN); the newest release is then read through
+# the GitHub API with it, from the repository the URL names. Keep that file private (chmod 600).
+# A token GitHub refuses (revoked, expired, or no longer needed) is skipped: the release is then
+# downloaded without it, as from a public repository.
 set -eu
 
 # A KEY="..." line of a config file (read, not run).
@@ -42,7 +44,7 @@ for a in "$@"; do
     --check) mode=check ;;
     --install) mode=install ;;
     --yes | -y) yes=1 ;;
-    -h | --help) sed -n '2,18p' "$0"; exit 0 ;;
+    -h | --help) sed -n '2,20p' "$0"; exit 0 ;;
     *) die "unknown argument: $a" ;;
   esac
 done
@@ -63,8 +65,11 @@ if [ -n "$TOKEN" ]; then
     -o "$tmp/release.json" -w '%{http_code}' "$API/repos/$REPO/releases/latest" || true)"
   case "$status" in
     200) ;;
-    401) die "GitHub refused the token (expired or mistyped?): check TOKEN in $user_conf" ;;
-    403 | 404) die "no release of $REPO the token can read (HTTP $status): the token needs read access to that repository's contents, and the repository needs a release" ;;
+    401 | 403 | 404)
+      # Revoked, expired or without access: try without it (a public repository needs none).
+      echo "craft-suite-update: GitHub refused the token (HTTP $status); trying without it (remove TOKEN from $user_conf if it's no longer needed)" >&2
+      TOKEN=""
+      rm -f "$tmp/auth" ;;
     *) die "could not reach GitHub's API for $REPO (HTTP ${status:-none})" ;;
   esac
 fi
