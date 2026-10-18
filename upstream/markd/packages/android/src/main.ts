@@ -25,6 +25,7 @@ import { initPenStatus } from './pen'
 import { initRibbon, refreshRibbon } from './ribbon'
 import { onSettingsChange, settings, updateSettings } from './settings'
 import { applyZoom, currentZoom, getPageDimensions, initTheme, MM_TO_PX } from './theme'
+import { initZoom } from './zoom'
 import { handleBack } from './ui'
 
 const $ = (id: string): HTMLElement => document.getElementById(id)!
@@ -116,6 +117,7 @@ const boot = async(): Promise<void> => {
   initSourceView()
   initPenStatus()
   initKeys()
+  initZoom()
   wireNativeEvents()
   onDocChange(() => {
     updateTitle()

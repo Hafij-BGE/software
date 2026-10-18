@@ -191,6 +191,27 @@ fn create(tab: Arc<Shared>, parent: u64, rect: PxRect) -> Result<(), String> {
         shared.lock().focused = true;
         glib::Propagation::Proceed
     });
+    // A touchpad pinch zooms Markd's paper, as Ctrl+wheel does, instead of WebKit magnifying the
+    // whole page, ribbon included. Stopping the event here, before the view's own handler, keeps
+    // it from WebKit's zoom gesture.
+    let pinched = Cell::new(1.0_f64);
+    inner.connect_event(move |w, event| {
+        let Some(pinch) = event.downcast_ref::<gtk::gdk::EventTouchpadPinch>() else {
+            return glib::Propagation::Proceed;
+        };
+        let raw: *const gtk::gdk::ffi::GdkEventTouchpadPinch = pinch.to_glib_none().0;
+        // SAFETY: `pinch` is a live touchpad pinch event.
+        let phase = unsafe { (*raw).phase } as i32;
+        let scale = pinch.scale();
+        if phase == gtk::gdk::ffi::GDK_TOUCHPAD_GESTURE_PHASE_BEGIN {
+            pinched.set(1.0);
+        } else if phase == gtk::gdk::ffi::GDK_TOUCHPAD_GESTURE_PHASE_UPDATE && scale > 0.0 {
+            let factor = scale / pinched.replace(scale);
+            let (x, y) = pinch.position();
+            w.run_javascript(&format!("window.__markdZoomBy && window.__markdZoomBy({factor}, {x}, {y})"), None::<&gtk::gio::Cancellable>, |_| {});
+        }
+        glib::Propagation::Stop
+    });
     VIEWS.with(|views| views.borrow_mut().insert(id, View { webview, parent }));
     Ok(())
 }

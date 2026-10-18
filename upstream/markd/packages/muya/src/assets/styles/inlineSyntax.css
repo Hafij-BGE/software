@@ -70,12 +70,13 @@ code.mu-inline-rule {
     color: var(--editor-color);
     font-size: 0.8em;
     font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', 'DejaVu Sans Mono', 'Source Code Pro', 'Droid Sans Mono', Consolas, monospace;
-    /* No ligatures (Fira Code's are `calt`): ASCII arrows and box drawings keep one glyph per column. */
-    font-variant-ligatures: none;
-    font-feature-settings: 'liga' 0, 'calt' 0;
 
     background-color: var(--code-block-bg-color);
     border-radius: 3px;
+
+    /* No ligatures (Fira Code's are `calt`): `->` stays two characters. */
+    font-feature-settings: 'liga' 0, 'calt' 0;
+    font-variant-ligatures: none;
 }
 
 /* GitLab inline diff, matching GitLab's own `.idiff` rendering: a coloured
