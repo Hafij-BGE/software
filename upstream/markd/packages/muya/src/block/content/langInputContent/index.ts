@@ -23,7 +23,9 @@ class LangInputContent extends Content {
     constructor(muya: Muya, { meta }: ICodeBlockState) {
         super(muya, meta.lang);
         this.classList = [...this.classList, CLASS_NAMES.MU_LANGUAGE_INPUT];
-        this.attributes.hint = muya.i18n.t('Input Language Identifier...');
+        // A fence without a language is plain text (no highlighting): say so instead of
+        // prompting for one. The Markdown keeps its bare fence.
+        this.attributes.hint = 'text';
         this.createDomNode();
     }
 

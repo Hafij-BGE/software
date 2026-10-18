@@ -127,8 +127,26 @@
     text-decoration: none;
 }
 
+.markdown-body pre,
+.markdown-body code {
+    font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', 'DejaVu Sans Mono', Consolas, monospace;
+    /* No ligatures (Fira Code's are `calt`): ASCII arrows and box drawings keep one glyph per column. */
+    font-variant-ligatures: none;
+    font-feature-settings: 'liga' 0, 'calt' 0;
+}
+
+/* On screen long lines scroll, so ASCII diagrams keep their columns; on paper they wrap, as a
+   printed page can't scroll. */
 .markdown-body pre {
-    white-space: pre-wrap;
+    overflow-x: auto;
+
+    white-space: pre;
+}
+
+@media print {
+    .markdown-body pre {
+        white-space: pre-wrap;
+    }
 }
 
 /* Render soft line breaks (Shift+Enter → a bare `\n` inside a block) the way
@@ -231,8 +249,10 @@
 .markdown-body div.vega-lite,
 .markdown-body div.flowchart,
 .markdown-body div.sequence {
-    display: block;
-    padding: 20px 0;
+    display: flex;
+    justify-content: center;
+    margin: 1.5rem 0;
+    overflow-x: auto;
 
     text-align: center;
 }

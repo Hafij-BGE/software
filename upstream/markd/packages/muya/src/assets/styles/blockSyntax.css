@@ -217,7 +217,10 @@
 
     color: var(--code-block-color, var(--editor-color));
     font-size: 90%;
-    font-family: 'DejaVu Sans Mono', 'Source Code Pro', 'Droid Sans Mono', Consolas, monospace;
+    font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', 'DejaVu Sans Mono', 'Source Code Pro', 'Droid Sans Mono', Consolas, monospace;
+    /* No ligatures (Fira Code's are `calt`): ASCII arrows and box drawings keep one glyph per column. */
+    font-variant-ligatures: none;
+    font-feature-settings: 'liga' 0, 'calt' 0;
     line-height: 1.6;
 
     background: var(--code-block-bg-color);
@@ -230,6 +233,9 @@
     font-size: var(--mu-code-font-size, 90%);
     font-family: var(
         --mu-code-font-family,
+        'Fira Code',
+        'Cascadia Code',
+        'JetBrains Mono',
         'DejaVu Sans Mono',
         'Source Code Pro',
         'Droid Sans Mono',
@@ -241,6 +247,9 @@
 .mu-code-block .mu-code {
     display: block;
     overflow: auto;
+
+    /* Keep ASCII diagrams aligned: scroll long lines instead of wrapping them. */
+    white-space: pre;
 
     /* Override the <code> UA monospace so the block's code font reaches the text. */
     font-family: inherit;
@@ -802,6 +811,11 @@ figure.mu-diagram-block div.mu-diagram-preview {
     width: 100%;
 
     text-align: center;
+}
+
+figure.mu-diagram-block div.mu-diagram-preview {
+    display: flex;
+    justify-content: center;
 }
 
 figure.mu-math-block div.mu-math-preview > svg {
