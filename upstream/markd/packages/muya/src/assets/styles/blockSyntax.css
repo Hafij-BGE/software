@@ -820,9 +820,10 @@ figure.mu-diagram-block div.mu-diagram-preview {
     text-align: center;
 }
 
+/* Diagrams keep their own width (`naturalWidth` in utils/diagram/render.ts): a wide one
+   scrolls sideways. An overflowing line starts at the left, so all of it can be reached. */
 figure.mu-diagram-block div.mu-diagram-preview {
-    display: flex;
-    justify-content: center;
+    overflow-x: auto;
 }
 
 figure.mu-math-block div.mu-math-preview > svg {
