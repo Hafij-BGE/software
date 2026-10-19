@@ -8,7 +8,7 @@ and [GridCraft](https://github.com/storytold/gridcraft) (open-source Rust reimpl
 PowerPoint and Excel, shown in the suite as **Word**, **Slide** and **Spreadsheet**), and
 [Markd](https://github.com/Hafij-BGE/markd) (a Markdown editor based on MarkText).
 
-Linux (`.deb`) · Windows (installer or zip) · Android (`.apk`) —
+Linux (`.deb`) · Windows (installer or zip) —
 [**Download the latest release**](https://github.com/Hafij-BGE/software/releases/latest)
 
 ![Craft Suite: a Word document, a presentation, a spreadsheet and a Markdown file open side by side in tabs](docs/screenshots/word.png)
@@ -105,28 +105,6 @@ The files aren't code-signed, so SmartScreen warns about an unknown publisher th
 opens its own window for now, and **Get updates** on the Home page opens the Releases page, where
 you download the newer installer and run it over the old one.
 
-### Android
-
-`craft-suite_<version>.apk` (Android 8.0 or newer) from the
-[latest release](https://github.com/Hafij-BGE/software/releases/latest): Word, Slide and
-Spreadsheet's **web versions** (the same apps, compiled to WebAssembly), inside the app, so it works
-offline. Open the `.apk` on the phone and allow installing apps from your browser or file manager
-when Android asks. (Markd isn't part of the Android app: Markd has its own APK.)
-
-- The first page has New Document, Presentation and Spreadsheet, **Open a file** and your
-  **Recent** files; **Back** returns there.
-- **Open with**: documents, presentations and spreadsheets in your file manager, mail or chat apps
-  list **Craft Suite** (to edit) and **Craft Suite Viewer** (to read) under *Open with* and *Share*.
-- **Read-only**: Craft Suite Viewer, or the **Read-only** switch on the first page, opens a file to
-  read: a document in Read Mode, a presentation as a slide show, a spreadsheet as it is. The file
-  is never changed; **Edit** (bottom left) opens it again, editable.
-- **Touch**: drag with **two fingers** to scroll, **pinch** to zoom; one finger selects and taps.
-  A **stylus** writes and selects, and a resting hand is ignored while the pen is down.
-- One document at a time, in the apps' desktop layout: a tablet, or a phone held sideways, works
-  best.
-- **Check for updates** on the first page opens the newest release; its `.apk` installs over the
-  old one and keeps your files (every release is signed with the same key).
-
 ## Update
 
 - **From the app:** **Check for updates** on the Home page (or Settings › Updates) shows
@@ -208,7 +186,7 @@ in this repository**), then **Find models** and **Test this channel**.
   free models allow 50 requests a day). Limits change: check the providers' pages.
 - Free plans may use what you send to improve their models (Google's terms say so for unpaid use;
   Mistral's free mode does unless you opt out). Keep **Private** on for anything sensitive.
-- Ask AI needs an internet connection; it is in the desktop suite, not the Android app.
+- Ask AI needs an internet connection.
 - **Off:** Settings › Ask AI › *Turn on Ask AI*. **Delete your data:** *Remove all AI data…*
   deletes every key, channel and chat. **Build without it:** everything is in `suite/src/ai/`,
   behind the `ai` Cargo feature (`cargo build --release --no-default-features --features markd`).
@@ -248,10 +226,6 @@ To try the window without packaging: `packaging/build-markd-web.sh` once (Markd'
 **Windows:** in Git Bash, with Rust (`rustup`, MSVC), Node.js with pnpm and, for the installer,
 [Inno Setup 6](https://jrsoftware.org/isinfo.php): `packaging/build-windows.sh --with-fonts`.
 
-**Android:** with Rust's `wasm32-unknown-unknown` target, [trunk](https://trunkrs.dev), a JDK and
-the Android SDK (`ANDROID_HOME`): `packaging/build-apk.sh` (set `ANDROID_KEYSTORE` and
-`ANDROID_KEYSTORE_PASSWORD` to sign it with your key; `packaging/make-android-key.sh` makes one).
-
 ### Layout
 
 ```
@@ -261,9 +235,8 @@ upstream/gridcraft/   GridCraft, as a git subtree
 upstream/markd/       Markd, as a git subtree
 upstream.conf         which repositories and branches upstream/ follows
 suite/                the Craft Suite app: the tabbed window that hosts all four
-packaging/            build scripts (.deb, Windows, APK, Markd web files), desktop entries,
+packaging/            build scripts (.deb, Windows, Markd web files), desktop entries,
                       craft-suite-update, publish-release.sh
-android/              the Android app: a WebView around the three apps' web versions
 scripts/              update-upstream.sh, make-app-icons.py, merge-locks.py, backup-deps.sh
 backup/               copies of ArtCraft's craft-libs and craft-fonts, in case github.com/storytold
                       can't be reached
@@ -276,9 +249,9 @@ The tabbed window (`suite/`) links the three apps' own UI libraries (`wordcraft-
 The host helpers the upstream binaries use (file dialogs, clipboard, printing, audio) are compiled
 straight from `upstream/*/apps/*/src`, so upstream fixes carry over.
 
-Markd is a web app (TypeScript): a Markd tab shows the web version Markd's Android app runs
-(`upstream/markd/packages/android`, built by `packaging/build-markd-web.sh`) in the system's web
-view, placed over the tab (`suite/src/markd/`). The page talks to the suite through the same
+Markd is a web app (TypeScript): a Markd tab shows the web version that Markd's own Android app
+runs (`upstream/markd/packages/android`, built by `packaging/build-markd-web.sh`) in the system's
+web view, placed over the tab (`suite/src/markd/`). The page talks to the suite through the same
 messages it sends Markd's Android app.
 
 ## Updates from upstream
@@ -296,8 +269,7 @@ What happens automatically:
 2. New commits are merged into `upstream/` (keeping your own changes), `backup/` is refreshed and
    the suite is checked to compile.
 3. **A clean update that compiles is merged into `main` and released automatically**: the Linux
-   `.deb`, the Windows installer and the Android app (`.github/workflows/build-deb.yml`, about 40
-   minutes).
+   `.deb` and the Windows installer (`.github/workflows/build-deb.yml`, about 40 minutes).
 4. An update that conflicts with your changes, or doesn't compile, comes as a pull request from the
    branch `upstream-sync` instead, so nothing broken is released.
 
@@ -315,9 +287,7 @@ reached, `packaging/lib.sh` uses these copies instead and says so in the build l
 ### Forks
 
 A fork needs, in Settings: **Default branch: `main`**; Actions › General › Workflow permissions:
-**Read and write** and **Allow GitHub Actions to create and approve pull requests**; and, to sign
-the APK, the secrets `ANDROID_KEYSTORE_BASE64` and `ANDROID_KEYSTORE_PASSWORD` (from
-`sh packaging/make-android-key.sh`). Keep the key private and out of the repository.
+**Read and write** and **Allow GitHub Actions to create and approve pull requests**.
 
 If a fork is **private**, installed copies need a read-only token to see its releases: a
 fine-grained token with **Contents: Read-only** on that repository, saved on each computer as
@@ -333,8 +303,6 @@ pull request instead.
 
 - The suite itself (tab bar, settings, Home page): `suite/src/`; Markd tabs: `suite/src/markd/`.
 - App icons: drawn by `scripts/make-app-icons.py` (into `assets/hicolor/`).
-- The Android app's changes to the apps are patches in `android/patches/`, applied only while
-  `packaging/build-apk.sh` builds, so they never conflict with upstream updates.
 - `upstream.conf` names the repositories and branches; point an app at your own fork there.
 
 ## Good to know

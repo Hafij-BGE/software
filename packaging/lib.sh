@@ -1,4 +1,4 @@
-# Shared by build-deb.sh, build-windows.sh and build-apk.sh: the version, and what each upstream
+# Shared by build-deb.sh and build-windows.sh: the version, and what each upstream
 # app is built from. Sourced with ROOT set to the repository.
 
 # ---- version: VERSION + the commit's time (UTC, to the minute), so a newer commit sorts higher

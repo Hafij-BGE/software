@@ -6,8 +6,8 @@
 #                                                        job), then add FILE...
 #
 # The .deb job creates the release, so a release only appears with the .deb and latest.txt that
-# installed copies look for; the Windows and Android jobs add theirs when it's there (waiting up
-# to RELEASE_WAIT_MINUTES, default 120).
+# installed copies look for; the Windows job adds its files when it's there (waiting up to
+# RELEASE_WAIT_MINUTES, default 120).
 #
 # Environment (GitHub Actions sets these): GH_TOKEN, GITHUB_REPOSITORY, GITHUB_SHA, and
 # GITHUB_API_URL (default https://api.github.com).
@@ -53,9 +53,7 @@ body = f"""Built from {sha[:12]}.
 
 **Windows** (64-bit): run `craft-suite_{v}_windows-x64-setup.exe`, or unzip `craft-suite_{v}_windows-x64.zip` and run `craft-suite.exe`.
 
-**Android** (8.0+): install `craft-suite_{v}.apk` (allow installing apps from your browser or file manager when Android asks).
-
-The Windows and Android files are added a few minutes after the Linux package."""
+The Windows files are added a few minutes after the Linux package."""
 print(json.dumps({"tag_name": tag, "target_commitish": sha, "name": "Craft Suite " + version, "body": body}))
 EOF
   id="$(curl -fsS -X POST -H @"$tmp/auth" -H "Accept: application/vnd.github+json" "$API/releases" \

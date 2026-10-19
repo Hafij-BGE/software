@@ -2,8 +2,8 @@
 # into upstream/ with scripts/update-upstream.sh, keeping the changes made in this repository,
 # and check that the suite still compiles against them.
 #
-# A clean update that compiles is merged into the default branch and released (Linux, Windows,
-# Android) with nothing to click. An update that conflicts with the changes made here, or doesn't
+# A clean update that compiles is merged into the default branch and released (Linux and Windows)
+# with nothing to click. An update that conflicts with the changes made here, or doesn't
 # compile, goes to the branch "upstream-sync" as a pull request instead, so nothing broken is
 # released. To review every update first, set the repository variable AUTO_UPDATE to false
 # (Settings › Secrets and variables › Actions › Variables): each one then comes as a pull request.
