@@ -124,6 +124,10 @@ done
 # What this build is, for the About section and craft-suite-update.
 mkdir -p "$STAGE/usr/share/craft-suite"
 cp -R "$ROOT/build/markd/www" "$STAGE/usr/share/craft-suite/markd"
+# The Home page's templates (suite/src/templates.rs): index.json, the files it lists, their
+# pictures and credits.
+mkdir -p "$STAGE/usr/share/craft-suite/templates"
+(cd "$ROOT/templates" && cp -R index.json ATTRIBUTION.md word slide sheet "$STAGE/usr/share/craft-suite/templates/")
 echo "$VERSION" >"$STAGE/usr/share/craft-suite/VERSION"
 upstream_summary >"$STAGE/usr/share/craft-suite/upstream.txt"
 
@@ -165,6 +169,11 @@ License: MIT or Apache-2.0
 
 Files: usr/share/craft-suite/markd/*
 License: MIT
+
+Files: usr/share/craft-suite/templates/*
+License: CC0-1.0
+Comment: Craft Suite's own templates. The open-licence ones (CC0, CC-BY or public domain) are
+ credited, each with its licence, in usr/share/craft-suite/templates/ATTRIBUTION.md.
 EOF
 
 # ---- control files ------------------------------------------------------------------------------

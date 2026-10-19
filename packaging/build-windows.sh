@@ -80,6 +80,9 @@ cp "$BIN/craft-suite.exe" "$STAGE/"
 for app in "${APPS[@]}"; do cp "$BIN/$app-cli.exe" "$STAGE/"; done
 # Markd's web files, next to the program (src/markd finds them there).
 cp -R "$ROOT/build/markd/www" "$STAGE/markd"
+# The Home page's templates, next to the program too (suite/src/templates.rs).
+mkdir -p "$STAGE/templates"
+(cd "$ROOT/templates" && cp -R index.json ATTRIBUTION.md word slide sheet "$STAGE/templates/")
 echo "$VERSION" >"$STAGE/VERSION"
 upstream_summary >"$STAGE/upstream.txt"
 cp "$ROOT/README.md" "$STAGE/README.md"

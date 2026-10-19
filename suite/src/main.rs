@@ -25,6 +25,7 @@ mod pages;
 mod settings;
 mod system;
 mod tabbar;
+mod templates;
 mod update;
 
 // The upstream binaries' host helpers, compiled from their source so upstream fixes carry over.

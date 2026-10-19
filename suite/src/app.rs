@@ -71,6 +71,8 @@ pub enum Action {
     NewDefault,
     Open(String),
     OpenDialog,
+    /// A new, untitled document made from a template (the Home page's Templates).
+    Template { path: String, title: String },
     Activate(u64),
     Close(u64),
     CloseOthers(u64),
@@ -127,6 +129,8 @@ pub struct SuiteApp {
     allow_close: bool,
     close_requested: bool,
     pub updater: update::Updater,
+    /// The Home page's templates (src/templates.rs).
+    pub templates: crate::templates::Library,
     /// Ask AI: its channels, keys, panel and conversations.
     #[cfg(feature = "ai")]
     pub ai: crate::ai::Ai,
@@ -232,6 +236,7 @@ impl SuiteApp {
             allow_close: false,
             close_requested: false,
             updater: update::Updater::new(),
+            templates: Default::default(),
             #[cfg(feature = "ai")]
             ai: crate::ai::Ai::new(),
             title_sent: String::new(),
@@ -442,6 +447,7 @@ impl SuiteApp {
                 }
             }
             Action::Open(path) => self.open(ctx, &path),
+            Action::Template { path, title } => self.open_template(ctx, &path, &title),
             Action::OpenDialog => {
                 let mut all: Vec<&str> = Vec::new();
                 for k in Kind::APPS {
@@ -549,6 +555,18 @@ impl SuiteApp {
             Ok(doc) => {
                 self.active = self.place(Content::Doc(doc), true);
                 self.settings.add_recent(path);
+            }
+            Err(e) => self.message(ctx, format!("{path}: {e}")),
+        }
+    }
+
+    /// A new tab with an untitled copy of a template: saving it asks where, and the template
+    /// isn't added to Recent.
+    fn open_template(&mut self, ctx: &egui::Context, path: &str, title: &str) {
+        match Doc::open(path, ctx) {
+            Ok(mut doc) => {
+                doc.detach(title);
+                self.active = self.place(Content::Doc(doc), true);
             }
             Err(e) => self.message(ctx, format!("{path}: {e}")),
         }

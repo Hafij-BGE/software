@@ -168,7 +168,161 @@ fn home_body(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette) {
         }
     });
     ui.add_space(32.0);
+    templates(app, ui, pal, size.x);
+    ui.add_space(32.0);
     recent(app, ui, pal);
+}
+
+/// The Templates section's filter, search and whether it shows them all, kept while the page
+/// shows.
+#[derive(Clone, Default)]
+struct TemplatesView {
+    /// An app, or your own templates (`mine`).
+    filter: Option<Kind>,
+    mine: bool,
+    query: String,
+    all: bool,
+}
+
+/// Templates: ready-made documents to start from (src/templates.rs), filtered by app or search.
+fn templates(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette, tile_w: f32) {
+    let id = egui::Id::new("craft_suite_templates_view");
+    let mut view: TemplatesView = ui.data(|d| d.get_temp(id)).unwrap_or_default();
+    let has_mine = app.templates.items().iter().any(|t| t.category == crate::templates::MY_TEMPLATES);
+    ui.horizontal(|ui| {
+        ui.label(RichText::new("Templates").size(16.0).strong());
+        ui.add_space(14.0);
+        ui.spacing_mut().item_spacing.x = 6.0;
+        let filters = [(None, "All"), (Some(Kind::Word), "Documents"), (Some(Kind::Deck), "Presentations"), (Some(Kind::Grid), "Spreadsheets")];
+        for (f, label) in filters {
+            if chip(ui, pal, label, !view.mine && view.filter == f).clicked() {
+                view.filter = f;
+                view.mine = false;
+            }
+        }
+        if has_mine && chip(ui, pal, crate::templates::MY_TEMPLATES, view.mine).clicked() {
+            view.mine = true;
+            view.filter = None;
+        }
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            if ui
+                .add(egui::Button::new(RichText::new("My templates folder").size(13.0)).frame(false))
+                .on_hover_text("Documents, presentations and spreadsheets you put in this folder are listed here, as your own templates")
+                .clicked()
+                && let Some(dir) = crate::templates::user_dir()
+            {
+                let _ = std::fs::create_dir_all(&dir);
+                crate::system::open(&dir);
+                app.templates.rescan();
+            }
+            ui.add_space(6.0);
+            ui.add(egui::TextEdit::singleline(&mut view.query).hint_text("Search templates").desired_width(200.0));
+        });
+    });
+    ui.add_space(12.0);
+
+    let q = view.query.trim().to_lowercase();
+    let shown: Vec<usize> = app
+        .templates
+        .items()
+        .iter()
+        .enumerate()
+        .filter(|(_, t)| if view.mine { t.category == crate::templates::MY_TEMPLATES } else { view.filter.is_none_or(|k| t.kind == k) })
+        .filter(|(_, t)| q.is_empty() || t.title.to_lowercase().contains(&q) || t.category.to_lowercase().contains(&q))
+        .map(|(i, _)| i)
+        .collect();
+    if shown.is_empty() {
+        let note = if app.templates.items().is_empty() {
+            "No templates are installed. Put documents, presentations or spreadsheets in My templates folder to start from them."
+        } else {
+            "No templates match."
+        };
+        ui.label(RichText::new(note).size(13.0).weak());
+        ui.data_mut(|d| d.insert_temp(id, view));
+        return;
+    }
+
+    let gap = 18.0;
+    let w = tile_w.min(220.0);
+    let size = vec2(w, (w * 0.72).round());
+    let per_row = (((ui.available_width() + gap) / (w + gap)).floor() as usize).max(1);
+    let limit = if view.all || !q.is_empty() { shown.len() } else { (per_row * 2).min(shown.len()) };
+    let mut picked = None;
+    ui.horizontal_wrapped(|ui| {
+        ui.spacing_mut().item_spacing = vec2(gap, gap);
+        for &i in &shown[..limit] {
+            if template_tile(app, ui, pal, i, size).clicked() {
+                picked = Some(i);
+            }
+        }
+    });
+    if shown.len() > limit || (view.all && shown.len() > per_row * 2) {
+        ui.add_space(6.0);
+        let label = if view.all { "Show fewer".to_string() } else { format!("Show all {} templates", shown.len()) };
+        if ui.add(egui::Button::new(RichText::new(label).size(13.0)).frame(false)).clicked() {
+            view.all = !view.all;
+        }
+    }
+    if let Some(i) = picked
+        && let Some(t) = app.templates.items().get(i)
+    {
+        app.actions.push(Action::Template { path: t.path.to_string_lossy().to_string(), title: t.title.clone() });
+    }
+    ui.data_mut(|d| d.insert_temp(id, view));
+}
+
+/// One template: its picture (or a blank page of its app), title and category.
+fn template_tile(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette, i: usize, size: Vec2) -> egui::Response {
+    let ctx = ui.ctx().clone();
+    let Some(t) = app.templates.items().get(i) else { return ui.label("") };
+    let (kind, title, category, credit, thumb_path) = (t.kind, t.title.clone(), t.category.clone(), t.credit.clone(), t.thumbnail.clone());
+    let texture = thumb_path.and_then(|p| app.templates.thumbnail(&ctx, &p));
+    let (rect, resp) = ui.allocate_exact_size(vec2(size.x, size.y + 48.0), Sense::click());
+    let thumb = Rect::from_min_size(rect.min, size);
+    let accent = app.settings.color_of(kind).color32();
+    let hovered = resp.hovered();
+    let p = ui.painter();
+    if hovered {
+        p.rect_filled(thumb.translate(vec2(0.0, 3.0)).expand(1.0), CornerRadius::same(12), Color32::from_black_alpha(18));
+    }
+    let stroke = if hovered { Stroke::new(2.0, accent) } else { Stroke::new(1.0, pal.border) };
+    p.rect(thumb, CornerRadius::same(12), pal.card, stroke, StrokeKind::Inside);
+    match texture {
+        Some(tex) => {
+            // The picture across the tile: a wide one (a slide, a sheet) whole and centred, a page
+            // from its top down, as much as fits.
+            let area = thumb.shrink(12.0);
+            let [tw, th] = tex.size().map(|v| v as f32);
+            let (r, uv) = if th / tw > area.height() / area.width() {
+                let w = area.width() * 0.86;
+                let shown = (area.height() * tw / w / th).min(1.0);
+                let r = Rect::from_min_size(pos2(area.center().x - w / 2.0, area.top() + 4.0), vec2(w, area.height() - 4.0));
+                (r, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, shown)))
+            } else {
+                let scale = (area.width() / tw).min(area.height() / th);
+                (Rect::from_center_size(area.center(), vec2(tw * scale, th * scale)), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)))
+            };
+            p.rect_filled(r.translate(vec2(0.0, 2.0)), CornerRadius::same(3), Color32::from_black_alpha(22));
+            p.image(tex.id(), r, uv, Color32::WHITE);
+            p.rect_stroke(r, CornerRadius::same(2), Stroke::new(1.0, pal.border), StrokeKind::Inside);
+        }
+        None => paint_blank(ui, p, pal, Some(kind), accent, thumb, size),
+    }
+    if let Some(icon) = app.icon(kind) {
+        let r = Rect::from_min_size(thumb.left_top() + vec2(8.0, 8.0), Vec2::splat(18.0));
+        p.image(icon.id(), r, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
+    }
+    let v = ui.visuals();
+    let name = elided(ui, &title, 14.0, v.strong_text_color(), size.x - 4.0);
+    p.galley(pos2(rect.left() + 2.0, thumb.bottom() + 10.0), name, v.strong_text_color());
+    let sub = if category.is_empty() { kind.app_name().to_string() } else { format!("{} · {category}", kind.app_name()) };
+    let sub = elided(ui, &sub, 12.0, v.weak_text_color(), size.x - 4.0);
+    p.galley(pos2(rect.left() + 2.0, thumb.bottom() + 29.0), sub, v.weak_text_color());
+    let tip = match credit {
+        Some(c) => format!("{title}\nA new {} from this template\n{c}", kind.noun().to_lowercase()),
+        None => format!("{title}\nA new {} from this template", kind.noun().to_lowercase()),
+    };
+    resp.on_hover_text(tip).on_hover_cursor(egui::CursorIcon::PointingHand)
 }
 
 /// A blank document of an app (or Open, for `None`): a `size` picture of the page, and its name.
@@ -186,6 +340,19 @@ fn tile(app: &SuiteApp, ui: &mut Ui, pal: &Palette, kind: Option<Kind>, size: Ve
     }
     let stroke = if hovered { Stroke::new(2.0, accent) } else { Stroke::new(1.0, pal.border) };
     p.rect(thumb, CornerRadius::same(12), pal.card, stroke, StrokeKind::Inside);
+    paint_blank(ui, p, pal, kind, accent, thumb, size);
+    let (title, sub) = match kind {
+        Some(k) => (format!("Blank {}", k.noun().to_lowercase()), k.app_name().to_string()),
+        None => ("Open…".to_string(), "From this computer".to_string()),
+    };
+    let v = ui.visuals();
+    p.text(pos2(rect.left() + 2.0, thumb.bottom() + 10.0), Align2::LEFT_TOP, title, FontId::proportional(14.0), v.strong_text_color());
+    p.text(pos2(rect.left() + 2.0, thumb.bottom() + 29.0), Align2::LEFT_TOP, sub, FontId::proportional(12.0), v.weak_text_color());
+    resp.on_hover_cursor(egui::CursorIcon::PointingHand)
+}
+
+/// The picture of a blank document of `kind` (or a folder, for `None`) in `thumb`.
+fn paint_blank(ui: &Ui, p: &Painter, pal: &Palette, kind: Option<Kind>, accent: Color32, thumb: Rect, size: Vec2) {
     let dark = ui.visuals().dark_mode;
     let paper = if dark { Color32::from_gray(232) } else { Color32::WHITE };
     let ink = Color32::from_gray(if dark { 175 } else { 214 });
@@ -256,14 +423,6 @@ fn tile(app: &SuiteApp, ui: &mut Ui, pal: &Palette, kind: Option<Kind>, size: Ve
             paint_folder(p, Rect::from_center_size(area.center(), vec2(72.0, 58.0)), accent);
         }
     }
-    let (title, sub) = match kind {
-        Some(k) => (format!("Blank {}", k.noun().to_lowercase()), k.app_name().to_string()),
-        None => ("Open…".to_string(), "From this computer".to_string()),
-    };
-    let v = ui.visuals();
-    p.text(pos2(rect.left() + 2.0, thumb.bottom() + 10.0), Align2::LEFT_TOP, title, FontId::proportional(14.0), v.strong_text_color());
-    p.text(pos2(rect.left() + 2.0, thumb.bottom() + 29.0), Align2::LEFT_TOP, sub, FontId::proportional(12.0), v.weak_text_color());
-    resp.on_hover_cursor(egui::CursorIcon::PointingHand)
 }
 
 fn page_shadow(p: &Painter, r: Rect, paper: Color32, pal: &Palette) {

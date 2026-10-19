@@ -1,0 +1,1183 @@
+{
+ "templates": [
+  {
+   "file": "word/business-letter.docx",
+   "title": "Business letter",
+   "category": "Letters",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "word/business-letter.png"
+  },
+  {
+   "file": "word/report.docx",
+   "title": "Report",
+   "category": "Reports",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "word/report.png"
+  },
+  {
+   "file": "word/resume.docx",
+   "title": "Résumé",
+   "category": "Personal",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "word/resume.png"
+  },
+  {
+   "file": "word/cover-letter.docx",
+   "title": "Cover letter",
+   "category": "Personal",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "word/cover-letter.png"
+  },
+  {
+   "file": "word/meeting-minutes.docx",
+   "title": "Meeting minutes",
+   "category": "Business",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "word/meeting-minutes.png"
+  },
+  {
+   "file": "word/project-proposal.docx",
+   "title": "Project proposal",
+   "category": "Business",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "word/project-proposal.png"
+  },
+  {
+   "file": "word/research-paper.docx",
+   "title": "Research paper",
+   "category": "Education",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "word/research-paper.png"
+  },
+  {
+   "file": "word/event-flyer.docx",
+   "title": "Event flyer",
+   "category": "Events",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "word/event-flyer.png"
+  },
+  {
+   "file": "sheet/monthly-budget.xlsx",
+   "title": "Monthly budget",
+   "category": "Personal finance",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "sheet/monthly-budget.png"
+  },
+  {
+   "file": "sheet/invoice.xlsx",
+   "title": "Invoice",
+   "category": "Business",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "sheet/invoice.png"
+  },
+  {
+   "file": "sheet/weekly-timesheet.xlsx",
+   "title": "Weekly timesheet",
+   "category": "Business",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "sheet/weekly-timesheet.png"
+  },
+  {
+   "file": "sheet/project-tracker.xlsx",
+   "title": "Project tracker",
+   "category": "Business",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "sheet/project-tracker.png"
+  },
+  {
+   "file": "sheet/grade-book.xlsx",
+   "title": "Grade book",
+   "category": "Education",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "sheet/grade-book.png"
+  },
+  {
+   "file": "sheet/expense-report.xlsx",
+   "title": "Expense report",
+   "category": "Business",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "sheet/expense-report.png"
+  },
+  {
+   "file": "sheet/experiment-log.xlsx",
+   "title": "Experiment log",
+   "category": "Education",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "sheet/experiment-log.png"
+  },
+  {
+   "file": "slide/pitch-deck.pptx",
+   "title": "Pitch deck",
+   "category": "Business",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "slide/pitch-deck.png"
+  },
+  {
+   "file": "slide/clean-minimal.pptx",
+   "title": "Clean minimal",
+   "category": "Business",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "slide/clean-minimal.png"
+  },
+  {
+   "file": "slide/forest-story.pptx",
+   "title": "Forest story",
+   "category": "Creative",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "slide/forest-story.png"
+  },
+  {
+   "file": "slide/coral-workshop.pptx",
+   "title": "Coral workshop",
+   "category": "Education",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "slide/coral-workshop.png"
+  },
+  {
+   "file": "slide/ocean-report.pptx",
+   "title": "Ocean report",
+   "category": "Business",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "slide/ocean-report.png"
+  },
+  {
+   "file": "slide/research-talk.pptx",
+   "title": "Research talk",
+   "category": "Education",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "slide/research-talk.png"
+  },
+  {
+   "file": "slide/community/apache-oo-dark-fade.pptx",
+   "title": "Dark Fade",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "orngjce223",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/apache-oo/dark-fade",
+   "origin": "apache-oo/dark-fade",
+   "thumbnail": "slide/community/apache-oo-dark-fade.png"
+  },
+  {
+   "file": "slide/community/apache-oo-dark-green-curve.pptx",
+   "title": "Dark Green Curve",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "orngjce223",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/apache-oo/dark-green-curve",
+   "origin": "apache-oo/dark-green-curve",
+   "thumbnail": "slide/community/apache-oo-dark-green-curve.png"
+  },
+  {
+   "file": "slide/community/apache-oo-kanagawa.pptx",
+   "title": "Kanagawa",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "R. Stacey",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/apache-oo/kanagawa",
+   "origin": "apache-oo/kanagawa",
+   "thumbnail": "slide/community/apache-oo-kanagawa.png"
+  },
+  {
+   "file": "slide/community/apache-oo-oschloe-ballpoint.pptx",
+   "title": "Oschloe Ballpoint",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "Oschloe",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/apache-oo/oschloe-ballpoint",
+   "origin": "apache-oo/oschloe-ballpoint",
+   "thumbnail": "slide/community/apache-oo-oschloe-ballpoint.png"
+  },
+  {
+   "file": "slide/community/apache-oo-oschloe-colored-pencils.pptx",
+   "title": "Oschloe Colored Pencils",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "Oschloe",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/apache-oo/oschloe-colored-pencils",
+   "origin": "apache-oo/oschloe-colored-pencils",
+   "thumbnail": "slide/community/apache-oo-oschloe-colored-pencils.png"
+  },
+  {
+   "file": "slide/community/apache-oo-oschloe-graph-paper-pencils.pptx",
+   "title": "Oschloe Graph Paper Pencils",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "Oschloe",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/apache-oo/oschloe-graph-paper-pencils",
+   "origin": "apache-oo/oschloe-graph-paper-pencils",
+   "thumbnail": "slide/community/apache-oo-oschloe-graph-paper-pencils.png"
+  },
+  {
+   "file": "slide/community/apache-oo-oschloe-phone.pptx",
+   "title": "Oschloe Phone",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "Oschloe",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/apache-oo/oschloe-phone",
+   "origin": "apache-oo/oschloe-phone",
+   "thumbnail": "slide/community/apache-oo-oschloe-phone.png"
+  },
+  {
+   "file": "slide/community/fedora-slideshow-fedora-patterns-clover.pptx",
+   "title": "Fedora Patterns Clover",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "Emily Dirsh",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/fedora-slideshow/fedora-patterns-clover",
+   "origin": "fedora-slideshow/fedora-patterns-clover",
+   "thumbnail": "slide/community/fedora-slideshow-fedora-patterns-clover.png"
+  },
+  {
+   "file": "slide/community/fedora-slideshow-fedora-textures-blue.pptx",
+   "title": "Fedora Textures Blue",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "William Moreno Reyes",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/fedora-slideshow/fedora-textures-blue",
+   "origin": "fedora-slideshow/fedora-textures-blue",
+   "thumbnail": "slide/community/fedora-slideshow-fedora-textures-blue.png"
+  },
+  {
+   "file": "slide/community/fedora-slideshow-fedora-textures-grey-blue.pptx",
+   "title": "Fedora Textures Grey Blue",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "Marc Stewart",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/fedora-slideshow/fedora-textures-grey-blue",
+   "origin": "fedora-slideshow/fedora-textures-grey-blue",
+   "thumbnail": "slide/community/fedora-slideshow-fedora-textures-grey-blue.png"
+  },
+  {
+   "file": "slide/community/kde-files-org-braids.pptx",
+   "title": "Braids",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "orngjce223",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/kde-files-org/braids",
+   "origin": "kde-files-org/braids",
+   "thumbnail": "slide/community/kde-files-org-braids.png"
+  },
+  {
+   "file": "slide/community/kde-files-org-braids-gradient-blue.pptx",
+   "title": "Braids Gradient Blue",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "v2e",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/kde-files-org/braids-gradient-blue",
+   "origin": "kde-files-org/braids-gradient-blue",
+   "thumbnail": "slide/community/kde-files-org-braids-gradient-blue.png"
+  },
+  {
+   "file": "slide/community/lo-cft-animal-theme.pptx",
+   "title": "Animal Theme",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Sci_citation",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/animal-theme",
+   "origin": "lo-cft/animal-theme",
+   "thumbnail": "slide/community/lo-cft-animal-theme.png"
+  },
+  {
+   "file": "slide/community/lo-cft-bright-blue.pptx",
+   "title": "Bright Blue",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Alexander Wilms",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/bright-blue",
+   "origin": "lo-cft/bright-blue",
+   "thumbnail": "slide/community/lo-cft-bright-blue.png"
+  },
+  {
+   "file": "slide/community/lo-cft-clean-inspiration.pptx",
+   "title": "Clean Inspiration",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Mateus Machado Luna",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/clean-inspiration",
+   "origin": "lo-cft/clean-inspiration",
+   "thumbnail": "slide/community/lo-cft-clean-inspiration.png"
+  },
+  {
+   "file": "slide/community/lo-cft-cuba-libre.pptx",
+   "title": "Cuba Libre",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Alexander Wilms",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/cuba-libre",
+   "origin": "lo-cft/cuba-libre",
+   "thumbnail": "slide/community/lo-cft-cuba-libre.png"
+  },
+  {
+   "file": "slide/community/lo-cft-dna.pptx",
+   "title": "DNA",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Alexander Wilms",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/dna",
+   "origin": "lo-cft/dna",
+   "thumbnail": "slide/community/lo-cft-dna.png"
+  },
+  {
+   "file": "slide/community/lo-cft-fire-red.pptx",
+   "title": "Fire Red",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Ron Faile",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/fire-red",
+   "origin": "lo-cft/fire-red",
+   "thumbnail": "slide/community/lo-cft-fire-red.png"
+  },
+  {
+   "file": "slide/community/lo-cft-four-colors.pptx",
+   "title": "Four Colors",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Sci_citation",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/four-colors",
+   "origin": "lo-cft/four-colors",
+   "thumbnail": "slide/community/lo-cft-four-colors.png"
+  },
+  {
+   "file": "slide/community/lo-cft-four-reds.pptx",
+   "title": "Four Reds",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Sci_citation",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/four-reds",
+   "origin": "lo-cft/four-reds",
+   "thumbnail": "slide/community/lo-cft-four-reds.png"
+  },
+  {
+   "file": "slide/community/lo-cft-hexagons.pptx",
+   "title": "Hexagons",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Alexander Wilms",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/hexagons",
+   "origin": "lo-cft/hexagons",
+   "thumbnail": "slide/community/lo-cft-hexagons.png"
+  },
+  {
+   "file": "slide/community/lo-cft-lush-green.pptx",
+   "title": "Lush Green",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Alexander Wilms",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/lush-green",
+   "origin": "lo-cft/lush-green",
+   "thumbnail": "slide/community/lo-cft-lush-green.png"
+  },
+  {
+   "file": "slide/community/lo-cft-metropolis.pptx",
+   "title": "Metropolis",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Alexander Wilms",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/metropolis",
+   "origin": "lo-cft/metropolis",
+   "thumbnail": "slide/community/lo-cft-metropolis.png"
+  },
+  {
+   "file": "slide/community/lo-cft-orange-green.pptx",
+   "title": "Orange Green",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Alrt84",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/orange-green",
+   "origin": "lo-cft/orange-green",
+   "thumbnail": "slide/community/lo-cft-orange-green.png"
+  },
+  {
+   "file": "slide/community/lo-cft-portfolio.pptx",
+   "title": "Portfolio",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Mateus Machado Luna",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/portfolio",
+   "origin": "lo-cft/portfolio",
+   "thumbnail": "slide/community/lo-cft-portfolio.png"
+  },
+  {
+   "file": "slide/community/lo-cft-progress.pptx",
+   "title": "Progress",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "William Gathoye",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/progress",
+   "origin": "lo-cft/progress",
+   "thumbnail": "slide/community/lo-cft-progress.png"
+  },
+  {
+   "file": "slide/community/lo-cft-projections.pptx",
+   "title": "Projections",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Sci_citation",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/projections",
+   "origin": "lo-cft/projections",
+   "thumbnail": "slide/community/lo-cft-projections.png"
+  },
+  {
+   "file": "slide/community/lo-cft-red-scribble.pptx",
+   "title": "Red Scribble",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Sci_citation",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/red-scribble",
+   "origin": "lo-cft/red-scribble",
+   "thumbnail": "slide/community/lo-cft-red-scribble.png"
+  },
+  {
+   "file": "slide/community/lo-cft-scipaper-left.pptx",
+   "title": "Scipaper Left",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Sci_citation",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/scipaper-left",
+   "origin": "lo-cft/scipaper-left",
+   "thumbnail": "slide/community/lo-cft-scipaper-left.png"
+  },
+  {
+   "file": "slide/community/lo-cft-scipaper-top.pptx",
+   "title": "Scipaper Top",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Sci_citation",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/scipaper-top",
+   "origin": "lo-cft/scipaper-top",
+   "thumbnail": "slide/community/lo-cft-scipaper-top.png"
+  },
+  {
+   "file": "slide/community/lo-cft-simple-blue.pptx",
+   "title": "Simple Blue",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Sci_citation",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/simple-blue",
+   "origin": "lo-cft/simple-blue",
+   "thumbnail": "slide/community/lo-cft-simple-blue.png"
+  },
+  {
+   "file": "slide/community/lo-cft-smooth-black.pptx",
+   "title": "Smooth Black",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Sci_citation",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/smooth-black",
+   "origin": "lo-cft/smooth-black",
+   "thumbnail": "slide/community/lo-cft-smooth-black.png"
+  },
+  {
+   "file": "slide/community/lo-cft-three-notes.pptx",
+   "title": "Three Notes",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Ron Faile",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/three-notes",
+   "origin": "lo-cft/three-notes",
+   "thumbnail": "slide/community/lo-cft-three-notes.png"
+  },
+  {
+   "file": "slide/community/lo-cft-typography-blue.pptx",
+   "title": "Typography Blue",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Alexander Wilms",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/typography-blue",
+   "origin": "lo-cft/typography-blue",
+   "thumbnail": "slide/community/lo-cft-typography-blue.png"
+  },
+  {
+   "file": "slide/community/lo-cft-typography-gold.pptx",
+   "title": "Typography Gold",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Alexander Wilms",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/typography-gold",
+   "origin": "lo-cft/typography-gold",
+   "thumbnail": "slide/community/lo-cft-typography-gold.png"
+  },
+  {
+   "file": "slide/community/lo-cft-typography-green.pptx",
+   "title": "Typography Green",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Alexander Wilms",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/typography-green",
+   "origin": "lo-cft/typography-green",
+   "thumbnail": "slide/community/lo-cft-typography-green.png"
+  },
+  {
+   "file": "slide/community/lo-cft-typography-purple.pptx",
+   "title": "Typography Purple",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Alexander Wilms",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/typography-purple",
+   "origin": "lo-cft/typography-purple",
+   "thumbnail": "slide/community/lo-cft-typography-purple.png"
+  },
+  {
+   "file": "slide/community/lo-cft-typography-red.pptx",
+   "title": "Typography Red",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Alexander Wilms",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo-cft/typography-red",
+   "origin": "lo-cft/typography-red",
+   "thumbnail": "slide/community/lo-cft-typography-red.png"
+  },
+  {
+   "file": "slide/community/lo4-design-candidates-cinema.pptx",
+   "title": "Cinema",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "artyom.gilvanov",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo4-design-candidates/cinema",
+   "origin": "lo4-design-candidates/cinema",
+   "thumbnail": "slide/community/lo4-design-candidates-cinema.png"
+  },
+  {
+   "file": "slide/community/lo4-design-candidates-fiery.pptx",
+   "title": "Fiery",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Daniel Hulse",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo4-design-candidates/fiery",
+   "origin": "lo4-design-candidates/fiery",
+   "thumbnail": "slide/community/lo4-design-candidates-fiery.png"
+  },
+  {
+   "file": "slide/community/lo4-design-candidates-katana.pptx",
+   "title": "Katana",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "erx700",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo4-design-candidates/katana",
+   "origin": "lo4-design-candidates/katana",
+   "thumbnail": "slide/community/lo4-design-candidates-katana.png"
+  },
+  {
+   "file": "slide/community/lo4-design-candidates-orange-cube.pptx",
+   "title": "Orange Cube",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Ron Faile Jr.",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo4-design-candidates/orange-cube",
+   "origin": "lo4-design-candidates/orange-cube",
+   "thumbnail": "slide/community/lo4-design-candidates-orange-cube.png"
+  },
+  {
+   "file": "slide/community/lo4-design-candidates-org-chart-blue.pptx",
+   "title": "Org Chart Blue",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Ron Faile Jr.",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo4-design-candidates/org-chart-blue",
+   "origin": "lo4-design-candidates/org-chart-blue",
+   "thumbnail": "slide/community/lo4-design-candidates-org-chart-blue.png"
+  },
+  {
+   "file": "slide/community/lo4-design-candidates-org-chart-gray.pptx",
+   "title": "Org Chart Gray",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Ron Faile Jr.",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo4-design-candidates/org-chart-gray",
+   "origin": "lo4-design-candidates/org-chart-gray",
+   "thumbnail": "slide/community/lo4-design-candidates-org-chart-gray.png"
+  },
+  {
+   "file": "slide/community/lo4-design-candidates-org-chart-orange.pptx",
+   "title": "Org Chart Orange",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Ron Faile Jr.",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo4-design-candidates/org-chart-orange",
+   "origin": "lo4-design-candidates/org-chart-orange",
+   "thumbnail": "slide/community/lo4-design-candidates-org-chart-orange.png"
+  },
+  {
+   "file": "slide/community/lo4-design-candidates-pixel.pptx",
+   "title": "Pixel",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Daniel Hulse",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo4-design-candidates/pixel",
+   "origin": "lo4-design-candidates/pixel",
+   "thumbnail": "slide/community/lo4-design-candidates-pixel.png"
+  },
+  {
+   "file": "slide/community/lo4-design-candidates-round-template.pptx",
+   "title": "Round Template",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Srividya Bharadwaj",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo4-design-candidates/round-template",
+   "origin": "lo4-design-candidates/round-template",
+   "thumbnail": "slide/community/lo4-design-candidates-round-template.png"
+  },
+  {
+   "file": "slide/community/lo4-design-candidates-transversal.pptx",
+   "title": "Transversal",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Zirk",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo4-design-candidates/transversal",
+   "origin": "lo4-design-candidates/transversal",
+   "thumbnail": "slide/community/lo4-design-candidates-transversal.png"
+  },
+  {
+   "file": "slide/community/lo4-design-candidates-triangle-template.pptx",
+   "title": "Triangle Template",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "KadlecOn",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo4-design-candidates/triangle-template",
+   "origin": "lo4-design-candidates/triangle-template",
+   "thumbnail": "slide/community/lo4-design-candidates-triangle-template.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-beehive.pptx",
+   "title": "Beehive",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "LibreOffice Design Team contributor",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/beehive",
+   "origin": "lo5-design-candidates/beehive",
+   "thumbnail": "slide/community/lo5-design-candidates-beehive.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-biei.pptx",
+   "title": "Biei",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "LibreOffice Design Team contributor",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/biei",
+   "origin": "lo5-design-candidates/biei",
+   "thumbnail": "slide/community/lo5-design-candidates-biei.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-blue-curve.pptx",
+   "title": "Blue Curve",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "LibreOffice Design Team contributor",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/blue-curve",
+   "origin": "lo5-design-candidates/blue-curve",
+   "thumbnail": "slide/community/lo5-design-candidates-blue-curve.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-classy-red.pptx",
+   "title": "Classy Red",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "LibreOffice Design Team contributor",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/classy-red",
+   "origin": "lo5-design-candidates/classy-red",
+   "thumbnail": "slide/community/lo5-design-candidates-classy-red.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-cosmos.pptx",
+   "title": "Cosmos",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "LibreOffice Design Team contributor",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/cosmos",
+   "origin": "lo5-design-candidates/cosmos",
+   "thumbnail": "slide/community/lo5-design-candidates-cosmos.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-daruma.pptx",
+   "title": "Daruma",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "LibreOffice Design Team contributor",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/daruma",
+   "origin": "lo5-design-candidates/daruma",
+   "thumbnail": "slide/community/lo5-design-candidates-daruma.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-drops.pptx",
+   "title": "Drops",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "LibreOffice Design Team contributor",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/drops",
+   "origin": "lo5-design-candidates/drops",
+   "thumbnail": "slide/community/lo5-design-candidates-drops.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-falling-snow.pptx",
+   "title": "Falling Snow",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "LibreOffice Design Team contributor",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/falling-snow",
+   "origin": "lo5-design-candidates/falling-snow",
+   "thumbnail": "slide/community/lo5-design-candidates-falling-snow.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-forest-bird.pptx",
+   "title": "Forest Bird",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "LibreOffice Design Team contributor",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/forest-bird",
+   "origin": "lo5-design-candidates/forest-bird",
+   "thumbnail": "slide/community/lo5-design-candidates-forest-bird.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-leaf.pptx",
+   "title": "Leaf",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "LibreOffice Design Team contributor",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/leaf",
+   "origin": "lo5-design-candidates/leaf",
+   "thumbnail": "slide/community/lo5-design-candidates-leaf.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-lights.pptx",
+   "title": "Lights",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "LibreOffice Design Team contributor",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/lights",
+   "origin": "lo5-design-candidates/lights",
+   "thumbnail": "slide/community/lo5-design-candidates-lights.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-nature-illustration.pptx",
+   "title": "Nature Illustration",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "LibreOffice Design Team contributor",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/nature-illustration",
+   "origin": "lo5-design-candidates/nature-illustration",
+   "thumbnail": "slide/community/lo5-design-candidates-nature-illustration.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-neuron.pptx",
+   "title": "Neuron",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Alejandro Moreno Calvo",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/neuron",
+   "origin": "lo5-design-candidates/neuron",
+   "thumbnail": "slide/community/lo5-design-candidates-neuron.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-notebook.pptx",
+   "title": "Notebook",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "LibreOffice Design Team contributor",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/notebook",
+   "origin": "lo5-design-candidates/notebook",
+   "thumbnail": "slide/community/lo5-design-candidates-notebook.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-pencil.pptx",
+   "title": "Pencil",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "LibreOffice Design Team contributor",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/pencil",
+   "origin": "lo5-design-candidates/pencil",
+   "thumbnail": "slide/community/lo5-design-candidates-pencil.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-peter-river.pptx",
+   "title": "Peter River",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Jun NOGATA",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/peter-river",
+   "origin": "lo5-design-candidates/peter-river",
+   "thumbnail": "slide/community/lo5-design-candidates-peter-river.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-piano.pptx",
+   "title": "Piano",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "LibreOffice Design Team contributor",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/piano",
+   "origin": "lo5-design-candidates/piano",
+   "thumbnail": "slide/community/lo5-design-candidates-piano.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-sakura.pptx",
+   "title": "Sakura",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "LibreOffice Design Team contributor",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/sakura",
+   "origin": "lo5-design-candidates/sakura",
+   "thumbnail": "slide/community/lo5-design-candidates-sakura.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-simple-clear.pptx",
+   "title": "Simple Clear",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "fsanchez",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/simple-clear",
+   "origin": "lo5-design-candidates/simple-clear",
+   "thumbnail": "slide/community/lo5-design-candidates-simple-clear.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-simple-dark.pptx",
+   "title": "Simple Dark",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "fsanchez",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/simple-dark",
+   "origin": "lo5-design-candidates/simple-dark",
+   "thumbnail": "slide/community/lo5-design-candidates-simple-dark.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-skyblue.pptx",
+   "title": "Skyblue",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "LibreOffice Design Team contributor",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/skyblue",
+   "origin": "lo5-design-candidates/skyblue",
+   "thumbnail": "slide/community/lo5-design-candidates-skyblue.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-star.pptx",
+   "title": "Star",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "LibreOffice Design Team contributor",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/star",
+   "origin": "lo5-design-candidates/star",
+   "thumbnail": "slide/community/lo5-design-candidates-star.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-technical-office.pptx",
+   "title": "Technical Office",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Antonio Faccioli",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/technical-office",
+   "origin": "lo5-design-candidates/technical-office",
+   "thumbnail": "slide/community/lo5-design-candidates-technical-office.png"
+  },
+  {
+   "file": "slide/community/lo5-design-candidates-vivid-blue.pptx",
+   "title": "Vivid Blue",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "fsanchez",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo5-design-candidates/vivid-blue",
+   "origin": "lo5-design-candidates/vivid-blue",
+   "thumbnail": "slide/community/lo5-design-candidates-vivid-blue.png"
+  },
+  {
+   "file": "slide/community/lo51-templates-alizarin.pptx",
+   "title": "Alizarin",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Jun NOGATA",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo51-templates/alizarin",
+   "origin": "lo51-templates/alizarin",
+   "thumbnail": "slide/community/lo51-templates-alizarin.png"
+  },
+  {
+   "file": "slide/community/lo51-templates-midnight-blue.pptx",
+   "title": "Midnight Blue",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Jun NOGATA",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo51-templates/midnight-blue",
+   "origin": "lo51-templates/midnight-blue",
+   "thumbnail": "slide/community/lo51-templates-midnight-blue.png"
+  },
+  {
+   "file": "slide/community/lo51-templates-focus.pptx",
+   "title": "Focus",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Zirk",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo51-templates/focus",
+   "origin": "lo51-templates/focus",
+   "thumbnail": "slide/community/lo51-templates-focus.png"
+  },
+  {
+   "file": "slide/community/lo51-templates-impress.pptx",
+   "title": "Impress",
+   "category": "Community",
+   "license": "CC0-1.0",
+   "author": "Alexander Wilms",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/lo51-templates/impress",
+   "origin": "lo51-templates/impress",
+   "thumbnail": "slide/community/lo51-templates-impress.png"
+  },
+  {
+   "file": "slide/community/modern-impress-templates-blue-elegance.pptx",
+   "title": "Blue Elegance",
+   "category": "Community",
+   "license": "CC-BY-2.0",
+   "author": "Marcin Miłkowski",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/modern-impress-templates/blue-elegance",
+   "origin": "modern-impress-templates/blue-elegance",
+   "thumbnail": "slide/community/modern-impress-templates-blue-elegance.png"
+  },
+  {
+   "file": "slide/community/modern-impress-templates-citrus-e.pptx",
+   "title": "Citrus E",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "Marcin Miłkowski",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/modern-impress-templates/citrus-e",
+   "origin": "modern-impress-templates/citrus-e",
+   "thumbnail": "slide/community/modern-impress-templates-citrus-e.png"
+  },
+  {
+   "file": "slide/community/modern-impress-templates-golthia.pptx",
+   "title": "Golthia",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "Marcin Miłkowski",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/modern-impress-templates/golthia",
+   "origin": "modern-impress-templates/golthia",
+   "thumbnail": "slide/community/modern-impress-templates-golthia.png"
+  },
+  {
+   "file": "slide/community/modern-impress-templates-moebius-strip.pptx",
+   "title": "Moebius Strip",
+   "category": "Community",
+   "license": "CC-BY-2.0",
+   "author": "Marcin Miłkowski",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/modern-impress-templates/moebius-strip",
+   "origin": "modern-impress-templates/moebius-strip",
+   "thumbnail": "slide/community/modern-impress-templates-moebius-strip.png"
+  },
+  {
+   "file": "slide/community/modern-impress-templates-eco-aqua.pptx",
+   "title": "Eco Aqua",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "dohliam (based on a suggestion by Marcin Miłkowski and artwork by lassekongo83)",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/modern-impress-templates/eco-aqua",
+   "origin": "modern-impress-templates/eco-aqua",
+   "thumbnail": "slide/community/modern-impress-templates-eco-aqua.png"
+  },
+  {
+   "file": "slide/community/modern-impress-templates-eco-blue.pptx",
+   "title": "Eco Blue",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "dohliam (based on a suggestion by Marcin Miłkowski and artwork by lassekongo83)",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/modern-impress-templates/eco-blue",
+   "origin": "modern-impress-templates/eco-blue",
+   "thumbnail": "slide/community/modern-impress-templates-eco-blue.png"
+  },
+  {
+   "file": "slide/community/modern-impress-templates-eco-cyan.pptx",
+   "title": "Eco Cyan",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "dohliam (based on a suggestion by Marcin Miłkowski and artwork by lassekongo83)",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/modern-impress-templates/eco-cyan",
+   "origin": "modern-impress-templates/eco-cyan",
+   "thumbnail": "slide/community/modern-impress-templates-eco-cyan.png"
+  },
+  {
+   "file": "slide/community/modern-impress-templates-eco-gold.pptx",
+   "title": "Eco Gold",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "dohliam (based on a suggestion by Marcin Miłkowski and artwork by lassekongo83)",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/modern-impress-templates/eco-gold",
+   "origin": "modern-impress-templates/eco-gold",
+   "thumbnail": "slide/community/modern-impress-templates-eco-gold.png"
+  },
+  {
+   "file": "slide/community/modern-impress-templates-eco-green.pptx",
+   "title": "Eco Green",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "dohliam (based on a suggestion by Marcin Miłkowski and artwork by lassekongo83)",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/modern-impress-templates/eco-green",
+   "origin": "modern-impress-templates/eco-green",
+   "thumbnail": "slide/community/modern-impress-templates-eco-green.png"
+  },
+  {
+   "file": "slide/community/modern-impress-templates-eco-grey.pptx",
+   "title": "Eco Grey",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "dohliam (based on a suggestion by Marcin Miłkowski and artwork by lassekongo83)",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/modern-impress-templates/eco-grey",
+   "origin": "modern-impress-templates/eco-grey",
+   "thumbnail": "slide/community/modern-impress-templates-eco-grey.png"
+  },
+  {
+   "file": "slide/community/modern-impress-templates-eco-lightblue.pptx",
+   "title": "Eco Lightblue",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "dohliam (based on a suggestion by Marcin Miłkowski and artwork by lassekongo83)",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/modern-impress-templates/eco-lightblue",
+   "origin": "modern-impress-templates/eco-lightblue",
+   "thumbnail": "slide/community/modern-impress-templates-eco-lightblue.png"
+  },
+  {
+   "file": "slide/community/modern-impress-templates-eco-maroon.pptx",
+   "title": "Eco Maroon",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "dohliam (based on a suggestion by Marcin Miłkowski and artwork by lassekongo83)",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/modern-impress-templates/eco-maroon",
+   "origin": "modern-impress-templates/eco-maroon",
+   "thumbnail": "slide/community/modern-impress-templates-eco-maroon.png"
+  },
+  {
+   "file": "slide/community/modern-impress-templates-eco-orange.pptx",
+   "title": "Eco Orange",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "dohliam (based on a suggestion by Marcin Miłkowski and artwork by lassekongo83)",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/modern-impress-templates/eco-orange",
+   "origin": "modern-impress-templates/eco-orange",
+   "thumbnail": "slide/community/modern-impress-templates-eco-orange.png"
+  },
+  {
+   "file": "slide/community/modern-impress-templates-eco-pink.pptx",
+   "title": "Eco Pink",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "dohliam (based on a suggestion by Marcin Miłkowski and artwork by lassekongo83)",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/modern-impress-templates/eco-pink",
+   "origin": "modern-impress-templates/eco-pink",
+   "thumbnail": "slide/community/modern-impress-templates-eco-pink.png"
+  },
+  {
+   "file": "slide/community/modern-impress-templates-eco-purple.pptx",
+   "title": "Eco Purple",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "dohliam (based on a suggestion by Marcin Miłkowski and artwork by lassekongo83)",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/modern-impress-templates/eco-purple",
+   "origin": "modern-impress-templates/eco-purple",
+   "thumbnail": "slide/community/modern-impress-templates-eco-purple.png"
+  },
+  {
+   "file": "slide/community/modern-impress-templates-eco-red.pptx",
+   "title": "Eco Red",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "dohliam (based on a suggestion by Marcin Miłkowski and artwork by lassekongo83)",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/modern-impress-templates/eco-red",
+   "origin": "modern-impress-templates/eco-red",
+   "thumbnail": "slide/community/modern-impress-templates-eco-red.png"
+  },
+  {
+   "file": "slide/community/modern-impress-templates-sedi.pptx",
+   "title": "Sedi",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "Marcin Miłkowski",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/modern-impress-templates/sedi",
+   "origin": "modern-impress-templates/sedi",
+   "thumbnail": "slide/community/modern-impress-templates-sedi.png"
+  },
+  {
+   "file": "slide/community/modern-impress-templates-suse-wallpaper.pptx",
+   "title": "Suse Wallpaper",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "Marcin Miłkowski",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/modern-impress-templates/suse-wallpaper",
+   "origin": "modern-impress-templates/suse-wallpaper",
+   "thumbnail": "slide/community/modern-impress-templates-suse-wallpaper.png"
+  },
+  {
+   "file": "slide/community/other-shell-blue.pptx",
+   "title": "Shell Blue",
+   "category": "Community",
+   "license": "CC-BY-3.0",
+   "author": "Cristina Moretto",
+   "source": "https://github.com/dohliam/libreoffice-impress-templates/tree/7bdfa347c6fbdc784e788f1108f2df848af19d6e/other/shell-blue",
+   "origin": "other/shell-blue",
+   "thumbnail": "slide/community/other-shell-blue.png"
+  },
+  {
+   "file": "word/community/business-basic-business-letter.docx",
+   "title": "Basic Business Letter",
+   "category": "Community",
+   "license": "CC-BY-4.0",
+   "author": "Business Document Templates contributors",
+   "source": "https://extensions.libreoffice.org/en/extensions/show/3881",
+   "origin": "Business Document Templates",
+   "thumbnail": "word/community/business-basic-business-letter.png"
+  },
+  {
+   "file": "word/community/business-memo.docx",
+   "title": "Memo",
+   "category": "Community",
+   "license": "CC-BY-4.0",
+   "author": "Business Document Templates contributors",
+   "source": "https://extensions.libreoffice.org/en/extensions/show/3881",
+   "origin": "Business Document Templates",
+   "thumbnail": "word/community/business-memo.png"
+  },
+  {
+   "file": "word/community/business-modified-block-business-letter.docx",
+   "title": "Modified Block Business Letter",
+   "category": "Community",
+   "license": "CC-BY-4.0",
+   "author": "Business Document Templates contributors",
+   "source": "https://extensions.libreoffice.org/en/extensions/show/3881",
+   "origin": "Business Document Templates",
+   "thumbnail": "word/community/business-modified-block-business-letter.png"
+  }
+ ]
+}
