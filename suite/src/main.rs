@@ -15,6 +15,7 @@
 mod ai;
 mod app;
 mod hosts;
+mod fontbar;
 mod instance;
 mod kind;
 mod look;

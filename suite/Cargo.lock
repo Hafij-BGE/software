@@ -1074,6 +1074,7 @@ dependencies = [
  "cpal",
  "craft-print",
  "deckcraft-engine",
+ "deckcraft-fonts",
  "deckcraft-media",
  "deckcraft-ui-egui",
  "eframe",

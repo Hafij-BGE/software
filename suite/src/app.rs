@@ -131,6 +131,8 @@ pub struct SuiteApp {
     pub updater: update::Updater,
     /// The Home page's templates (src/templates.rs).
     pub templates: crate::templates::Library,
+    /// The bar over documents whose fonts aren't installed (src/fontbar.rs).
+    fontbar: crate::fontbar::FontBar,
     /// Ask AI: its channels, keys, panel and conversations.
     #[cfg(feature = "ai")]
     pub ai: crate::ai::Ai,
@@ -237,6 +239,7 @@ impl SuiteApp {
             close_requested: false,
             updater: update::Updater::new(),
             templates: Default::default(),
+            fontbar: Default::default(),
             #[cfg(feature = "ai")]
             ai: crate::ai::Ai::new(),
             title_sent: String::new(),
@@ -1072,6 +1075,7 @@ impl eframe::App for SuiteApp {
                 Some(false) => {
                     if let Some(Tab { content: Content::Doc(doc), id, .. }) = self.tabs.iter_mut().find(|t| t.id == active) {
                         let id = *id;
+                        crate::fontbar::show(&mut self.fontbar, &mut self.settings, id, doc, ui);
                         ui.push_id(("craft_suite_tab", id), |ui| doc.ui(ui, frame));
                     }
                 }

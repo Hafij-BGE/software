@@ -19,6 +19,7 @@ wordcraft-control-key = { path = "../upstream/wordcraft/crates/control-key" }
 deckcraft-engine = { path = "../upstream/deckcraft/crates/engine" }
 deckcraft-ui-egui = { path = "../upstream/deckcraft/crates/ui-egui" }
 deckcraft-media = { path = "../upstream/deckcraft/crates/media" }
+deckcraft-fonts = { path = "../upstream/deckcraft/crates/fonts" }
 gridcraft-engine = { path = "../upstream/gridcraft/crates/engine" }
 gridcraft-ui-egui = { path = "../upstream/gridcraft/crates/ui-egui" }
 
@@ -39,7 +40,7 @@ craft-print = { git = "https://github.com/storytold/craft-libs", rev = "d27646a5
 
 # Ask AI (src/ai): HTTPS to the AI providers and the system keyring for their keys. Only with the
 # `ai` feature (on by default); `--no-default-features` builds the suite without any of it.
-ureq = { version = "3", default-features = false, features = ["rustls", "platform-verifier", "json", "gzip"], optional = true }
+ureq = { version = "3", default-features = false, features = ["rustls", "platform-verifier", "json", "gzip"] }
 keyring-core = { version = "1", optional = true }
 
 # Markd tabs (src/markd): the system's web view (WebKitGTK on Linux, WebView2 on Windows) showing
@@ -68,7 +69,7 @@ windows-native-keyring-store = { version = "1", optional = true }
 [features]
 default = ["ai", "markd"]
 # Ask AI. To build without it: cargo build --no-default-features (or remove "ai" above).
-ai = ["dep:ureq", "dep:keyring-core", "dep:zbus-secret-service-keyring-store", "dep:windows-native-keyring-store"]
+ai = ["dep:keyring-core", "dep:zbus-secret-service-keyring-store", "dep:windows-native-keyring-store"]
 # Markd tabs. Linux needs WebKitGTK 4.1 (libwebkit2gtk-4.1-dev to build). To build without them:
 # cargo build --no-default-features --features ai.
 markd = ["dep:wry", "dep:base64", "dep:gtk", "dep:gdkx11", "dep:webkit2gtk", "dep:x11-dl"]
