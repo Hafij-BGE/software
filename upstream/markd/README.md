@@ -1,263 +1,168 @@
+<div align="center">
+
+<img src="docs/assets/markd-icon.png" alt="Markd" width="112" height="112">
+
 # Markd
 
-**Markd** is a free Linux build of [MarkText](https://github.com/marktext/marktext), the open-source markdown editor.
-No account, no subscription, no paywall. 100% free under the MIT License.
+**Write in Markdown. Work like it's Word.**
 
-## What Markd adds
+A free, open-source Markdown editor with a Word-style ribbon, real A4 pages
+and one-click Word / PDF export, for Linux, Windows and Android.
 
-- **Page layout**: write on a real A4 / US Letter / US Legal sheet with true page margins, so lines wrap exactly like the exported DOCX/PDF (Preferences → Editor → Page layout).
-- **Formatting toolbar**: one-click headings, bold/italic/underline/strike, highlight, super/subscript, code, math, links, images, tables, lists, task lists, quotes, code blocks and more.
-- **44 themes**: 11 new ones (GitHub Light/Dark, One Light, Sepia, Vitesse Light/Dark, Quiet Light, Night Owl, Cobalt2, Zenburn, Moonlight) on top of MarkText's 33.
-- **Themed export**: PDF, HTML and native **Word (.docx)** export (no pandoc needed) using the theme you are editing with, including the page colour.
+[![Latest release](https://img.shields.io/github/v/release/Hafij-BGE/markd?style=flat-square&color=2563eb)](https://github.com/Hafij-BGE/markd/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/Hafij-BGE/markd/total?style=flat-square&color=7c3aed)](https://github.com/Hafij-BGE/markd/releases)
+[![Release build](https://img.shields.io/github/actions/workflow/status/Hafij-BGE/markd/release.yml?style=flat-square&label=release%20build)](https://github.com/Hafij-BGE/markd/actions/workflows/release.yml)
+[![License: MIT](https://img.shields.io/github/license/Hafij-BGE/markd?style=flat-square)](LICENSE)
+![Platforms](https://img.shields.io/badge/platforms-Linux%20%C2%B7%20Windows%20%C2%B7%20Android-0f172a?style=flat-square)
 
-## Install
+[Download](#download) · [Features](#features) · [Android](#android) · [Build from source](#build-from-source) · [Credits](#credits)
 
-Download from [Releases](https://github.com/Hafij-BGE/markd/releases):
+<img src="docs/assets/screenshots/word-light.png" alt="Markd with the Word theme, ribbon and an A4 page" width="900">
 
-**Linux** (x64 and arm64)
+</div>
 
-- **AppImage**: `chmod +x markd-linux-*.AppImage && ./markd-linux-*.AppImage`
-- **Debian/Ubuntu**: `sudo apt install ./markd-linux-*.deb`
-- **Fedora/openSUSE**: `sudo dnf install ./markd-linux-*.rpm`
-- **Tarball**: extract `markd-linux-*.tar.gz` and run `./markd`
+## Why Markd
 
-**Windows** (x64): run `markd-win-x64-*-setup.exe`, or unzip the portable `markd-win-x64-*.zip`.
+- **No account, no subscription, no paywall.** Every feature is free, forever, under the MIT License.
+- **Familiar from the first minute.** File, Home, Insert, Design, Layout, View and Help live in a ribbon you already know.
+- **What you see is what you send.** The page on screen has the same size, margins, font and theme as the exported `.docx` or PDF.
+- **Plain files.** Your documents stay ordinary `.md` files that any editor, Git or note app can read.
 
-## Build from source
+## Download
+
+Get the latest build from the [Releases page](https://github.com/Hafij-BGE/markd/releases/latest).
+
+| Platform | File | Install |
+| --- | --- | --- |
+| Debian, Ubuntu, Mint | `markd-linux-amd64-<version>.deb` (`arm64` too) | `sudo apt install ./markd-linux-amd64-<version>.deb` |
+| Fedora, openSUSE | `markd-linux-x86_64-<version>.rpm` (`aarch64` too) | `sudo dnf install ./markd-linux-x86_64-<version>.rpm` |
+| Any Linux | `markd-linux-x86_64-<version>.AppImage` (`arm64` too) | `chmod +x markd-*.AppImage`, then run it |
+| Any Linux, portable | `markd-linux-x64-<version>.tar.gz` (`arm64` too) | Extract it and run `./markd` |
+| Windows 10/11 | `markd-win-x64-<version>-setup.exe` | Run the installer |
+| Windows, portable | `markd-win-x64-<version>.zip` | Extract it and run `markd.exe` |
+| Android 8.0+ | `Markd-<version>-android-debug.apk` | See [Android](#android) |
+
+Every release lists the SHA-256 of each file in `SHA256SUMS.txt`:
 
 ```bash
-corepack enable
-pnpm install
-pnpm build:linux   # output in dist/
+sha256sum -c SHA256SUMS.txt --ignore-missing
 ```
-
-## Android
-
-Markd also runs on Android phones and tablets (Android 8.0+), with the same
-Word-style ribbon, Word Light/Dark themes, A4/Letter/Legal page view and
-HTML/PDF/Word export. Stylus users get pen handwriting-to-text (Android 14+)
-and a pressure-sensitive sketch pad whose drawings are saved as images next to
-the `.md` file.
-
-1. Download `Markd-<version>-android-debug.apk` from
-   [Releases](https://github.com/Hafij-BGE/markd/releases) on the device.
-2. Open it and allow "Install unknown apps" for your browser or file manager when asked.
-3. Open Markd, then **Open** a `.md` file or **Open folder** (☰ menu) to browse a folder of notes.
-
-Building the APK yourself is described in [packages/android/README.md](packages/android/README.md).
-
-## Credits
-
-Markd is based on MarkText by Luo Ran (Jocs) and the MarkText contributors.
-Original copyright and the MIT License are kept in [LICENSE](LICENSE).
-The original upstream README follows below.
-
----
-
-<p align="center"><img src="docs/assets/logo-small.png" alt="MarkText" width="100" height="100"></p>
-
-<h1 align="center">MarkText</h1>
-
-<div align="center">
-  <a href="https://twitter.com/intent/tweet?via=marktextme&url=https://github.com/marktext/marktext/&text=What%20do%20you%20want%20to%20say%20to%20app?&hashtags=happyMarkText">
-    <img src="https://img.shields.io/twitter/url/https/github.com/marktext/marktext.svg?style=for-the-badge" alt="twitter">
-  </a>
-</div>
-<div align="center">
-  <strong>:high_brightness: Next generation markdown editor :crescent_moon:</strong><br>
-  A simple and elegant open-source markdown editor that focused on speed and usability.<br>
-  <sub>Available for Linux, macOS and Windows.</sub>
-</div>
-
-<br>
-
-<div align="center">
-  <!-- License -->
-  <a href="LICENSE">
-    <img src="https://img.shields.io/github/license/marktext/marktext.svg" alt="LICENSE">
-  </a>
-  <!-- Downloads total -->
-  <a href="https://github.com/marktext/marktext/releases">
-    <img src="https://img.shields.io/github/downloads/marktext/marktext/total.svg" alt="total download">
-  </a>
-  <!-- Downloads latest release -->
-  <a href="https://github.com/marktext/marktext/releases/latest">
-    <img src="https://img.shields.io/github/downloads/marktext/marktext/latest/total.svg" alt="latest download">
-  </a>
-  <!-- sponsors -->
-  <a href="https://opencollective.com/marktext">
-    <img src="https://opencollective.com/marktext/tiers/silver-sponsors/badge.svg?label=SilverSponsors&color=brightgreen" alt="sponsors">
-  </a>
-</div>
-
-<div align="center">
-  <h3>
-    <a href="https://github.com/marktext/marktext">
-      Website
-    </a>
-    <span> | </span>
-    <a href="https://github.com/marktext/marktext#features">
-      Features
-    </a>
-    <span> | </span>
-    <a href="https://github.com/marktext/marktext#download-and-installation">
-      Downloads
-    </a>
-    <span> | </span>
-    <a href="https://github.com/marktext/marktext#development">
-      Development
-    </a>
-    <span> | </span>
-    <a href="https://github.com/marktext/marktext#contribution">
-      Contribution
-    </a>
-  </h3>
-</div>
-
-<div align="center">
-  <sub>Translations:</sub>
-  <a href="docs/i18n/README-zh_cn.md#readme">
-    <span>:cn:</span>
-  </a>
-  <a href="docs/i18n/README-zh_tw.md#readme">
-    <span>:taiwan:</span>
-  </a>
-  <a href="docs/i18n/README-jp.md#readme">
-    <span>:jp:</span>
-  </a>
-  <a href="docs/i18n/README-fr.md#readme">
-    <span>:fr:</span>
-  </a>
-  <a href="docs/i18n/README-tr.md#readme">
-    <span>:tr:</span>
-  </a>
-  <a href="docs/i18n/README-es.md#readme">
-    <span>:es:</span>
-  </a>
-  <a href="docs/i18n/README-pt.md#readme">
-    <span>:portugal:</span>
-  </a>
-  <a href="docs/i18n/README-kr.md#readme">
-    <span>:kr:</span>
-  </a>
-  <a href="docs/i18n/README-bn.md#readme">
-    <span>:bangladesh:</span>
-  </a>
-</div>
-
-<div align="center">
-  <sub>This Markdown editor that could. Built with ❤︎ by
-    <a href="https://github.com/Jocs">Jocs</a> and
-    <a href="https://github.com/marktext/marktext/graphs/contributors">
-      contributors
-    </a>
-    .
-  </sub>
-</div>
-
-<br />
-
-<h2 align="center">Sponsors</h2>
-
-MarkText is an open-source Markdown editor powered by the support of its community. If MarkText improves your workflow, please consider [sponsoring the project](https://github.com/sponsors/marktext). Thank you to all the sponsors ❤️
-
-**Special Sponsor**
-
-<table>
-<tr>
-<td width="182"><a href="https://serpapi.com/?utm_source=marktext"><img src="docs/assets/sponsors/serpapi.png" width="150"></a></td>
-<td align="left"><a href="https://serpapi.com/?utm_source=marktext">Scrape Google and other search engines from our fast, easy, and complete API.</a></td>
-</tr>
-</table>
-
-<!-- current-sponsors:start -->
-
-**Current Sponsors**
-
-[![Current sponsors](docs/assets/sponsors/current.svg)](https://github.com/sponsors/marktext)
-
-<!-- current-sponsors:end -->
-
-## Screenshot
-
-![](docs/assets/marktext.png?raw=true)
 
 ## Features
 
-- Realtime preview (WYSIWYG) and a clean and simple interface to get a distraction-free writing experience.
-- Support [CommonMark Spec](https://spec.commonmark.org), [GitHub Flavored Markdown Spec](https://github.github.com/gfm/) and selective support [Pandoc markdown](https://pandoc.org/MANUAL.html#pandocs-markdown).
-- Markdown extensions such as math expressions (KaTeX), front matter and emojis.
-- Support paragraphs and inline style shortcuts to improve your writing efficiency.
-- Output **HTML** and **PDF** files.
-- Various [themes](https://marktext.me/docs/themes): **Cadmium Light**, **Material Dark** etc.
-- Various editing modes: **Source Code mode**, **Typewriter mode**, **Focus mode**.
-- Paste images directly from clipboard.
+### A Word-style workspace
 
-## Download and Installation
+- **Ribbon** with every command in one place: clipboard, fonts, paragraph styles, tables, images, themes, page setup, export, view modes and help. Double-click a tab to collapse it.
+- **Style gallery** for Normal, Heading 1–4 and Quote, plus one-click bold, italic, underline, strikethrough, highlight, super/subscript, inline code and math.
+- **Status bar** with page *x* of *y*, word and character counts, and Print Layout / Web Layout / Source buttons.
 
-![platform](https://img.shields.io/static/v1.svg?label=Platform&message=Linux%20x64%20|%20macOS%20x64%2Farm64%20|%20Windows%20x64%2Farm64&style=for-the-badge)
+### Real pages
 
-|               ![](https://raw.githubusercontent.com/wiki/ryanoasis/nerd-fonts/screenshots/v1.0.x/mac-pass-sm.png)               |               ![](https://raw.githubusercontent.com/wiki/ryanoasis/nerd-fonts/screenshots/v1.0.x/windows-pass-sm.png)               |              ![](https://raw.githubusercontent.com/wiki/ryanoasis/nerd-fonts/screenshots/v1.0.x/linux-pass-sm.png)              |
-| :-----------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------: |
-| [![Download for macOS](https://img.shields.io/badge/macOS-Download-blue)](https://github.com/marktext/marktext/releases/latest) | [![Download for Windows](https://img.shields.io/badge/Windows-Download-blue)](https://github.com/marktext/marktext/releases/latest) | [![Download for Linux](https://img.shields.io/badge/Linux-Download-blue)](https://github.com/marktext/marktext/releases/latest) |
+- Write on an **A4, US Letter or US Legal** sheet with Narrow, Moderate, Normal or Wide margins.
+- Lines wrap exactly as they will in the exported Word or PDF file.
+- Switch to **Web Layout** for a free-width column, or **Source** for the raw Markdown.
 
-Want to see new features of the latest version? Please refer to [CHANGELOG](https://marktext.me/docs/changelog).
+### 46 themes
 
-#### macOS
+<img src="docs/assets/screenshots/themes.png" alt="Design tab theme gallery with the Night Owl theme" width="900">
 
-Requires macOS 11 (Big Sur) or later. Universal builds aren't published — pick the matching `arm64` or `x64` installer.
+Pick a theme from the **Design** tab: **Word** and **Word Dark** (the defaults), GitHub Light/Dark, One Light, Sepia, Vitesse Light/Dark, Quiet Light, Night Owl, Cobalt2, Zenburn, Moonlight, and all 33 MarkText themes such as Dracula, Nord, Catppuccin, Gruvbox, Tokyo Night and Rosé Pine. *Follow System Theme* switches between Word and Word Dark with your desktop.
 
-You can either download the latest `marktext-mac-(arm64|x64)-%version%.dmg` from the [release page](https://github.com/marktext/marktext/releases/latest) or install MarkText using [**homebrew cask**](https://github.com/caskroom/homebrew-cask). To use Homebrew-Cask you just need to have [Homebrew](https://brew.sh/) installed.
+### One-click export
+
+- **Word (.docx)**: native export, no pandoc needed. It keeps your theme colours, fonts, page size, margins, page colour and page numbers.
+- **PDF**: tagged PDF with a clickable outline, painted edge to edge in your theme.
+- **HTML**: a single self-contained page in your theme.
+- **Print**: straight to the system print dialog.
+
+Export uses the theme and page layout you are editing with, so there is no options dialog to fill in.
+
+### Everything MarkText does well
+
+- CommonMark and GitHub Flavored Markdown with real-time preview in place.
+- KaTeX math, Mermaid, PlantUML, Vega-Lite, flowchart and sequence diagrams.
+- Tables, task lists, footnotes, front matter and syntax-highlighted code blocks.
+- Focus mode, typewriter mode, a file tree, tabs, and search across a whole folder.
+- Paste images from the clipboard and save them next to your document.
+
+<table>
+  <tr>
+    <td><img src="docs/assets/screenshots/word-dark.png" alt="Markd with the Word Dark theme"></td>
+    <td><img src="docs/assets/screenshots/file-export.png" alt="File tab with export to Word, PDF, web page and print"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Word Dark theme</sub></td>
+    <td align="center"><sub>File tab: open, save and one-click export</sub></td>
+  </tr>
+</table>
+
+## Android
+
+Markd also runs on Android phones and tablets (Android 8.0 or newer). It has the same Word-style ribbon, Word Light/Dark themes, A4/Letter/Legal page view, and HTML, PDF and Word export.
+
+**Built for the stylus:**
+
+- **Pen to text** (Android 14+): write on the page and your handwriting becomes text.
+- **Sketch pad** with pressure-sensitive ink, a highlighter and an eraser. Your drawing is saved as an image next to the `.md` file.
+- **Palm rejection** while the pen is in use, plus pen eraser and side-button support.
+
+**Install:**
+
+1. Download `Markd-<version>-android-debug.apk` from [Releases](https://github.com/Hafij-BGE/markd/releases/latest) on the device.
+2. Open it and allow *Install unknown apps* for your browser or file manager when Android asks.
+3. Open Markd, then open a `.md` file from the **File** tab, or add a folder of notes with **☰ → Open folder**.
+
+## Build from source
+
+You need Node.js 22 or newer and pnpm 10 (via Corepack).
 
 ```bash
-brew install --cask mark-text
+git clone https://github.com/Hafij-BGE/markd.git
+cd markd
+corepack enable
+pnpm install
+pnpm dev            # run the desktop app with hot reload
 ```
 
-#### Windows
-
-Requires Windows 10 or 11. Both x64 and arm64 installers are published — pick the architecture that matches your machine.
-
-Simply download and install MarkText via the setup wizard (`marktext-win-(x64|arm64)-%version%-setup.exe`) and choose whether to install per-user or machine wide. Alternatively, install MarkText using a package manager such as [Chocolatey](https://chocolatey.org/) or [Winget](https://docs.microsoft.com/en-us/windows/package-manager/winget/).
-
-To use Chocolatey, you need to have [Chocolatey](https://chocolatey.org/install) installed:
+To build installers:
 
 ```bash
-choco install marktext
+pnpm build:linux    # AppImage, deb, rpm, tar.gz in dist/
+pnpm build:win      # setup.exe and zip in dist/ (run on Windows)
 ```
 
-To use Winget, you need to have [Winget](https://docs.microsoft.com/en-us/windows/package-manager/winget/#install-winget) installed:
+On Debian/Ubuntu the native modules need these headers:
 
 ```bash
-winget install marktext
+sudo apt install build-essential python3 libx11-dev libxkbfile-dev libsecret-1-dev libfontconfig-dev rpm
 ```
 
-#### Linux
+The Android app has its own build guide in [packages/android/README.md](packages/android/README.md).
 
-Please follow the [Linux installation instructions](https://marktext.me/docs/installation).
+### Checks
 
-#### Other
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test:unit
+pnpm test:e2e
+```
 
-All binaries for Linux, macOS and Windows can be downloaded from the [release page](https://github.com/marktext/marktext/releases/latest). If a version is unavailable for your system, then please open an [issue](https://github.com/marktext/marktext/issues).
+### Project layout
 
-## Development
+| Path | What it is |
+| --- | --- |
+| `packages/desktop` | Electron + Vue 3 desktop app (ribbon, themes, export) |
+| `packages/muya` | `@muyajs/core`, the WYSIWYG Markdown engine |
+| `packages/android` | Android app: a WebView shell around `@muyajs/core` |
+| `scripts/` | Workspace scripts, including `generate-icon.py` for the app icon |
 
-If you wish to build MarkText yourself, please check out our [build instructions](https://marktext.me/docs/dev/build).
+### Releasing
 
-- [User documentation](https://marktext.me/docs/introduction)
-- [Developer documentation](https://marktext.me/docs/dev/overview)
+Push a tag such as `v0.23.2`. The [release workflow](.github/workflows/release.yml) builds Linux (x64, arm64), Windows (x64) and Android, then publishes a GitHub release with checksums.
 
-If you have any questions regarding MarkText, you are welcome to write an issue. When doing so please use the default format found when opening an issue. Of course, if you submit a PR directly, it will be greatly appreciated.
+## Credits
 
-## Contribution
+Markd is a fork of [MarkText](https://github.com/marktext/marktext) by Luo Ran (Jocs) and the MarkText contributors. The editing engine and most of the app come from their work, so please consider supporting the [MarkText project](https://github.com/marktext/marktext).
 
-MarkText is in development, please make sure to read the [Contributing Guide](.github/CONTRIBUTING.md) before making a pull request. Want to add some features to MarkText? Refer to our [roadmap](https://github.com/marktext/marktext/projects) and open issues.
-
-## Contributors
-
-Thank you to all the people who have already contributed to MarkText[[contributors](https://github.com/marktext/marktext/graphs/contributors)].
-
-<a href="https://github.com/marktext/marktext/graphs/contributors"><img src="https://opencollective.com/marktext/contributors.svg?width=890" /></a>
-
-## License
-
-[**MIT**](LICENSE).
+Markd keeps MarkText's [MIT License](LICENSE). Third-party licenses are listed in [packages/desktop/build/THIRD-PARTY-LICENSES.txt](packages/desktop/build/THIRD-PARTY-LICENSES.txt).
