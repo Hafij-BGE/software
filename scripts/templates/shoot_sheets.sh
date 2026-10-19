@@ -17,9 +17,11 @@ Xvfb "$DISPLAY" -screen 0 1400x800x24 -nolisten tcp >/dev/null 2>&1 &
 XVFB=$!
 sleep 1
 # A clean profile: the window at its usual size, nothing reopened, no update checks.
-mkdir -p "$WORK/home/.config/craft-suite"
+# …and its own runtime folder, so the files don't go to a Craft Suite window already open.
+mkdir -p "$WORK/home/.config/craft-suite" "$WORK/run"
+chmod 700 "$WORK/run"
 for f in "$ROOT"/templates/sheet/*.xlsx; do
-  HOME="$WORK/home" XDG_CONFIG_HOME="$WORK/home/.config" XDG_DATA_HOME="$WORK/home/.local/share" \
+  XDG_RUNTIME_DIR="$WORK/run" HOME="$WORK/home" XDG_CONFIG_HOME="$WORK/home/.config" XDG_DATA_HOME="$WORK/home/.local/share" \
     "$SUITE" "$f" >/dev/null 2>&1 &
   app=$!
   sleep 15

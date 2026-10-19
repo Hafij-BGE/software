@@ -836,6 +836,7 @@ fn settings_body(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette) {
             ui.label("Opening files");
             ui.vertical(|ui| {
                 ui.checkbox(&mut s.reuse_blank_tab, "Replace an untouched blank tab of the same app");
+                ui.checkbox(&mut s.font_notice, "Say when a document's fonts aren't installed, and offer to install them");
                 ui.checkbox(&mut s.single_window, "Open files from the file manager in this window (next start)");
             });
             ui.end_row();

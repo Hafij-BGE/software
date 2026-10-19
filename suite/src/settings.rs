@@ -221,6 +221,8 @@ pub struct Settings {
     pub shortcuts: bool,
     /// Ctrl+N opens a new tab of the active tab's app (instead of the app's own New).
     pub ctrl_n_new_tab: bool,
+    /// A bar over a document whose fonts aren't installed, offering to install them (src/fontbar.rs).
+    pub font_notice: bool,
 
     // ---- remembered
     pub recent: Vec<String>,
@@ -261,6 +263,7 @@ impl Default for Settings {
             title_bar: TitleBar::Integrated,
             new_tab_opens: NewTabOpens::Home,
             reuse_blank_tab: true,
+            font_notice: true,
             restore_tabs: true,
             single_window: true,
             middle_click_closes: true,

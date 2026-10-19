@@ -78,6 +78,7 @@ sudo apt install "./$f"
 | 🪟 **Tabs in the title bar** | Minimize, maximize and close sit beside the tabs. Settings › Window › Title bar switches back to the desktop's own. |
 | 🎛️ **Your layout** | Tab bar at the top, bottom, left or right; tabs mixed, grouped by app or one row per app; colour per app (stripe, tint, solid); light, dark or system theme. |
 | 🏠 **Home page** | Blank document, presentation, spreadsheet and Markdown tiles, Open, and recent files with search and a filter by app. |
+| 🔤 **Missing fonts** | A document in a font that isn't installed says so in a bar over it, and installs it: from Google Fonts, from Windows on the same PC, or from font files. Or *Choose font* uses a similar installed font throughout (Undo takes it back). |
 | 🧩 **Templates** | Letters, reports, a résumé, budgets, invoices, trackers and slide decks to start from, plus your own ([more](#templates)). |
 | 📝 **Markd** | WYSIWYG Markdown with a ribbon, page layout, Mermaid diagrams, and HTML, PDF and Word export ([more](#markd)). |
 | ✨ **Ask AI** | An assistant beside every tab that answers from the document and makes changes you accept, with your own free keys ([more](#ask-ai)). |

@@ -107,6 +107,157 @@ impl Doc {
         }
     }
 
+    /// The document's fonts that aren't installed, and a key naming the document (so a closed
+    /// font bar comes back for the next one). `None` for a Markd tab, or before a document shows.
+    pub fn missing_fonts(&mut self) -> Option<(String, Vec<MissingFont>)> {
+        match self {
+            Doc::Word(t) => {
+                let key = format!("word:{}:{}", t.app.session.document_id(), t.app.session.path.as_ref().map(|p| p.to_string_lossy().to_string()).unwrap_or_default());
+                // A new document is in WordCraft's own default fonts (Word's Aptos): nothing to tell.
+                let new = t.app.session.path.is_none();
+                let list = wordcraft_engine::cmd::font::missing_fonts(&mut t.app.session)
+                    .into_iter()
+                    .filter(|m| !(new && ["Aptos", "Aptos Display"].iter().any(|d| m.requested.eq_ignore_ascii_case(d))))
+                    .map(|m| MissingFont { name: m.requested, shown_with: Some(m.shown_with) })
+                    .collect();
+                Some((key, list))
+            }
+            Doc::Deck(t) => {
+                let d = t.app.session.active()?;
+                let list = d.missing_fonts.iter().map(|n| MissingFont { name: n.clone(), shown_with: None }).collect();
+                Some((format!("deck:{}", d.uid), list))
+            }
+            Doc::Grid(t) => {
+                let uid = t.app.session.active()?.uid;
+                // A new workbook is in GridCraft's own default font (Excel's Calibri).
+                let new = t.app.session.active()?.path.is_none();
+                // GridCraft knows what's missing once its scan of the installed fonts is done.
+                gridcraft_ui_egui::fonts::start_scan();
+                let list = gridcraft_ui_egui::fonts::missing_among(&t.app.used_fonts())
+                    .into_iter()
+                    .filter(|n| !(new && n.eq_ignore_ascii_case("Calibri")))
+                    .map(|n| MissingFont { name: n, shown_with: None })
+                    .collect();
+                Some((format!("grid:{uid}"), list))
+            }
+            #[cfg(feature = "markd")]
+            Doc::Mark(_) => None,
+        }
+    }
+
+    /// Slide and Spreadsheet say once per document that its fonts aren't installed; the suite's
+    /// font bar (src/fontbar.rs) says it instead.
+    pub fn quiet_own_font_notice(&mut self) {
+        match self {
+            Doc::Deck(t) => {
+                if let Some(uid) = t.app.session.active().map(|d| d.uid) {
+                    t.app.fonts_noted.insert(uid);
+                }
+            }
+            Doc::Grid(t) => {
+                if let Some(uid) = t.app.session.active().map(|d| d.uid) {
+                    t.app.fonts_noted.insert(uid);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Whether this tab's app has the font `family` (installed, or built into the app).
+    pub fn has_font(&self, family: &str) -> bool {
+        match self {
+            Doc::Word(_) => wordcraft_fonts::FontDb::global().has_family(family),
+            Doc::Deck(_) => deckcraft_fonts::FontDb::global().has_family(family),
+            Doc::Grid(_) => !gridcraft_ui_egui::fonts::faces_of(family).is_empty() || gridcraft_ui_egui::fonts::missing_among(&[family.to_string()]).is_empty() && gridcraft_ui_egui::fonts::scan_done(),
+            #[cfg(feature = "markd")]
+            Doc::Mark(_) => true,
+        }
+    }
+
+    /// Installs fonts on this computer and uses them in this tab: `{"folder": path}` (every font in
+    /// it) or `{"windows": true}` (the document's missing fonts from a Windows installation on this
+    /// PC). Answers the app's `{added, notFound, …}`.
+    pub fn add_fonts(&mut self, params: serde_json::Value) -> Result<serde_json::Value, String> {
+        match self {
+            Doc::Word(t) => t.app.run("font.add", params),
+            Doc::Deck(t) => t.app.run("font.add", params),
+            Doc::Grid(t) => t.app.install_fonts(&params),
+            #[cfg(feature = "markd")]
+            Doc::Mark(_) => Err("Markd uses the system's fonts".into()),
+        }
+    }
+
+    /// Uses the font `to` wherever the document uses `from` (its styles, theme fonts and text), as
+    /// one step Undo takes back. Answers how many places changed.
+    pub fn replace_font(&mut self, from: &str, to: &str) -> Result<usize, String> {
+        match self {
+            Doc::Word(t) => {
+                // WordCraft keeps the whole document in its JSON form without loss (it opens and
+                // saves .json documents), so the names are changed there.
+                let s = &mut t.app.session;
+                let mut v = serde_json::to_value(&s.doc).map_err(|e| e.to_string())?;
+                let n = replace_font_names(&mut v, from, to, &["font", "fontCs", "fontEa", "majorFont", "minorFont"]);
+                if n == 0 {
+                    return Ok(0);
+                }
+                let doc = serde_json::from_value(v).map_err(|e| e.to_string())?;
+                s.checkpoint("Replace Fonts");
+                s.doc = doc;
+                s.dirty = true;
+                s.touch();
+                Ok(n)
+            }
+            Doc::Deck(t) => t.app.run("font.replace", json!({ "from": from, "to": to })).map(|r| r.get("replaced").and_then(serde_json::Value::as_u64).unwrap_or(1) as usize),
+            Doc::Grid(t) => {
+                let Some(d) = t.app.session.active_mut() else { return Ok(0) };
+                let before = (d.wb.clone(), d.selection.clone());
+                let wb = std::sync::Arc::make_mut(&mut d.wb);
+                let same = |n: &str| n.trim().eq_ignore_ascii_case(from.trim());
+                let mut n = 0usize;
+                // The interned styles: by way of their JSON form, then indexed again.
+                let mut styles = serde_json::to_value(&wb.styles).map_err(|e| e.to_string())?;
+                let in_styles = replace_cell_font_names(&mut styles, from, to);
+                if in_styles > 0 {
+                    wb.styles = serde_json::from_value(styles).map_err(|e| e.to_string())?;
+                    wb.styles.rebuild_index();
+                    n += in_styles;
+                }
+                for (_, st) in &mut wb.cell_styles {
+                    if same(&st.font.name) {
+                        st.font.name = to.to_string();
+                        n += 1;
+                    }
+                }
+                for f in [&mut wb.theme.major_font, &mut wb.theme.minor_font] {
+                    if same(f) {
+                        *f = to.to_string();
+                        n += 1;
+                    }
+                }
+                for sheet in &mut wb.sheets {
+                    if sheet.shapes.iter().any(|s| s.format.font.as_deref().is_some_and(same)) {
+                        for shape in &mut std::sync::Arc::make_mut(sheet).shapes {
+                            if shape.format.font.as_deref().is_some_and(same) {
+                                shape.format.font = Some(to.to_string());
+                                n += 1;
+                            }
+                        }
+                    }
+                }
+                if n == 0 {
+                    d.wb = before.0;
+                    return Ok(0);
+                }
+                d.undo.push(gridcraft_engine::HistoryEntry { label: "Replace Fonts".into(), wb: before.0, selection: before.1 });
+                d.redo.clear();
+                d.revision += 1;
+                Ok(n)
+            }
+            #[cfg(feature = "markd")]
+            Doc::Mark(_) => Ok(0),
+        }
+    }
+
     /// Makes the open document a new, untitled one called `title`: Save asks where (a template
     /// opened from the Home page).
     pub fn detach(&mut self, title: &str) {
@@ -656,4 +807,78 @@ fn grid_open_with_system(target: &str) {
         return;
     };
     crate::system::open(target.as_str());
+}
+
+/// A font a document uses that isn't installed, and the one shown in its place when the app says.
+pub struct MissingFont {
+    pub name: String,
+    pub shown_with: Option<String>,
+}
+
+/// Renames the font `from` to `to` in a JSON tree: in every string value of a `keys` field.
+fn replace_font_names(v: &mut serde_json::Value, from: &str, to: &str, keys: &[&str]) -> usize {
+    let mut n = 0;
+    match v {
+        serde_json::Value::Object(map) => {
+            for (k, child) in map.iter_mut() {
+                match child {
+                    serde_json::Value::String(name) if keys.contains(&k.as_str()) && name.trim().eq_ignore_ascii_case(from.trim()) => {
+                        *name = to.to_string();
+                        n += 1;
+                    }
+                    _ => n += replace_font_names(child, from, to, keys),
+                }
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for child in items {
+                n += replace_font_names(child, from, to, keys);
+            }
+        }
+        _ => {}
+    }
+    n
+}
+
+/// GridCraft's styles name their font as `"font": {"name": …}`.
+fn replace_cell_font_names(v: &mut serde_json::Value, from: &str, to: &str) -> usize {
+    let mut n = 0;
+    match v {
+        serde_json::Value::Object(map) => {
+            if let Some(serde_json::Value::Object(font)) = map.get_mut("font")
+                && let Some(serde_json::Value::String(name)) = font.get_mut("name")
+                && name.trim().eq_ignore_ascii_case(from.trim())
+            {
+                *name = to.to_string();
+                n += 1;
+            }
+            for (k, child) in map.iter_mut() {
+                if k != "font" {
+                    n += replace_cell_font_names(child, from, to);
+                }
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for child in items {
+                n += replace_cell_font_names(child, from, to);
+            }
+        }
+        _ => {}
+    }
+    n
+}
+
+#[cfg(test)]
+mod font_tests {
+    use super::*;
+
+    #[test]
+    fn font_names_are_replaced_only_in_font_fields() {
+        let mut v = json!({"font": "Aptos", "text": "Aptos", "styles": [{"fontCs": "aptos "}, {"minorFont": "Calibri"}]});
+        assert_eq!(replace_font_names(&mut v, "Aptos", "Inter", &["font", "fontCs", "minorFont"]), 2);
+        assert_eq!(v, json!({"font": "Inter", "text": "Aptos", "styles": [{"fontCs": "Inter"}, {"minorFont": "Calibri"}]}));
+        let mut g = json!({"styles": [{"font": {"name": "Calibri", "size": 11}}, {"font": {"name": "Arial"}}]});
+        assert_eq!(replace_cell_font_names(&mut g, "calibri", "Carlito"), 1);
+        assert_eq!(g["styles"][0]["font"]["name"], "Carlito");
+    }
 }
