@@ -25,7 +25,7 @@
 
 Craft Suite puts four apps in one window, each document in its own tab:
 
-<table>
+<table width="100%">
 <tr>
 <td align="center" width="25%"><img src="assets/hicolor/64x64/apps/craft-suite-word.png" width="48" alt=""><br><b>Word</b><br><sub><code>.docx</code> <code>.odt</code> <code>.rtf</code> <code>.doc</code></sub></td>
 <td align="center" width="25%"><img src="assets/hicolor/64x64/apps/craft-suite-slide.png" width="48" alt=""><br><b>Slide</b><br><sub><code>.pptx</code>, slide shows, animations</sub></td>
@@ -72,7 +72,7 @@ sudo apt install "./$f"
 
 ## Features
 
-| | |
+| Feature | What it does |
 |---|---|
 | 🗂️ **Tabs that mix apps** | A document, a deck, a spreadsheet and a Markdown file side by side, each tab with its app's icon and colour. Drag to reorder; right-click to pin, colour, move or close others. |
 | 🪟 **Tabs in the title bar** | Minimize, maximize and close sit beside the tabs. Settings › Window › Title bar switches back to the desktop's own. |
