@@ -107,6 +107,32 @@ impl Doc {
         }
     }
 
+    /// Makes the open document a new, untitled one called `title`: Save asks where (a template
+    /// opened from the Home page).
+    pub fn detach(&mut self, title: &str) {
+        match self {
+            Doc::Word(t) => {
+                t.app.session.path = None;
+                t.app.session.file_name = Some(title.to_string());
+            }
+            Doc::Deck(t) => {
+                if let Some(d) = t.app.session.active_mut() {
+                    d.path = None;
+                    d.title = title.to_string();
+                }
+            }
+            Doc::Grid(t) => {
+                if let Some(d) = t.app.session.active_mut() {
+                    d.path = None;
+                    d.content_kind = None;
+                    d.title = title.to_string();
+                }
+            }
+            #[cfg(feature = "markd")]
+            Doc::Mark(_) => {}
+        }
+    }
+
     pub fn kind(&self) -> Kind {
         match self {
             Doc::Word(_) => Kind::Word,

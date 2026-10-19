@@ -3,3 +3,4 @@
 /build/
 upstream/*/target/
 suite/target/
+__pycache__/

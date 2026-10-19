@@ -78,6 +78,7 @@ sudo apt install "./$f"
 | 🪟 **Tabs in the title bar** | Minimize, maximize and close sit beside the tabs. Settings › Window › Title bar switches back to the desktop's own. |
 | 🎛️ **Your layout** | Tab bar at the top, bottom, left or right; tabs mixed, grouped by app or one row per app; colour per app (stripe, tint, solid); light, dark or system theme. |
 | 🏠 **Home page** | Blank document, presentation, spreadsheet and Markdown tiles, Open, and recent files with search and a filter by app. |
+| 🧩 **Templates** | Letters, reports, a résumé, budgets, invoices, trackers and slide decks to start from, plus your own ([more](#templates)). |
 | 📝 **Markd** | WYSIWYG Markdown with a ribbon, page layout, Mermaid diagrams, and HTML, PDF and Word export ([more](#markd)). |
 | ✨ **Ask AI** | An assistant beside every tab that answers from the document and makes changes you accept, with your own free keys ([more](#ask-ai)). |
 | 🔄 **Always current** | A weekly workflow merges upstream changes and publishes a release; installed copies update from the Home page ([more](#update)). |
@@ -159,6 +160,24 @@ them. Your documents are never touched.
 - **By hand:** run the [quick start](#quick-start) lines again; settings and open files are kept.
 
 Restart Craft Suite after an update. Nothing is installed without your password.
+
+## Templates
+
+The Home page's **Templates** start a new document, presentation or spreadsheet from a ready-made
+one: letters, a report, a résumé and cover letter, meeting minutes, a proposal, a research paper and
+a flyer; a budget, an invoice, a timesheet, a project tracker, a grade book, an expense report and an
+experiment log; and six slide designs. Filter them by app or search; picking one opens an untitled
+copy, so the template itself never changes.
+
+- **Your own:** *My templates folder* opens `~/.local/share/craft-suite/templates` (Windows:
+  `%APPDATA%\craft-suite\templates`). Every document, presentation or spreadsheet you put there is
+  listed under *My templates*, with a `<name>.png` beside it as its picture.
+- **Licences:** Craft Suite's own templates are CC0 (use them for anything). Open-licence ones
+  collected from the LibreOffice community (CC0, CC-BY or public domain only) are credited in
+  [`templates/ATTRIBUTION.md`](templates/ATTRIBUTION.md).
+- **Making them:** `scripts/templates/make_own.py` writes the suite's own;
+  `.github/workflows/templates.yml` collects and converts the open-licence ones; `build_index.py`
+  draws the thumbnails with the apps themselves and writes `templates/index.json`.
 
 ## Markd
 
@@ -298,6 +317,7 @@ packaging/            build scripts (.deb, Windows, Markd web files), desktop en
 scripts/              update-upstream.sh, make-app-icons.py, merge-locks.py, backup-deps.sh
 backup/               copies of ArtCraft's craft-libs and craft-fonts, in case github.com/storytold
                       can't be reached
+templates/            the Home page's templates, index.json and ATTRIBUTION.md (scripts/templates/)
 docs/screenshots/     the pictures in this README
 .github/workflows/    build-deb.yml (build + release), sync-upstream.yml (weekly upstream merge)
 ```

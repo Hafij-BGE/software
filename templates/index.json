@@ -1,0 +1,193 @@
+{
+ "templates": [
+  {
+   "file": "word/business-letter.docx",
+   "title": "Business letter",
+   "category": "Letters",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "word/business-letter.png"
+  },
+  {
+   "file": "word/report.docx",
+   "title": "Report",
+   "category": "Reports",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "word/report.png"
+  },
+  {
+   "file": "word/resume.docx",
+   "title": "Résumé",
+   "category": "Personal",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "word/resume.png"
+  },
+  {
+   "file": "word/cover-letter.docx",
+   "title": "Cover letter",
+   "category": "Personal",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "word/cover-letter.png"
+  },
+  {
+   "file": "word/meeting-minutes.docx",
+   "title": "Meeting minutes",
+   "category": "Business",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "word/meeting-minutes.png"
+  },
+  {
+   "file": "word/project-proposal.docx",
+   "title": "Project proposal",
+   "category": "Business",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "word/project-proposal.png"
+  },
+  {
+   "file": "word/research-paper.docx",
+   "title": "Research paper",
+   "category": "Education",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "word/research-paper.png"
+  },
+  {
+   "file": "word/event-flyer.docx",
+   "title": "Event flyer",
+   "category": "Events",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "word/event-flyer.png"
+  },
+  {
+   "file": "sheet/monthly-budget.xlsx",
+   "title": "Monthly budget",
+   "category": "Personal finance",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "sheet/monthly-budget.png"
+  },
+  {
+   "file": "sheet/invoice.xlsx",
+   "title": "Invoice",
+   "category": "Business",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "sheet/invoice.png"
+  },
+  {
+   "file": "sheet/weekly-timesheet.xlsx",
+   "title": "Weekly timesheet",
+   "category": "Business",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "sheet/weekly-timesheet.png"
+  },
+  {
+   "file": "sheet/project-tracker.xlsx",
+   "title": "Project tracker",
+   "category": "Business",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "sheet/project-tracker.png"
+  },
+  {
+   "file": "sheet/grade-book.xlsx",
+   "title": "Grade book",
+   "category": "Education",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "sheet/grade-book.png"
+  },
+  {
+   "file": "sheet/expense-report.xlsx",
+   "title": "Expense report",
+   "category": "Business",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "sheet/expense-report.png"
+  },
+  {
+   "file": "sheet/experiment-log.xlsx",
+   "title": "Experiment log",
+   "category": "Education",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "sheet/experiment-log.png"
+  },
+  {
+   "file": "slide/pitch-deck.pptx",
+   "title": "Pitch deck",
+   "category": "Business",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "slide/pitch-deck.png"
+  },
+  {
+   "file": "slide/clean-minimal.pptx",
+   "title": "Clean minimal",
+   "category": "Business",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "slide/clean-minimal.png"
+  },
+  {
+   "file": "slide/forest-story.pptx",
+   "title": "Forest story",
+   "category": "Creative",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "slide/forest-story.png"
+  },
+  {
+   "file": "slide/coral-workshop.pptx",
+   "title": "Coral workshop",
+   "category": "Education",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "slide/coral-workshop.png"
+  },
+  {
+   "file": "slide/ocean-report.pptx",
+   "title": "Ocean report",
+   "category": "Business",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "slide/ocean-report.png"
+  },
+  {
+   "file": "slide/research-talk.pptx",
+   "title": "Research talk",
+   "category": "Education",
+   "license": "CC0-1.0",
+   "author": "Craft Suite",
+   "source": "https://github.com/Hafij-BGE/software",
+   "thumbnail": "slide/research-talk.png"
+  }
+ ]
+}

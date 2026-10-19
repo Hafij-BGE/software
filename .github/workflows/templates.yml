@@ -1,0 +1,71 @@
+# The Home page's open-licence templates: collects CC0, CC-BY and public-domain templates
+# (scripts/templates/fetch_open.py), converts them with LibreOffice to .pptx/.docx, draws their
+# thumbnails with the suite's own apps (from the latest release) and leaves out any they can't
+# open (scripts/templates/build_index.py).
+#
+# On a pull request that changes the scripts it uploads the result as an artifact to look at; run
+# by hand (Actions › Templates › Run workflow), it proposes the result as a pull request from the
+# branch "templates-update".
+name: Templates
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "scripts/templates/**"
+      - ".github/workflows/templates.yml"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  open-templates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: LibreOffice and Pillow
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends libreoffice-impress libreoffice-writer python3-pil
+          soffice --version
+      - name: The apps' command-line tools, from the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download -R "$GITHUB_REPOSITORY" -p '*_amd64.deb' -D "$RUNNER_TEMP"
+          dpkg-deb -x "$RUNNER_TEMP"/*_amd64.deb "$RUNNER_TEMP/deb"
+          echo "$RUNNER_TEMP/deb/usr/bin" >> "$GITHUB_PATH"
+      - name: Collect, convert and index
+        run: |
+          wordcraft-cli --version
+          python3 scripts/templates/fetch_open.py
+          python3 scripts/templates/build_index.py
+          du -sh templates
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: templates
+          path: templates/
+      - name: Propose them as a pull request
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898+github-actions[bot]@users.noreply.github.com"
+          git switch -c templates-update
+          git add templates
+          if git diff --cached --quiet; then
+            echo "No changes to the templates."
+            exit 0
+          fi
+          git commit -m "Templates: refresh the open-licence templates"
+          git push --force origin templates-update
+          body="Open-licence templates collected and converted by .github/workflows/templates.yml. Check templates/ATTRIBUTION.md and a few of the new files before merging."
+          if gh pr view templates-update --json state -q .state 2>/dev/null | grep -q OPEN; then
+            gh pr edit templates-update --body "$body"
+          else
+            gh pr create --base "$BASE" --head templates-update --title "Templates: open-licence templates" --body "$body"
+          fi
