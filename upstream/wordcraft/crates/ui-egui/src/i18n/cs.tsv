@@ -2691,3 +2691,8 @@ preview	Title	Ukázka
 	Type a size in any unit, such as 5 cm or 300 px. The other side follows, so the picture keeps its proportions.	Zadejte velikost v libovolné jednotce, například 5 cm nebo 300 px. Druhá strana se přizpůsobí, takže obrázek zachová své proporce.
 
 	Import…	Importovat…
+# Fonts that aren't installed: status bar and font box
+	{font} not installed	{font} není nainstalováno
+	{font} isn't installed, so its text is shown with {used}. Lines and pages may break differently from Word.	Písmo {font} není nainstalováno, proto se text zobrazuje písmem {used}. Řádky a stránky se mohou zalamovat jinak než ve Wordu.
+	Click to install it on this computer.	Kliknutím ho nainstalujete do tohoto počítače.
+	Install from Windows on this PC	Nainstalovat z Windows v tomto počítači

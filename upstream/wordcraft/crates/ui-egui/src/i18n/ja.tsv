@@ -2288,3 +2288,8 @@
 	Type a size in any unit, such as 5 cm or 300 px. The other side follows, so the picture keeps its proportions.	5 cm や 300 px など、任意の単位でサイズを入力します。もう一方の辺も合わせて変わるため、図の縦横比は保たれます。
 
 	Import…	インポート…
+# Fonts that aren't installed: status bar and font box
+	{font} not installed	{font} はインストールされていません
+	{font} isn't installed, so its text is shown with {used}. Lines and pages may break differently from Word.	{font} がインストールされていないため、テキストは {used} で表示されます。行やページの区切りが Word と異なる場合があります。
+	Click to install it on this computer.	クリックしてこのコンピューターにインストールします。
+	Install from Windows on this PC	この PC の Windows からインストール

@@ -2696,3 +2696,8 @@ preview	Title	Örnek
 	Type a size in any unit, such as 5 cm or 300 px. The other side follows, so the picture keeps its proportions.	Herhangi bir birimde bir boyut yazın, örneğin 5 cm veya 300 px. Diğer kenar da buna uyar, böylece resim oranlarını korur.
 
 	Import…	İçe aktar…
+# Fonts that aren't installed: status bar and font box
+	{font} not installed	{font} yüklü değil
+	{font} isn't installed, so its text is shown with {used}. Lines and pages may break differently from Word.	{font} yüklü olmadığından metin {used} ile gösteriliyor. Satırlar ve sayfalar Word'dekinden farklı bölünebilir.
+	Click to install it on this computer.	Bu bilgisayara yüklemek için tıklayın.
+	Install from Windows on this PC	Bu bilgisayardaki Windows'tan yükle

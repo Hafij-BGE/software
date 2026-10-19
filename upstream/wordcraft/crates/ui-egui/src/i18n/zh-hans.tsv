@@ -2300,3 +2300,8 @@
 	Type a size in any unit, such as 5 cm or 300 px. The other side follows, so the picture keeps its proportions.	可用任意单位输入大小，例如 5 cm 或 300 px。另一边随之调整，图片保持原有比例。
 
 	Import…	导入…
+# Fonts that aren't installed: status bar and font box
+	{font} not installed	{font} 未安装
+	{font} isn't installed, so its text is shown with {used}. Lines and pages may break differently from Word.	{font} 未安装，因此其文字以 {used} 显示。行和页的分隔可能与 Word 不同。
+	Click to install it on this computer.	单击以在此计算机上安装。
+	Install from Windows on this PC	从此电脑上的 Windows 安装

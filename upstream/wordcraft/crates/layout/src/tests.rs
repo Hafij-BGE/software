@@ -3908,6 +3908,58 @@ fn justified_lines_shrink_spaces_in_word_2013_mode() {
     }
 }
 
+/// Where each line's text (trailing spaces and breaks excluded) ends, for a justified paragraph
+/// whose first line ends in a manual line break.
+fn line_break_ends(no_expand: bool) -> Vec<f32> {
+    let text = "To the Selection Committee, International Program\nGerman Research Center, Heidelberg";
+    let mut d = Document::from_text("To the Selection Committee, International Program");
+    d.insert_text(&Pos::body(0, 49), "\nGerman Research Center, Heidelberg", &Default::default()).unwrap();
+    d.settings.no_expand_shift_return = no_expand;
+    d.format_paragraphs(&Pos::body(0, 0), &Pos::body(0, 0), &|p| p.align = Some(Align::Justify)).unwrap();
+    let l = lay(&d);
+    let mut ends = Vec::new();
+    for p in &l.pages {
+        for it in &p.items {
+            if let Placed::Lines { para, l0, l1, x, .. } = it {
+                for li in *l0..*l1 {
+                    let line = &para.lines[li];
+                    let content = text[line.start..line.stop].trim_end().len();
+                    ends.push(para.x_of(li, line.start + content).unwrap() + x);
+                }
+            }
+        }
+    }
+    ends
+}
+
+/// Observed in Word (Microsoft 365, compatibility mode 12): a justified line ending in
+/// Shift+Enter is spread to both margins; the paragraph's last line is not.
+/// `w:doNotExpandShiftReturn` keeps the line left-aligned.
+#[test]
+fn justified_line_before_a_manual_line_break_spreads_like_word() {
+    let ends = line_break_ends(false);
+    assert_eq!(ends.len(), 2, "{ends:?}");
+    assert!((ends[0] - 540.0).abs() < 0.05, "line before the break ends at {}", ends[0]);
+    assert!(ends[1] < 400.0, "last line stays short: {}", ends[1]);
+    let kept = line_break_ends(true);
+    assert!(kept[0] < 400.0, "doNotExpandShiftReturn keeps it short: {}", kept[0]);
+}
+
+/// A font that isn't installed is listed once, with the installed family drawn in its place; an
+/// installed one isn't.
+#[test]
+fn missing_fonts_lists_each_absent_family_once_with_its_substitute() {
+    let mut d = Document::from_text("First paragraph\nSecond paragraph\nThird");
+    for (para, len, font) in [(0, 15, "Nowhere Sans Zq"), (1, 16, "Nowhere Sans Zq"), (2, 5, wordcraft_fonts::FALLBACK_FAMILY)] {
+        d.format_range(&Pos::body(para, 0), &Pos::body(para, len), &|c| c.font = Some(font.to_string())).unwrap();
+    }
+    let missing = crate::missing_fonts(&d, &lay(&d));
+    let ours: Vec<_> = missing.iter().filter(|m| m.requested == "Nowhere Sans Zq").collect();
+    assert_eq!(ours.len(), 1, "{missing:?}");
+    assert!(!ours[0].shown_with.is_empty() && ours[0].shown_with != "Nowhere Sans Zq");
+    assert!(!missing.iter().any(|m| m.requested == wordcraft_fonts::FALLBACK_FAMILY), "{missing:?}");
+}
+
 #[test]
 fn space_shrinking_is_only_for_justified_text() {
     let text = "We tie the spend to a pipe and to the books, so it is in an ad hoc view of all of it. ".repeat(40);

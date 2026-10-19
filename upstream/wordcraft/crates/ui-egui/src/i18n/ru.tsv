@@ -2697,3 +2697,8 @@ preview	Title	Пример
 	Type a size in any unit, such as 5 cm or 300 px. The other side follows, so the picture keeps its proportions.	Введите размер в любых единицах, например 5 cm или 300 px. Другая сторона изменится вместе с ней, и рисунок сохранит пропорции.
 
 	Import…	Импорт…
+# Fonts that aren't installed: status bar and font box
+	{font} not installed	{font} не установлен
+	{font} isn't installed, so its text is shown with {used}. Lines and pages may break differently from Word.	Шрифт {font} не установлен, поэтому текст показан шрифтом {used}. Строки и страницы могут разбиваться иначе, чем в Word.
+	Click to install it on this computer.	Щёлкните, чтобы установить его на этом компьютере.
+	Install from Windows on this PC	Установить из Windows на этом ПК

@@ -2699,3 +2699,8 @@ preview	Title	Naslov
 	Type a size in any unit, such as 5 cm or 300 px. The other side follows, so the picture keeps its proportions.	Upišite veličinu u bilo kojoj jedinici, npr. 5 cm ili 300 px. Druga se strana prilagođava pa slika zadržava svoje proporcije.
 
 	Import…	Uvezi…
+# Fonts that aren't installed: status bar and font box
+	{font} not installed	{font} nije instaliran
+	{font} isn't installed, so its text is shown with {used}. Lines and pages may break differently from Word.	Font {font} nije instaliran pa se tekst prikazuje fontom {used}. Retci i stranice mogu se prelamati drukčije nego u Wordu.
+	Click to install it on this computer.	Kliknite da biste ga instalirali na ovo računalo.
+	Install from Windows on this PC	Instaliraj iz Windowsa na ovom računalu

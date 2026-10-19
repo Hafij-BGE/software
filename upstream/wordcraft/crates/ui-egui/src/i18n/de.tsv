@@ -2287,3 +2287,8 @@
 	Type a size in any unit, such as 5 cm or 300 px. The other side follows, so the picture keeps its proportions.	Geben Sie eine Größe in einer beliebigen Einheit ein, z. B. 5 cm oder 300 px. Die andere Seite passt sich an, sodass das Bild seine Proportionen behält.
 
 	Import…	Importieren…
+# Fonts that aren't installed: status bar and font box
+	{font} not installed	{font} nicht installiert
+	{font} isn't installed, so its text is shown with {used}. Lines and pages may break differently from Word.	{font} ist nicht installiert, daher wird der Text in {used} angezeigt. Zeilen und Seiten können anders umbrechen als in Word.
+	Click to install it on this computer.	Klicken, um sie auf diesem Computer zu installieren.
+	Install from Windows on this PC	Von Windows auf diesem PC installieren

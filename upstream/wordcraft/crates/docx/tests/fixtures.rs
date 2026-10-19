@@ -921,6 +921,20 @@ fn table_contextual_spacing_compatibility_flag_is_read() {
 }
 
 #[test]
+fn do_not_expand_shift_return_is_read() {
+    assert!(!with_settings(None).settings.no_expand_shift_return);
+    for (flag, expected) in [
+        ("", false),
+        (r#"<w:doNotExpandShiftReturn w:val="0"/>"#, false),
+        (r#"<w:doNotExpandShiftReturn/>"#, true),
+        (r#"<w:doNotExpandShiftReturn w:val="true"/>"#, true),
+    ] {
+        let settings = format!("<w:compat>{flag}</w:compat>");
+        assert_eq!(with_settings(Some(&settings)).settings.no_expand_shift_return, expected, "{flag}");
+    }
+}
+
+#[test]
 fn compatibility_mode_is_read_and_defaults_to_word_2007() {
     let compat = |v: &str| {
         format!(r#"<w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="{v}"/></w:compat>"#)
