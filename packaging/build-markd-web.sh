@@ -5,8 +5,7 @@
 # Usage: packaging/build-markd-web.sh [OUT_DIR] [BASE]
 #
 #   OUT_DIR   where the files go (default: build/markd/www, where `cargo run` in suite/ finds them)
-#   BASE      the path the page is served from (default: /; the Android app serves it from
-#             /assets/www/)
+#   BASE      the path the page is served from (default: /)
 #
 # Needs: Node.js 20.19 or newer and pnpm 10 (`corepack enable`; upstream/markd/package.json pins
 # the version). Installs Markd's JavaScript dependencies into upstream/markd/node_modules
