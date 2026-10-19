@@ -2708,3 +2708,8 @@ preview	Title	Esempio
 	Type a size in any unit, such as 5 cm or 300 px. The other side follows, so the picture keeps its proportions.	Scrivi una dimensione in qualsiasi unità, ad esempio 5 cm o 300 px. L'altro lato si adegua, così l'immagine mantiene le proporzioni.
 
 	Import…	Importa…
+# Fonts that aren't installed: status bar and font box
+	{font} not installed	{font} non installato
+	{font} isn't installed, so its text is shown with {used}. Lines and pages may break differently from Word.	{font} non è installato, quindi il testo viene mostrato con {used}. Righe e pagine possono interrompersi diversamente rispetto a Word.
+	Click to install it on this computer.	Fai clic per installarlo su questo computer.
+	Install from Windows on this PC	Installa da Windows su questo PC

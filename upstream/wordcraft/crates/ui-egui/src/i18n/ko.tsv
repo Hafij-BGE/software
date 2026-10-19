@@ -2542,3 +2542,8 @@ preview	Title	제목
 	Type a size in any unit, such as 5 cm or 300 px. The other side follows, so the picture keeps its proportions.	5 cm 또는 300 px처럼 원하는 단위로 크기를 입력하세요. 다른 쪽도 함께 바뀌어 그림의 비율이 유지됩니다.
 
 	Import…	가져오기…
+# Fonts that aren't installed: status bar and font box
+	{font} not installed	{font} 설치 안 됨
+	{font} isn't installed, so its text is shown with {used}. Lines and pages may break differently from Word.	{font} 글꼴이 설치되어 있지 않아 텍스트가 {used}(으)로 표시됩니다. 줄과 페이지가 Word와 다르게 나뉠 수 있습니다.
+	Click to install it on this computer.	클릭하면 이 컴퓨터에 설치합니다.
+	Install from Windows on this PC	이 PC의 Windows에서 설치

@@ -2714,3 +2714,8 @@ preview	Title	Titel
 	Type a size in any unit, such as 5 cm or 300 px. The other side follows, so the picture keeps its proportions.	Skriv en storlek i valfri enhet, till exempel 5 cm eller 300 px. Den andra sidan följer med, så att bilden behåller sina proportioner.
 
 	Import…	Importera…
+# Fonts that aren't installed: status bar and font box
+	{font} not installed	{font} är inte installerat
+	{font} isn't installed, so its text is shown with {used}. Lines and pages may break differently from Word.	{font} är inte installerat, så texten visas med {used}. Rader och sidor kan brytas annorlunda än i Word.
+	Click to install it on this computer.	Klicka för att installera det på den här datorn.
+	Install from Windows on this PC	Installera från Windows på den här datorn

@@ -1352,6 +1352,15 @@ fn rotated_drawing_canvas_round_trips() {
 }
 
 #[test]
+fn do_not_expand_shift_return_round_trips() {
+    for on in [false, true] {
+        let mut d = Document::new();
+        d.settings.no_expand_shift_return = on;
+        assert_eq!(rt(&d).settings.no_expand_shift_return, on);
+    }
+}
+
+#[test]
 fn table_contextual_spacing_compatibility_flag_round_trips() {
     for mode in [11, 12, 14, 15] {
         for allow in [false, true] {

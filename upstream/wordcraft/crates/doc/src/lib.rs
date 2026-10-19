@@ -547,6 +547,10 @@ pub struct Settings {
     /// after plus the second's space before, not the larger of the two.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub sum_paragraph_spacing: bool,
+    /// `w:doNotExpandShiftReturn`: a justified line ending in a manual line break stays
+    /// left-aligned. Without it Word spreads such a line to both margins.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub no_expand_shift_return: bool,
     /// Keep contextual paragraph spacing inside legacy table cells (`allowSpaceOfSameStyleInTable`).
     /// Word ignores the layout override in compatibility mode 15, but the flag still round-trips.
     pub allow_space_of_same_style_in_table: bool,
@@ -684,6 +688,7 @@ impl Default for Settings {
             compat_mode: COMPAT_MODE_CURRENT,
             roman_fonts: Vec::new(),
             sum_paragraph_spacing: false,
+            no_expand_shift_return: false,
             allow_space_of_same_style_in_table: false,
             grid_h: DEFAULT_GRID,
             grid_v: DEFAULT_GRID,
