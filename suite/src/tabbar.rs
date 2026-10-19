@@ -495,10 +495,11 @@ fn tab(app: &mut SuiteApp, ui: &mut Ui, id: u64, width: f32, height: f32, line: 
             let bg = if active { active_bg } else if hovered { hover_bg } else { Color32::TRANSPARENT };
             (bg, if active { v.strong_text_color() } else { v.text_color() })
         }
+        // The active tab takes a much deeper shade than the others (and an edge in the full
+        // colour, below), so it stands out even when every tab is of the same app.
         ColorStyle::Tint => {
-            let base = if active { active_bg } else { pal.bar };
-            let bg = mix(base, color, if active { 0.30 } else if hovered { 0.22 } else { 0.12 });
-            (bg, v.strong_text_color())
+            let bg = if active { mix(active_bg, color, 0.55) } else { mix(pal.bar, color, if hovered { 0.20 } else { 0.08 }) };
+            (bg, if active { contrast(bg) } else { v.text_color() })
         }
         ColorStyle::Solid => {
             let bg = if active { color } else { mix(pal.bar, color, if hovered { 0.75 } else { 0.55 }) };
@@ -517,7 +518,7 @@ fn tab(app: &mut SuiteApp, ui: &mut Ui, id: u64, width: f32, height: f32, line: 
         let x = rect.right() - 0.5;
         p.line_segment([pos2(x, rect.top() + 9.0), pos2(x, rect.bottom() - 9.0)], Stroke::new(1.0, pal.separator));
     }
-    if s.color_style == ColorStyle::Stripe || (s.color_style == ColorStyle::Plain && has_color) {
+    if s.color_style == ColorStyle::Stripe || (s.color_style == ColorStyle::Plain && has_color) || (active && s.color_style == ColorStyle::Tint) {
         let stripe = if active { color } else { color.gamma_multiply(if hovered { 0.8 } else { 0.5 }) };
         let thick = if active { 3.0 } else { 2.0 };
         let r = match s.tab_position {
