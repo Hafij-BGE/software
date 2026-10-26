@@ -56,12 +56,8 @@ pub fn show(app: &mut SlideApp, ctx: &egui::Context) {
     let text = toast.text.clone();
     let offer_install = toast.install;
     let mut close = false;
-<<<<<<< HEAD
     let mut install = false;
-    egui::Area::new(egui::Id::new("toast")).anchor(Align2::CENTER_BOTTOM, vec2(0.0, -44.0)).order(egui::Order::Foreground).show(ctx, |ui| {
-=======
     egui::Area::new(egui::Id::unique("toast")).anchor(Align2::CENTER_BOTTOM, vec2(0.0, -44.0)).order(egui::Order::Foreground).show(ctx, |ui| {
->>>>>>> 02bba0b1f618cb192a5759000b85463ce3d1b65d
         egui::Frame::NONE
             .fill(t.card)
             .stroke(Stroke::new(1.0, t.card_border))
