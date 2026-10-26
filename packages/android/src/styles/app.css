@@ -790,6 +790,24 @@ body:not(.ready) #app {
   display: none;
 }
 
+/* ---------- Inkwell ---------- */
+
+.inkwell-chip {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 20px;
+  background: #1a73e8;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 450;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
 /* ---------- Sketch pad ---------- */
 
 .sketch {

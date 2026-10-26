@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lucide icon (ISC licence), as shipped with Xournal++. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="5.821" android:viewportHeight="5.821"
+    android:tint="?android:attr/colorControlNormal">
+    <path android:pathData="M 2.0586825 1.6007668 A 1.5567538 1.5567538 0 0 0 1.5915142 2.7113251 1.5567538 1.5567538 0 0 0 3.1480528 4.2683807 1.5567538 1.5567538 0 0 0 4.2575777 3.8022459 C 3.9236825 3.465814 3.5514523 3.0910665 3.276214 2.8151977 2.9521574 2.4903989 2.4664558 2.0060028 2.0586825 1.6007668 Z"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="0.396886"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path android:pathData="M 0.95011761 0.63750753 C 0.74189072 0.63750687 0.57294226 0.80603746 0.57241776 1.0142732 v 3.9227396 c 0 0.2086075 0.16910198 0.3777172 0.37769985 0.3777172 H 4.8698238 c 0.2085979 0 0.3776999 -0.1691097 0.3776999 -0.3777172 C 5.2470008 4.7291479 5.1674181 4.6420643 4.9849017 4.4595396 4.859319 4.3339511 3.868897 3.333848 3.3089316 2.7725744 2.6884575 2.1506509 1.4409926 0.91356561 1.4409926 0.91356561 1.2610736 0.73363835 1.1579731 0.63803046 0.95011761 0.63750753 Z"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="0.503468"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

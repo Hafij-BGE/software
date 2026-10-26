@@ -19,6 +19,7 @@ import { applyHandwriting, initFindBar, initSourceView, isSourceMode, redo, undo
 import { closeDrawer, initDrawer, openDrawer } from './drawer'
 import { callNative, isNative, onNativeEvent } from './native'
 import { initPenStatus } from './pen'
+import { initInkwellEditing } from './inkwell'
 import { initRibbon, refreshRibbon } from './ribbon'
 import { onSettingsChange, settings, updateSettings } from './settings'
 import { applyZoom, currentZoom, getPageDimensions, initTheme, MM_TO_PX } from './theme'
@@ -106,6 +107,7 @@ const boot = async(): Promise<void> => {
   initFindBar()
   initSourceView()
   initPenStatus()
+  initInkwellEditing()
   wireNativeEvents()
   onDocChange(() => {
     updateTitle()

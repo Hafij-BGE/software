@@ -9,6 +9,7 @@ import * as cmd from './commands'
 import { newDocument, openDocument, saveDocument, saveDocumentAs } from './document'
 import { openDrawer } from './drawer'
 import { exportDocx, exportHtml, exportPdf, shareDocument } from './export'
+import { openHome } from './inkwell'
 import { settings, updateSettings, type PageLayoutId, type ThemeChoice } from './settings'
 import { h } from './ui'
 
@@ -75,6 +76,7 @@ const GROUPS: Record<TabId, ToolGroup[]> = {
       label: 'Document',
       layout: 'row',
       items: [
+        large('home', 'Home', ICONS.folder(28), openHome),
         large('new', 'New', ICONS.newFile(), () => newDocument()),
         large('open', 'Open', ICONS.open(), () => openDocument()),
         large('browse', 'Recent & folders', ICONS.recent(), openDrawer),
@@ -206,13 +208,14 @@ const GROUPS: Record<TabId, ToolGroup[]> = {
       layout: 'row',
       items: [
         large('sketch', 'Sketch', ICONS.sketch(), cmd.insertSketch),
+        large('quickSketch', 'Quick sketch', ICONS.pen(), cmd.insertQuickSketch),
         large('handwriting', 'Pen to text', ICONS.handwriting(), cmd.toggleHandwriting, () => settings.penHandwriting),
         large('fingerDrawing', 'Draw with finger', ICONS.hand(), () => updateSettings({ fingerDrawing: !settings.fingerDrawing }), () => settings.fingerDrawing)
       ]
     },
     {
       id: 'sketchOptions',
-      label: 'Sketch image',
+      label: 'Quick sketch image',
       layout: 'row',
       items: [
         large('png', 'PNG', ICONS.image(28), () => updateSettings({ sketchFormat: 'png' }), () => settings.sketchFormat === 'png'),
@@ -278,6 +281,12 @@ const GROUPS: Record<TabId, ToolGroup[]> = {
         large('light', 'Word Light', ICONS.sun(), setTheme('word'), () => settings.theme === 'word'),
         large('dark', 'Word Dark', ICONS.moon(), setTheme('word-dark'), () => settings.theme === 'word-dark')
       ]
+    },
+    {
+      id: 'about',
+      label: 'About',
+      layout: 'row',
+      items: [large('about', 'About Markd', ICONS.info(), cmd.showAbout)]
     }
   ]
 }

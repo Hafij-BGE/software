@@ -793,7 +793,12 @@
   },
   "about": {
     "copyright": "Copyright © Luo Ran 2017-{year}",
-    "copyrightContributors": "Made with <3 by Github Contributors"
+    "copyrightContributors": "Made with <3 by Github Contributors",
+    "basedOn": "Based on MarkText (MIT), Copyright © Luo Ran and MarkText Contributors",
+    "developer": "Developed by Md. Hafijur Rahman",
+    "github": "GitHub: https://github.com/Hafij-BGE/markd",
+    "license": "License: MIT",
+    "aiNote": "This app was generated with AI. Developer support may not be available."
   },
   "commands": {
     "mt": {

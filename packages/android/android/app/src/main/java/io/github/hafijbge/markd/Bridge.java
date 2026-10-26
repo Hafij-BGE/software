@@ -50,6 +50,8 @@ final class Bridge implements WebViewCompat.WebMessageListener {
     static final int REQ_GRANT_FOLDER = 104;
     static final int REQ_PICK_IMAGE = 105;
     static final int REQ_SAVE_FILE = 106;
+    static final int REQ_INKWELL = 107;
+
 
     private static final int RW = Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
 
@@ -141,6 +143,9 @@ final class Bridge implements WebViewCompat.WebMessageListener {
             case "grantFolderAccess": grantFolderAccess(call); break;
             case "saveAsset": background(call, () -> call.resolve(saveAsset(call.args))); break;
             case "pickImage": pickImage(call); break;
+            case "inkwellAvailable": call.resolve(true); break;
+            case "inkwellSketch": inkwellSketch(call); break;
+            case "openHome": activity.openHome(); call.resolve(true); break;
             case "printHtml": printHtml(call); break;
             case "setChrome": activity.setChrome(call.args.optString("top"), call.args.optString("bottom"), call.args.optBoolean("dark")); call.resolve(true); break;
             case "setCurrentDocument": activity.setCurrentDocument(Uri.parse(call.args.optString("uri"))); call.resolve(true); break;
@@ -266,6 +271,15 @@ final class Bridge implements WebViewCompat.WebMessageListener {
         startPicker(call, REQ_PICK_IMAGE, intent);
     }
 
+    private void inkwellSketch(Call call) {
+        // The Inkwell canvas is built in (android/inkwell); it answers with a content URI to an SVG.
+        Intent intent = new Intent(activity, com.hafij.inkwell.SketchActivity.class)
+            .putExtra(com.hafij.inkwell.SketchActivity.EXTRA_PAPER, call.args.optBoolean("paper", true));
+        String ink = call.args.optString("ink", "");
+        if (!ink.isEmpty()) intent.putExtra(com.hafij.inkwell.SketchActivity.EXTRA_INK, ink);
+        startPicker(call, REQ_INKWELL, intent);
+    }
+
     private void releaseFolder(Call call) {
         try {
             activity.getContentResolver().releasePersistableUriPermission(Uri.parse(call.args.getString("treeUri")), RW);
@@ -330,6 +344,10 @@ final class Bridge implements WebViewCompat.WebMessageListener {
                         .put("mime", mime == null ? "image/png" : mime)
                         .put("base64", Base64.encodeToString(bytes, Base64.NO_WRAP)));
                 });
+                break;
+            case REQ_INKWELL:
+                background(call, () -> call.resolve(new JSONObject()
+                    .put("svg", new String(store.readBytes(uri), StandardCharsets.UTF_8))));
                 break;
             default:
                 call.reject("CANCELLED", "Unexpected result");
