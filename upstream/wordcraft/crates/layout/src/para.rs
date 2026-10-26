@@ -812,13 +812,9 @@ const MISSING_ROMAN_FONT: &str = "Cambria";
 
 /// The family to look `font` up as: [`MISSING_ROMAN_FONT`] for a missing roman font, else `font`.
 /// A missing Thai font keeps its name: it is drawn in a Thai face, not in Cambria (#1549).
-<<<<<<< HEAD
-pub(crate) fn lookup_family<'f>(doc: &Document, font: &'f str) -> &'f str {
-=======
 /// A font with substitutes of its own keeps them: Times New Roman is roman in every font table,
 /// and where it isn't installed Liberation Serif has its metrics; Word never meets it missing.
-fn lookup_family<'f>(doc: &Document, font: &'f str) -> &'f str {
->>>>>>> 49c57ce635d9351d09cb35b5fca1b22a3087516d
+pub(crate) fn lookup_family<'f>(doc: &Document, font: &'f str) -> &'f str {
     let db = wordcraft_fonts::FontDb::global();
     let roman = doc.settings.roman_fonts.iter().any(|f| f.eq_ignore_ascii_case(font));
     if roman
@@ -2618,16 +2614,9 @@ fn break_lines(pl: &mut ParaLayout, env: &ParaEnv, mark_style: u32, level: Optio
                 *label_shift = shift;
             }
         }
-<<<<<<< HEAD
-        // Word also spreads a justified line that ends in a manual line break (Shift+Enter),
-        // unless the document's compatibility options turn that off.
-        let spread_end = end == LineEnd::Wrap || (end == LineEnd::LineBreak && !env.doc.settings.no_expand_shift_return);
-        let justify = display.is_none() && ((rp.align == Align::Justify && spread_end) || rp.align == Align::Distribute);
-=======
         // A line ending in a manual line break is stretched too, unless `doNotExpandShiftReturn` says not to.
         let stretch_end = end == LineEnd::Wrap || (end == LineEnd::LineBreak && expand_break);
         let justify = display.is_none() && ((rp.align == Align::Justify && stretch_end) || rp.align == Align::Distribute);
->>>>>>> 49c57ce635d9351d09cb35b5fca1b22a3087516d
         // A line that only fits with shrunk spaces is shrunk, the last line of the paragraph too.
         let shrink = display.is_none() && shrink_spaces && slack < 0.0 && last_tab.is_none();
         if shrink {

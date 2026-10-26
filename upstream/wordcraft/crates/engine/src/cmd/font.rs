@@ -66,7 +66,6 @@ fn read_font_file(path: &str) -> Result<Vec<u8>, CmdError> {
     crate::io::read_file_capped(path, wordcraft_fonts::MAX_FONT_FILE_BYTES as u64, "font file").map_err(CmdError::Failed)
 }
 
-<<<<<<< HEAD
 /// The families a folder or Windows import is limited to: `families`, else (for Windows) the
 /// document's missing fonts unless `all`; `None` adds everything.
 #[cfg(not(target_arch = "wasm32"))]
@@ -86,6 +85,7 @@ fn import_filter(s: &mut Session, v: &Value, windows: bool) -> Option<Vec<String
 fn add_from_dirs(s: &mut Session, dirs: &[std::path::PathBuf], only: Option<Vec<String>>) -> CmdResult {
     /// At most this many failures are listed.
     const MAX_ERRORS: usize = 20;
+    check_font_store(FontDb::global().user_font_dir().as_deref())?;
     let (mut added, mut skipped, mut errors) = (Vec::<String>::new(), 0usize, Vec::<String>::new());
     for path in wordcraft_fonts::font_files_under(dirs) {
         if let Some(only) = &only {
@@ -138,7 +138,8 @@ fn add_from_dirs(s: &mut Session, dirs: &[std::path::PathBuf], only: Option<Vec<
         "errors": errors,
         "searched": dirs.iter().map(|d| d.to_string_lossy().to_string()).collect::<Vec<_>>(),
     }))
-=======
+}
+
 /// Adding or removing a font writes to the user font folder: automation confined to a write root
 /// (#769) may do that only when the folder is inside it.
 fn check_font_store(dir: Option<&std::path::Path>) -> Result<(), CmdError> {
@@ -146,7 +147,6 @@ fn check_font_store(dir: Option<&std::path::Path>) -> Result<(), CmdError> {
         Some(dir) => crate::file_access::check_write(&dir.to_string_lossy()).map_err(CmdError::Failed),
         None => Ok(()),
     }
->>>>>>> 49c57ce635d9351d09cb35b5fca1b22a3087516d
 }
 
 fn add(s: &mut Session, v: &Value) -> CmdResult {

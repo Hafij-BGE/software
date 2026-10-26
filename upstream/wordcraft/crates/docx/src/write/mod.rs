@@ -1089,11 +1089,7 @@ fn settings_xml(doc: &Document, footnotes: bool, endnotes: bool, template_rel: O
     }
     w.open("w:compat", &[]);
     // CT_Compat: the older switches come before the `w:compatSetting`s.
-<<<<<<< HEAD
-    if doc.settings.no_expand_shift_return {
-=======
     if doc.settings.do_not_expand_shift_return {
->>>>>>> 49c57ce635d9351d09cb35b5fca1b22a3087516d
         w.empty("w:doNotExpandShiftReturn", &[]);
     }
     if doc.settings.sum_paragraph_spacing {

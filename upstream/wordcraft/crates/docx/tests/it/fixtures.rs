@@ -995,7 +995,7 @@ fn table_contextual_spacing_compatibility_flag_is_read() {
 
 #[test]
 fn do_not_expand_shift_return_is_read() {
-    assert!(!with_settings(None).settings.no_expand_shift_return);
+    assert!(!with_settings(None).settings.do_not_expand_shift_return);
     for (flag, expected) in [
         ("", false),
         (r#"<w:doNotExpandShiftReturn w:val="0"/>"#, false),
@@ -1003,7 +1003,7 @@ fn do_not_expand_shift_return_is_read() {
         (r#"<w:doNotExpandShiftReturn w:val="true"/>"#, true),
     ] {
         let settings = format!("<w:compat>{flag}</w:compat>");
-        assert_eq!(with_settings(Some(&settings)).settings.no_expand_shift_return, expected, "{flag}");
+        assert_eq!(with_settings(Some(&settings)).settings.do_not_expand_shift_return, expected, "{flag}");
     }
 }
 

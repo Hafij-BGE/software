@@ -5044,14 +5044,13 @@ fn justified_lines_shrink_spaces_in_word_2013_mode() {
     }
 }
 
-<<<<<<< HEAD
 /// Where each line's text (trailing spaces and breaks excluded) ends, for a justified paragraph
 /// whose first line ends in a manual line break.
 fn line_break_ends(no_expand: bool) -> Vec<f32> {
     let text = "To the Selection Committee, International Program\nGerman Research Center, Heidelberg";
     let mut d = Document::from_text("To the Selection Committee, International Program");
     d.insert_text(&Pos::body(0, 49), "\nGerman Research Center, Heidelberg", &Default::default()).unwrap();
-    d.settings.no_expand_shift_return = no_expand;
+    d.settings.do_not_expand_shift_return = no_expand;
     d.format_paragraphs(&Pos::body(0, 0), &Pos::body(0, 0), &|p| p.align = Some(Align::Justify)).unwrap();
     let l = lay(&d);
     let mut ends = Vec::new();
@@ -5095,7 +5094,8 @@ fn missing_fonts_lists_each_absent_family_once_with_its_substitute() {
     assert_eq!(ours.len(), 1, "{missing:?}");
     assert!(!ours[0].shown_with.is_empty() && ours[0].shown_with != "Nowhere Sans Zq");
     assert!(!missing.iter().any(|m| m.requested == wordcraft_fonts::FALLBACK_FAMILY), "{missing:?}");
-=======
+}
+
 /// Measured in Word for Mac (compatibility mode 15, justified paragraphs of one repeated word,
 /// the right indent leaving room for N words plus one more that fits only if the spaces shrink):
 /// the spaces give up at most a quarter of their width, and a word with the space before it may
@@ -5140,7 +5140,6 @@ fn justified_spaces_shrink_a_quarter_at_most_and_by_the_word() {
         // Left-aligned text never shrinks.
         assert_eq!(first(&para(&text, Align::Left, full - width(0.1))), n, "'{word}' left-aligned");
     }
->>>>>>> 49c57ce635d9351d09cb35b5fca1b22a3087516d
 }
 
 #[test]

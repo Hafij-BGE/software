@@ -1376,8 +1376,8 @@ fn rotated_drawing_canvas_round_trips() {
 fn do_not_expand_shift_return_round_trips() {
     for on in [false, true] {
         let mut d = Document::new();
-        d.settings.no_expand_shift_return = on;
-        assert_eq!(rt(&d).settings.no_expand_shift_return, on);
+        d.settings.do_not_expand_shift_return = on;
+        assert_eq!(rt(&d).settings.do_not_expand_shift_return, on);
     }
 }
 

@@ -288,17 +288,14 @@ fn open(s: &mut Session, v: &Value) -> CmdResult {
     if encrypted {
         s.password = password.map(crate::io::Password::new);
     }
-<<<<<<< HEAD
     // Text in a font that isn't installed is drawn with a substitute whose widths differ, so the
     // pages can break differently from Word's: say so, as the font name alone doesn't.
     let missing = super::font::missing_fonts_json(s);
     if let Some(n) = super::font::missing_fonts_notice(s) {
         s.status = n;
     }
-    Ok(json!({"path": path, "paragraphs": s.doc.paragraph_count(), "words": s.doc.word_count(), "encrypted": encrypted, "missingFonts": missing}))
-=======
     Ok(
-        json!({"path": path, "paragraphs": s.doc.paragraph_count(), "words": s.doc.word_count(), "encrypted": encrypted, "alreadyOpen": false, "id": s.document_id()}),
+        json!({"path": path, "paragraphs": s.doc.paragraph_count(), "words": s.doc.word_count(), "encrypted": encrypted, "alreadyOpen": false, "id": s.document_id(), "missingFonts": missing}),
     )
 }
 
@@ -317,7 +314,6 @@ fn close_document(s: &mut Session, v: &Value) -> CmdResult {
     }
     s.close_document(id)?;
     Ok(json!({"closed": id, "active": s.document_id(), "documents": s.documents()}))
->>>>>>> 49c57ce635d9351d09cb35b5fca1b22a3087516d
 }
 
 /// File › Info › Protect Document › Encrypt with Password: the password Word documents are saved

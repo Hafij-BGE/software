@@ -646,16 +646,6 @@ pub fn status_bar(app: &mut WordApp, ui: &mut Ui) {
                 if app.session.doc.settings.track_changes {
                     st(ui, tl!("Track Changes: On"));
                 }
-<<<<<<< HEAD
-                if let Some((msg, at)) = &app.status_msg
-                    && crate::now_ms() - at < 6000.0
-                {
-                    let font = TypeRung::Caption.regular();
-                    let track = TypeRung::Caption.tracking();
-                    paint_text(ui.painter(), pos2(ui.cursor().min.x, ui.cursor().min.y), Align2::LEFT_TOP, msg, &font, track, t.accent_text);
-                    ui.allocate_space(vec2(text_width(ui.painter(), msg, &font, track, t.accent_text) + 1.0, TypeRung::Caption.line_height()));
-                }
-=======
                 if app.session.prefs.overtype && st(ui, tl!("Overtype")).on_hover_text(tl!("Click to switch back to inserting")).clicked() {
                     let _ = app.run("text.overtype", json!({"value": false}));
                 }
@@ -665,7 +655,6 @@ pub fn status_bar(app: &mut WordApp, ui: &mut Ui) {
                 // Focus and view buttons.
                 let msg_at = ui.cursor().min;
                 let mut controls_left = f32::INFINITY;
->>>>>>> 49c57ce635d9351d09cb35b5fca1b22a3087516d
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
                     let reading = app.session.view.read_mode;

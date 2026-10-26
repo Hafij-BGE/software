@@ -1078,7 +1078,6 @@ pub(crate) mod tests {
         assert_eq!(unique_name("a.ttf", |n| n == "a.ttf" || n == "a-2.ttf"), "a-3.ttf");
     }
 
-<<<<<<< HEAD
     /// A dual-boot Windows partition mounted under a parent folder gives its Windows/Fonts and,
     /// per user, the user-installed and Microsoft 365 cloud font folders; other folders give none.
     #[test]
@@ -1097,7 +1096,6 @@ pub(crate) mod tests {
         assert_eq!(font_files_under(&dirs), vec![cloud.join("123.ttf")]);
         let _ = std::fs::remove_dir_all(&root);
     }
-=======
     #[cfg(unix)]
     #[test]
     fn a_link_planted_at_the_temporary_name_is_not_written_through() {
@@ -1143,5 +1141,4 @@ pub(crate) mod tests {
         }
         let _ = std::fs::remove_dir_all(&dir);
     }
->>>>>>> 49c57ce635d9351d09cb35b5fca1b22a3087516d
 }
