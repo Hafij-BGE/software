@@ -86,6 +86,7 @@ mkdir -p "$STAGE/templates"
 echo "$VERSION" >"$STAGE/VERSION"
 upstream_summary >"$STAGE/upstream.txt"
 cp "$ROOT/README.md" "$STAGE/README.md"
+cp "$ROOT/LICENSE-MIT" "$ROOT/LICENSE-APACHE" "$ROOT/THIRD_PARTY_NOTICES.md" "$STAGE/"
 for app in "${APPS[@]}"; do
   for f in LICENSE-MIT LICENSE-APACHE NOTICE ATTRIBUTION.md; do
     if [ -f "$ROOT/upstream/$app/$f" ]; then cp "$ROOT/upstream/$app/$f" "$STAGE/licences/$app-$f"; fi

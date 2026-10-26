@@ -2,7 +2,7 @@
 Type=Application
 Name=Slide
 GenericName=Presentation
-Comment=Make slides; open and save PowerPoint files (a new tab in Craft Suite)
+Comment=Make slides; open and save .pptx files (a new tab in Craft Suite)
 Exec=craft-suite --new deck
 TryExec=craft-suite
 Icon=craft-suite-slide

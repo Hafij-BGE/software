@@ -2,7 +2,7 @@
 Type=Application
 Name=Spreadsheet
 GenericName=Spreadsheet
-Comment=Work with spreadsheets; open and save Excel files (a new tab in Craft Suite)
+Comment=Work with spreadsheets; open and save .xlsx files (a new tab in Craft Suite)
 Exec=craft-suite --new grid
 TryExec=craft-suite
 Icon=craft-suite-sheet

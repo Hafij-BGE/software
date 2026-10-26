@@ -36,7 +36,7 @@ Craft Suite puts four apps in one window, each document in its own tab:
 
 Word, Slide and Spreadsheet are ArtCraft's [WordCraft](https://github.com/storytold/wordcraft),
 [DeckCraft](https://github.com/storytold/deckcraft) and [GridCraft](https://github.com/storytold/gridcraft):
-open-source Rust reimplementations of Word, PowerPoint and Excel. Markd is
+open-source Rust apps for word processing, presentations and spreadsheets (.docx, .pptx, .xlsx). Markd is
 [Markd](https://github.com/Hafij-BGE/markd), a Markdown editor based on MarkText. Created by
 **Md. Hafijur Rahman**.
 
@@ -411,4 +411,8 @@ pull request instead.
 The suite code (`suite/`, `packaging/`, `scripts/`, `assets/`) is MIT OR Apache-2.0, like the apps.
 WordCraft, DeckCraft and GridCraft are by the ArtCraft team; Markd is MIT
 (`upstream/markd/LICENSE`). Each app's licence and attribution files are in its `upstream/<app>/`
-folder and are installed to `/usr/share/doc/craft-suite/`.
+folder and are installed to `/usr/share/doc/craft-suite/`. The suite's own licence texts are
+[`LICENSE-MIT`](LICENSE-MIT) and [`LICENSE-APACHE`](LICENSE-APACHE); every bundled project, with its
+copyright and licence, is listed in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+
+This app was generated with AI. Developer support may not be available.

@@ -145,7 +145,7 @@ EOF
 # Licences: the suite's and each app's (MIT OR Apache-2.0), plus the fonts' when embedded.
 DOC="$STAGE/usr/share/doc/craft-suite"
 mkdir -p "$DOC"
-cp "$ROOT/README.md" "$DOC/"
+cp "$ROOT/README.md" "$ROOT/LICENSE-MIT" "$ROOT/LICENSE-APACHE" "$ROOT/THIRD_PARTY_NOTICES.md" "$DOC/"
 for app in "${APPS[@]}"; do
   for f in LICENSE-MIT LICENSE-APACHE NOTICE ATTRIBUTION.md; do
     if [ -f "$ROOT/upstream/$app/$f" ]; then cp "$ROOT/upstream/$app/$f" "$DOC/$app-$f"; fi
@@ -194,11 +194,11 @@ Conflicts: wordcraft, deckcraft, gridcraft
 Replaces: wordcraft, deckcraft, gridcraft
 Section: editors
 Priority: optional
-Homepage: https://github.com/storytold
+Homepage: https://github.com/Hafij-BGE/software
 Description: Word, Slide, Spreadsheet and Markd in one tabbed window
  Craft Suite puts four open-source apps in one window, one document per tab:
- Word (documents: .docx, .odt, .rtf), Slide (PowerPoint presentations:
- .pptx), Spreadsheet (Excel workbooks: .xlsx, .ods, .csv), built from ArtCraft's
+ Word (documents: .docx, .odt, .rtf), Slide (presentations:
+ .pptx), Spreadsheet (workbooks: .xlsx, .ods, .csv), built from ArtCraft's
  WordCraft, DeckCraft and GridCraft, and Markd (Markdown: .md, with HTML, PDF
  and Word export). Tabs of different apps
  can be mixed, grouped or kept in a row per app, along any edge of the window,

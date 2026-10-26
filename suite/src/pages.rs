@@ -885,7 +885,7 @@ fn settings_body(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette) {
 
     card(ui, pal, "About and updates", "", |ui| {
         ui.label(format!("Craft Suite {}", update::installed_version()));
-        ui.label(format!("Created by {}", crate::CREATOR));
+        ui.label(format!("Developed by {}", crate::CREATOR));
         ui.horizontal_wrapped(|ui| {
             ui.spacing_mut().item_spacing.x = 0.0;
             ui.label(format!("Source: {}: ", crate::SOURCE));
@@ -897,6 +897,13 @@ fn settings_body(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette) {
             ui.label(" (as Word, Slide and Spreadsheet); ");
             ui.hyperlink_to("Markd", "https://github.com/Hafij-BGE/markd");
         });
+        ui.horizontal_wrapped(|ui| {
+            ui.spacing_mut().item_spacing.x = 0.0;
+            ui.label("GitHub: ");
+            ui.hyperlink_to("github.com/Hafij-BGE/software", "https://github.com/Hafij-BGE/software");
+        });
+        ui.label("License: MIT OR Apache-2.0. Upstream copyrights: ArtCraft Team (WordCraft, DeckCraft, GridCraft); Luo Ran and MarkText Contributors (MarkText, the basis of Markd). See THIRD_PARTY_NOTICES.md.");
+        ui.label(RichText::new("This app was generated with AI. Developer support may not be available.").weak());
         ui.add_space(4.0);
         let upstream = update::upstream_summary();
         if !upstream.is_empty() {
