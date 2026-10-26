@@ -239,6 +239,16 @@ public class MainActivity extends Activity {
         currentDocument = uri;
         currentFolder = null;
         folderRequested = false;
+        // Shown in the home screen's Recent row.
+        if (uri != null && "content".equals(uri.getScheme())) {
+            com.hafij.inkwell.Recents.add(this, uri.toString(), store.displayName(uri));
+        }
+    }
+
+    /** Back to the home screen; it is normally just below this activity. */
+    void openHome() {
+        startActivity(new Intent(this, com.hafij.inkwell.HomeActivity.class)
+            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP));
     }
 
     void onFolderGranted() {

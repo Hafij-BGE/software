@@ -1,7 +1,7 @@
 {
   "name": "markd",
   "productName": "Markd",
-  "version": "0.23.1",
+  "version": "0.24.7",
   "description": "Markd - free markdown editor (fork of MarkText)",
   "main": "./out/main/index.js",
   "author": {

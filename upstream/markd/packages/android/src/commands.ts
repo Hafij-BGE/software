@@ -3,6 +3,7 @@
 import { currentMarkdown, getMuya, insertImageAtCursor, notifyChange, rememberCursor, setEditorOptions } from './editor'
 import { pickImage, storeImageBlob } from './document'
 import { openSketch } from './ink'
+import { drawInInkwell, inkwellAvailable } from './inkwell'
 import { callNative, isNative, type HostInfo } from './native'
 import { settings, updateSettings } from './settings'
 import { h, pushBack, showDialog, toast } from './ui'
@@ -55,6 +56,29 @@ export const insertPicture = guard(async() => {
 })
 
 export const insertSketch = guard(async() => {
+  rememberCursor()
+  getMuya().blur()
+  let blob: Blob | null = null
+  if (await inkwellAvailable()) {
+    try {
+      blob = await drawInInkwell()
+      if (!blob) return
+    } catch (err) {
+      toast(`Inkwell: ${(err as Error).message}. Using the built-in pad.`)
+    }
+  }
+  if (!blob) {
+    const result = await openSketch()
+    if (!result) return
+    blob = result.blob
+  }
+  const src = await storeImageBlob(blob, 'sketch')
+  insertImageAtCursor(src, 'Sketch')
+  toast('Sketch inserted')
+})
+
+/** The simple built-in pad (Draw → Quick sketch). */
+export const insertQuickSketch = guard(async() => {
   rememberCursor()
   getMuya().blur()
   const result = await openSketch()
@@ -197,6 +221,25 @@ export const showHandwritingHelp = async(): Promise<void> => {
         h('li', {}, 'This needs a keyboard with stylus support (Gboard, Samsung Keyboard) and "Stylus handwriting" turned on in Android settings.'),
         h('li', {}, 'Sketch (Draw tab): pressure-sensitive ink. Tilt the pen for broader strokes, hover to preview the tip, and use the eraser end or the side button to erase strokes. Your palm is ignored while the pen is in use.')
       )
+    ),
+    dismissValue: null,
+    buttons: [{ label: 'OK', value: null, primary: true }]
+  })
+}
+
+export const showAbout = async(): Promise<void> => {
+  let version = ''
+  if (isNative()) {
+    version = (await callNative<HostInfo>('getInfo')).version
+  }
+  await showDialog({
+    title: 'About Markd',
+    body: h('div', { class: 'help' },
+      h('p', {}, version ? `Markd ${version}` : 'Markd'),
+      h('p', {}, 'Developed by Md. Hafijur Rahman'),
+      h('p', {}, 'GitHub: https://github.com/Hafij-BGE/markd'),
+      h('p', {}, 'License: MIT. Based on MarkText, Copyright © Luo Ran and GitHub contributors.'),
+      h('p', {}, 'This app was generated with AI. Developer support may not be available.')
     ),
     dismissValue: null,
     buttons: [{ label: 'OK', value: null, primary: true }]

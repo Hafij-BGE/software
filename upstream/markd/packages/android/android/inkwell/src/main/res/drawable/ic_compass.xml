@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lucide icon (ISC licence), as shipped with Xournal++. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="5.821" android:viewportHeight="5.821"
+    android:tint="?android:attr/colorControlNormal">
+    <path android:pathData="M 1.7767983 1.0343886 2.3611429 2.0465031"
+        android:fillColor="#FFFFFFFF"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="0.419112"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="miter" />
+    <path android:pathData="M 2.3611429 3.9121953 1.7767983 4.9243099"
+        android:fillColor="#FFFFFFFF"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="0.419112"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="miter" />
+    <path android:pathData="M 2.8699475 2.9708972 H 5.1602497"
+        android:fillColor="#FFFFFFFF"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="0.518076"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="miter" />
+    <path android:pathData="M 2.9161026 2.9708972 m -2.4543347 0 a 2.4543347 2.4543347 0 1 0 4.9086694 0 a 2.4543347 2.4543347 0 1 0 -4.9086694 0"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="0.50510405"
+        android:strokeLineCap="butt"
+        android:strokeLineJoin="miter" />
+</vector>

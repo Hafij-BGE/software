@@ -3,7 +3,7 @@ plugins {
 }
 
 // CI passes -PmarkdVersion=1.2.3 from the release tag.
-def markdVersion = (project.findProperty('markdVersion') ?: '0.23.1').toString()
+def markdVersion = (project.findProperty('markdVersion') ?: '0.24.7').toString()
 def versionParts = markdVersion.replaceAll(/[-+].*$/, '').tokenize('.').collect { it.isInteger() ? it.toInteger() : 0 }
 while (versionParts.size() < 3) versionParts << 0
 def markdVersionCode = versionParts[0] * 10000 + versionParts[1] * 100 + versionParts[2]
@@ -11,6 +11,10 @@ def markdVersionCode = versionParts[0] * 10000 + versionParts[1] * 100 + version
 // Optional release signing from environment variables; without them the
 // release APK is left unsigned (use the debug APK for side-loading).
 def keystorePath = System.getenv('MARKD_KEYSTORE')
+// The debug APK is what releases ship for side-loading. Signing it with one fixed key
+// (CI passes it from the MARKD_DEBUG_KEYSTORE_B64 secret) lets every release update the
+// last one; without it each CI runner would make a new random debug key.
+def debugKeystorePath = System.getenv('MARKD_DEBUG_KEYSTORE')
 
 android {
     namespace 'io.github.hafijbge.markd'
@@ -25,6 +29,14 @@ android {
     }
 
     signingConfigs {
+        if (debugKeystorePath) {
+            debug {
+                storeFile file(debugKeystorePath)
+                storePassword System.getenv('MARKD_DEBUG_KEYSTORE_PASSWORD') ?: 'android'
+                keyAlias System.getenv('MARKD_DEBUG_KEY_ALIAS') ?: 'androiddebugkey'
+                keyPassword System.getenv('MARKD_DEBUG_KEY_PASSWORD') ?: 'android'
+            }
+        }
         if (keystorePath) {
             release {
                 storeFile file(keystorePath)
@@ -69,6 +81,7 @@ android {
 
 dependencies {
     implementation 'androidx.webkit:webkit:1.12.1'
+    implementation project(':inkwell')
 }
 
 // The web bundle must exist before packaging: `pnpm build:web` writes it.

@@ -170,6 +170,7 @@ jobs:
       - name: Build APK
         working-directory: packages/android/android
         env:
+          MARKD_DEBUG_KEYSTORE_B64: ${{ secrets.MARKD_DEBUG_KEYSTORE_B64 }}
           MARKD_KEYSTORE_B64: ${{ secrets.MARKD_KEYSTORE_B64 }}
           MARKD_KEYSTORE_PASSWORD: ${{ secrets.MARKD_KEYSTORE_PASSWORD }}
           MARKD_KEY_ALIAS: ${{ secrets.MARKD_KEY_ALIAS }}
@@ -178,6 +179,13 @@ jobs:
           # The runner image ships the Android SDK and JDK 17 (not the default JDK).
           export JAVA_HOME="$JAVA_HOME_17_X64"
           version="${GITHUB_REF_NAME#v}"
+          # One fixed debug key, so each release's APK updates the previous one.
+          if [[ -n "$MARKD_DEBUG_KEYSTORE_B64" ]]; then
+            echo "$MARKD_DEBUG_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/markd-debug.keystore"
+            export MARKD_DEBUG_KEYSTORE="$RUNNER_TEMP/markd-debug.keystore"
+          else
+            echo "::warning::MARKD_DEBUG_KEYSTORE_B64 is not set; the APK gets a random debug key and cannot update earlier installs."
+          fi
           ./gradlew assembleDebug --no-daemon -PmarkdVersion="$version"
           if [[ -n "$MARKD_KEYSTORE_B64" ]]; then
             echo "$MARKD_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/markd.keystore"

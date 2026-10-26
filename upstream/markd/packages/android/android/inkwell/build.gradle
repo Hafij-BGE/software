@@ -1,0 +1,23 @@
+plugins {
+    id 'com.android.library'
+}
+
+// Inkwell: handwritten notes, PDF annotation and the Sketch canvas, built into Markd.
+android {
+    namespace 'com.hafij.inkwell'
+    compileSdk 35
+
+    defaultConfig {
+        minSdk 26
+        consumerProguardFiles 'consumer-rules.pro'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.tom-roush:pdfbox-android:2.0.27.0'
+}
