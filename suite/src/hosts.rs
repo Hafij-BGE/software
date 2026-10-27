@@ -248,7 +248,8 @@ impl Doc {
                     d.wb = before.0;
                     return Ok(0);
                 }
-                d.undo.push(gridcraft_engine::HistoryEntry { label: "Replace Fonts".into(), wb: before.0, selection: before.1 });
+                // The engine sizes its own steps; this one is left out of the undo byte budget.
+                d.undo.push(gridcraft_engine::HistoryEntry { label: "Replace Fonts".into(), wb: before.0, selection: before.1, retained_bytes: 0 });
                 d.redo.clear();
                 d.revision += 1;
                 Ok(n)
@@ -352,11 +353,11 @@ impl Doc {
         }
     }
 
-    pub fn raw_input_hook(&mut self, raw: &mut egui::RawInput) {
+    pub fn raw_input_hook(&mut self, ctx: &egui::Context, raw: &mut egui::RawInput) {
         match self {
-            Doc::Word(t) => t.app.raw_input_hook(raw),
-            Doc::Deck(t) => t.app.raw_input_hook(raw),
-            Doc::Grid(t) => t.app.raw_input_hook(raw),
+            Doc::Word(t) => t.app.raw_input_hook(ctx, raw),
+            Doc::Deck(t) => t.app.raw_input_hook(ctx, raw),
+            Doc::Grid(t) => t.app.raw_input_hook(ctx, raw),
             #[cfg(feature = "markd")]
             Doc::Mark(t) => {
                 // A click on the window outside the page takes the keyboard back from it.
