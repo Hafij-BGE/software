@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = 'Markd'
-include ':app'
+include ':app', ':inkwell'

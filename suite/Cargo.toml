@@ -23,8 +23,8 @@ deckcraft-fonts = { path = "../upstream/deckcraft/crates/fonts" }
 gridcraft-engine = { path = "../upstream/gridcraft/crates/engine" }
 gridcraft-ui-egui = { path = "../upstream/gridcraft/crates/ui-egui" }
 
-eframe = { version = "0.36", default-features = false, features = ["default_fonts", "wgpu", "accesskit", "links", "wayland", "x11"] }
-egui = "0.36"
+eframe = { version = "0.37", default-features = false, features = ["default_fonts", "wgpu", "accesskit", "links", "wayland", "x11"] }
+egui = "0.37"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 log = "0.4"
@@ -36,7 +36,7 @@ rfd = "0.17"
 arboard = { version = "3.6", default-features = false, features = ["image-data", "wayland-data-control"] }
 pollster = "0.4"
 cpal = "0.16"
-craft-print = { git = "https://github.com/storytold/craft-libs", rev = "d27646a5f7c8b4fc85d9dd3213b8c88b58e0088d" }
+craft-print = { git = "https://github.com/storytold/craft-libs", rev = "b926b5c03e256c86ca10934f58d03f628810b5b7" }
 
 # Ask AI (src/ai): HTTPS to the AI providers and the system keyring for their keys. Only with the
 # `ai` feature (on by default); `--no-default-features` builds the suite without any of it.

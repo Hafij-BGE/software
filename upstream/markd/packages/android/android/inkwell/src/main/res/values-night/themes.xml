@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="InkwellTheme" parent="android:Theme.Material.NoActionBar">
+        <item name="android:colorAccent">#8AB4F8</item>
+        <item name="android:colorPrimary">#8AB4F8</item>
+        <item name="android:colorBackground">#18191B</item>
+        <item name="android:windowBackground">#18191B</item>
+        <item name="android:statusBarColor">#18191B</item>
+        <item name="android:navigationBarColor">#18191B</item>
+    </style>
+</resources>

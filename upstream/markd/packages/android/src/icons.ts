@@ -33,6 +33,7 @@ export const ICONS = {
   math: (s = 20) => svg('<path d="M18 4H6l6 8-6 8h12"/>', s),
   html: (s = 20) => svg('<path d="m7 8-4 4 4 4"/><path d="m17 8 4 4-4 4"/><path d="m14 4-4 16"/>', s),
   frontMatter: (s = 20) => svg(`${page}<path d="M8 13h8M8 17h5"/>`, s),
+  info: (s = 28) => svg('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/>', s),
   find: (s = 20) => svg('<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>', s),
   replace: (s = 20) => svg('<path d="M4 7h11l-3-3"/><path d="M20 17H9l3 3"/>', s),
   selectAll: (s = 20) => svg('<path d="M5 3a2 2 0 0 0-2 2M19 3a2 2 0 0 1 2 2M21 19a2 2 0 0 1-2 2M5 21a2 2 0 0 1-2-2M9 3h1M9 21h1M14 3h1M14 21h1M3 9v1M21 9v1M3 14v1M21 14v1"/><rect x="7" y="7" width="10" height="10" rx="1"/>', s),

@@ -7,7 +7,8 @@
 **Write in Markdown. Work like it's Word.**
 
 A free, open-source Markdown editor with a Word-style ribbon, real A4 pages
-and one-click Word / PDF export, for Linux, Windows and Android.
+and one-click Word / PDF export, for Linux, Windows and Android. On Android it
+also takes handwritten notes and annotates PDFs.
 
 [![Latest release](https://img.shields.io/github/v/release/Hafij-BGE/markd?style=flat-square&color=2563eb)](https://github.com/Hafij-BGE/markd/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/Hafij-BGE/markd/total?style=flat-square&color=7c3aed)](https://github.com/Hafij-BGE/markd/releases)
@@ -98,19 +99,56 @@ Export uses the theme and page layout you are editing with, so there is no optio
 
 ## Android
 
-Markd also runs on Android phones and tablets (Android 8.0 or newer). It has the same Word-style ribbon, Word Light/Dark themes, A4/Letter/Legal page view, and HTML, PDF and Word export.
+Markd runs on Android phones and tablets (Android 8.0 or newer). The Markdown
+editor has the same Word-style ribbon, Word Light/Dark themes, A4/Letter/Legal
+page view, and HTML, PDF and Word export. Around it, the Android app adds:
 
-**Built for the stylus:**
+**One home for all your files.** Markd opens to a grid of a folder you pick
+once, such as `Documents/Markd`, with previews of your Markdown files, drawings
+and PDFs, a *Recent* row, folders, search, sort and pins. The **+** button
+starts a Markdown file, a drawing or a PDF annotation, or imports a file. Each
+opens in its own editor, and *Back* brings you home. Everything stays an
+ordinary file in that folder, so file managers, your computer and sync apps can
+see it, and it survives uninstalling the app.
+
+**Drawing and PDF annotation**, modelled on [Xournal++](https://xournalpp.github.io/):
+
+- Pen with pressure, five widths and dashed/dotted lines, a highlighter, an
+  eraser, text, images, shapes with a shape recogniser, and lasso or rectangle
+  selection to move, resize, copy or recolour.
+- **Opacity** for the pen, the highlighter and fills: tap the `%` button in the
+  toolbar.
+- Pages, layers, undo/redo, pinch zoom, and *draw with stylus only* so fingers
+  scroll.
+- Drawings are `.ink` files in the Xournal++ file format: rename one to `.xopp`
+  to open it in desktop Xournal++, and desktop `.xopp` files open in Markd.
+- **Your PDFs are never copied or changed.** An annotation is a small `.ink`
+  file that remembers where the PDF is, so it is found again even after
+  reinstalling the app (allow *All files access* when asked) unless the PDF
+  was moved. A PDF can have several annotations; tapping it lets you pick
+  one, delete one or start another.
+- *Export PDF to folder* saves a copy with your ink drawn in. The original
+  pages stay sharp and their text stays selectable.
+
+**Built for the stylus in the editor:**
 
 - **Pen to text** (Android 14+): write on the page and your handwriting becomes text.
-- **Sketch pad** with pressure-sensitive ink, a highlighter and an eraser. Your drawing is saved as an image next to the `.md` file.
+- **Sketch** opens the drawing canvas and inserts the result as an image you can
+  reopen with *Edit in Inkwell*. *Quick sketch* is the simple pad.
 - **Palm rejection** while the pen is in use, plus pen eraser and side-button support.
 
 **Install:**
 
 1. Download `Markd-<version>-android-debug.apk` from [Releases](https://github.com/Hafij-BGE/markd/releases/latest) on the device.
 2. Open it and allow *Install unknown apps* for your browser or file manager when Android asks.
-3. Open Markd, then open a `.md` file from the **File** tab, or add a folder of notes with **☰ → Open folder**.
+3. Open Markd, tap **Choose folder** and pick or create a folder for your files (for example `Documents/Markd`).
+
+From 0.24.4 every release APK is signed with the same key, so a new version
+installs over the old one and keeps your settings. APKs from 0.24.3 and earlier
+releases were each signed with a different key: if Android says "package
+conflicts with an existing package", uninstall Markd once and install the new
+APK. Your files in the chosen folder are not affected; pick the same folder
+again on first launch.
 
 ## Build from source
 
@@ -155,14 +193,22 @@ pnpm test:e2e
 | `packages/desktop` | Electron + Vue 3 desktop app (ribbon, themes, export) |
 | `packages/muya` | `@muyajs/core`, the WYSIWYG Markdown engine |
 | `packages/android` | Android app: a WebView shell around `@muyajs/core` |
+| `packages/android/android/inkwell` | Android home screen, drawing and PDF annotation (Java, PdfBox-Android) |
 | `scripts/` | Workspace scripts, including `generate-icon.py` for the app icon |
 
 ### Releasing
 
-Push a tag such as `v0.23.2`. The [release workflow](.github/workflows/release.yml) builds Linux (x64, arm64), Windows (x64) and Android, then publishes a GitHub release with checksums.
+Bump the version in `packages/desktop/package.json`, `packages/android/package.json`
+and `packages/android/android/app/build.gradle`, then push a tag such as `v0.24.3`. The [release workflow](.github/workflows/release.yml) builds Linux (x64, arm64), Windows (x64) and Android, then publishes a GitHub release with checksums.
 
 ## Credits
 
 Markd is a fork of [MarkText](https://github.com/marktext/marktext) by Luo Ran (Jocs) and the MarkText contributors. The editing engine and most of the app come from their work, so please consider supporting the [MarkText project](https://github.com/marktext/marktext).
+
+The Android drawing and PDF-annotation tools are modelled on
+[Xournal++](https://github.com/xournalpp/xournalpp) and use its file format;
+no Xournal++ code is included. Their icons are [Lucide](https://lucide.dev)
+icons (ISC License), as shipped with Xournal++, and PDFs are read and written
+with [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android) (Apache 2.0).
 
 Markd keeps MarkText's [MIT License](LICENSE). Third-party licenses are listed in [packages/desktop/build/THIRD-PARTY-LICENSES.txt](packages/desktop/build/THIRD-PARTY-LICENSES.txt).

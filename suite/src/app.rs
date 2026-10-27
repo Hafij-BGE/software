@@ -923,7 +923,7 @@ impl SuiteApp {
 }
 
 impl eframe::App for SuiteApp {
-    fn raw_input_hook(&mut self, _ctx: &egui::Context, raw: &mut egui::RawInput) {
+    fn raw_input_hook(&mut self, ctx: &egui::Context, raw: &mut egui::RawInput) {
         // The window's close button: the suite decides (unsaved tabs), not the app on show.
         if let Some(info) = raw.viewports.get_mut(&egui::ViewportId::ROOT)
             && !self.allow_close
@@ -950,7 +950,7 @@ impl eframe::App for SuiteApp {
         if self.shown == Some(self.active)
             && let Some(Tab { content: Content::Doc(doc), .. }) = self.tabs.iter_mut().find(|t| t.id == self.active)
         {
-            doc.raw_input_hook(raw);
+            doc.raw_input_hook(ctx, raw);
         }
     }
 

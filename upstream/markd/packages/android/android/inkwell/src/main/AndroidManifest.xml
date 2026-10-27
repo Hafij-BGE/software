@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Open a note's linked PDF by its path (e.g. after reinstalling); asked for only when needed. -->
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <application>
+        <!-- Markd's home screen: all Markdown files, drawings and annotated PDFs. -->
+        <activity
+            android:name="com.hafij.inkwell.HomeActivity"
+            android:exported="true"
+            android:label="Markd"
+            android:theme="@style/InkwellTheme"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter android:label="Annotate in Markd">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/pdf" />
+            </intent-filter>
+            <intent-filter android:label="Open in Markd">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/x-xopp" />
+            </intent-filter>
+            <intent-filter android:label="Annotate in Markd">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name="com.hafij.inkwell.EditorActivity"
+            android:exported="false"
+            android:theme="@style/InkwellTheme"
+            android:windowSoftInputMode="adjustNothing"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|keyboard|navigation|uiMode" />
+
+        <!-- Sketch canvas for Markd's editor; returns an SVG with the note embedded. -->
+        <activity
+            android:name="com.hafij.inkwell.SketchActivity"
+            android:exported="false"
+            android:theme="@style/InkwellTheme"
+            android:windowSoftInputMode="adjustNothing"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|keyboard|navigation|uiMode" />
+
+        <provider
+            android:name="com.hafij.inkwell.ShareProvider"
+            android:authorities="${applicationId}.inkwell.share"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+    </application>
+</manifest>

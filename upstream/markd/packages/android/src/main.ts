@@ -22,6 +22,7 @@ import { callNative, isNative, onNativeEvent } from './native'
 import { applyEdit, snapshot } from './assist'
 import { initKeys } from './keys'
 import { initPenStatus } from './pen'
+import { initInkwellEditing } from './inkwell'
 import { initRibbon, refreshRibbon } from './ribbon'
 import { onSettingsChange, settings, updateSettings } from './settings'
 import { applyZoom, currentZoom, getPageDimensions, initTheme, MM_TO_PX } from './theme'
@@ -118,6 +119,7 @@ const boot = async(): Promise<void> => {
   initPenStatus()
   initKeys()
   initZoom()
+  initInkwellEditing()
   wireNativeEvents()
   onDocChange(() => {
     updateTitle()

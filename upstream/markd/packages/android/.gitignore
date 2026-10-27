@@ -7,3 +7,4 @@ android/local.properties
 android/.idea/
 *.apk
 *.keystore
+android/inkwell/build/
