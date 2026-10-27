@@ -23,8 +23,8 @@ deckcraft-fonts = { path = "../upstream/deckcraft/crates/fonts" }
 gridcraft-engine = { path = "../upstream/gridcraft/crates/engine" }
 gridcraft-ui-egui = { path = "../upstream/gridcraft/crates/ui-egui" }
 
-eframe = { version = "0.36", default-features = false, features = ["default_fonts", "wgpu", "accesskit", "links", "wayland", "x11"] }
-egui = "0.36"
+eframe = { version = "0.37", default-features = false, features = ["default_fonts", "wgpu", "accesskit", "links", "wayland", "x11"] }
+egui = "0.37"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 log = "0.4"
