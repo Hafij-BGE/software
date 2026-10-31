@@ -1,0 +1,13 @@
+[package]
+name = "craft-font-files"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Maps the craft-fonts files shared under /usr/share/craft-suite/fonts instead of embedding them"
+
+[dependencies]
+log = "0.4"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+memmap2 = "0.9"

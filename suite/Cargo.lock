@@ -1121,6 +1121,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "craft-font-files"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "memmap2",
+]
+
+[[package]]
 name = "craft-fonts-build"
 version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=b926b5c03e256c86ca10934f58d03f628810b5b7#b926b5c03e256c86ca10934f58d03f628810b5b7"
@@ -1504,6 +1512,7 @@ dependencies = [
 name = "deckcraft-fonts"
 version = "0.11.1"
 dependencies = [
+ "craft-font-files",
  "epaint_default_fonts",
  "harfrust 0.13.3",
  "kurbo",
@@ -2907,6 +2916,7 @@ version = "0.12.1"
 name = "gridcraft-ui-egui"
 version = "0.12.1"
 dependencies = [
+ "craft-font-files",
  "craft-ui",
  "craft-update 0.1.0 (git+https://github.com/storytold/craft-libs?rev=b926b5c03e256c86ca10934f58d03f628810b5b7)",
  "craft-window",
@@ -8397,6 +8407,7 @@ name = "wordcraft-fonts"
 version = "0.11.0"
 dependencies = [
  "brotli-decompressor",
+ "craft-font-files",
  "harfrust 0.13.3",
  "kurbo",
  "log",

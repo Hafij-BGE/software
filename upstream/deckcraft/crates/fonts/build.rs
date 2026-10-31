@@ -12,6 +12,9 @@
 use std::fmt::Write as _;
 use std::path::PathBuf;
 
+#[path = "../../../../crates/font-files/build_hook.rs"]
+mod shared_fonts;
+
 /// Families DeckCraft never embeds (AGENTS.md §1: no Adobe-authored visual design, and no Noto
 /// CJK rebrand of Source Han on any platform).
 const EXCLUDED_FAMILIES: &[&str] = &["Source Sans 3", "Source Serif 4", "Source Han Sans", "Source Han Serif"];
@@ -58,6 +61,7 @@ fn main() {
         Err(e) => println!("cargo::warning=building without craft-fonts: {e}"),
     }
     src.push_str("];\n");
+    let src = shared_fonts::rewrite(src);
     let out = PathBuf::from(std::env::var_os("OUT_DIR").unwrap_or_default()).join("craft_fonts.rs");
     if let Err(e) = std::fs::write(&out, src) {
         println!("cargo::error=writing {}: {e}", out.display());

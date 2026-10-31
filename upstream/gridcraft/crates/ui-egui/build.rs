@@ -14,6 +14,8 @@ use serde_json::Value;
 
 #[path = "src/craft_fonts_policy.rs"]
 mod craft_fonts_policy;
+#[path = "../../../../crates/font-files/build_hook.rs"]
+mod shared_fonts;
 
 /// Build script: reads the contributor JSON/TOML and writes generated `credits.rs`, then emits `craft_fonts.rs`; missing or malformed optional inputs warn, while required mode reports build errors.
 fn main() {
@@ -69,6 +71,7 @@ fn emit_craft_fonts() {
         None => {}
     }
     src.push_str("];\n");
+    let src = shared_fonts::rewrite(src);
     let out = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap_or_default()).join("craft_fonts.rs");
     if let Err(e) = std::fs::write(&out, src) {
         println!("cargo::error=writing {}: {e}", out.display());
