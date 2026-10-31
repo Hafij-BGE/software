@@ -124,13 +124,7 @@ fn create(tab: Arc<Shared>, parent: u64, rect: PxRect) -> Result<(), String> {
             })
             .with_devtools(cfg!(debug_assertions))
             .with_bounds(bounds(rect))
-            .with_asynchronous_custom_protocol("markd".into(), |view, request, responder| {
-                let (status, mime, body) = super::serve(view, &request.uri().to_string());
-                match wry::http::Response::builder().status(status).header(wry::http::header::CONTENT_TYPE, mime).body(body) {
-                    Ok(r) => responder.respond(r),
-                    Err(e) => log::warn!("markd page: {e}"),
-                }
-            })
+            .with_asynchronous_custom_protocol("markd".into(), |view, request, responder| super::respond(view, &request, responder))
             .with_url("https://markd.app/index.html")
             .build_as_child(&Parent(parent))
             .map_err(|e| e.to_string())

@@ -35,6 +35,7 @@ API="${CRAFT_SUITE_UPDATE_API:-https://api.github.com}"
 die() { echo "craft-suite-update: $*" >&2; exit 1; }
 
 [ -n "$URL" ] || die "no update URL configured (/etc/craft-suite/update.conf)"
+case "$URL" in https://*) ;; *) die "the update URL must be https:// ($URL)" ;; esac
 command -v curl >/dev/null 2>&1 || die "curl is needed to check for updates (sudo apt install curl)"
 
 mode=interactive
@@ -85,9 +86,9 @@ for a in json.load(open(sys.argv[1])).get("assets", []):
         break
 ' "$tmp/release.json" "$1")"
     [ -n "$id" ] || return 1
-    curl -fsSL -H @"$tmp/auth" -H "Accept: application/octet-stream" -o "$2" "$API/repos/$REPO/releases/assets/$id"
+    curl -fsSL --proto =https --proto-redir =https -H @"$tmp/auth" -H "Accept: application/octet-stream" -o "$2" "$API/repos/$REPO/releases/assets/$id"
   else
-    curl -fsSL --retry 2 -o "$2" "$URL/$1"
+    curl -fsSL --proto =https --proto-redir =https --retry 2 -o "$2" "$URL/$1"
   fi
 }
 
@@ -104,6 +105,11 @@ line="$(awk -v a="$arch" '$1 == a { print; exit }' "$tmp/latest.txt")"
 latest="$(echo "$line" | awk '{ print $2 }')"
 file="$(echo "$line" | awk '{ print $3 }')"
 sum="$(echo "$line" | awk '{ print $4 }')"
+# What latest.txt names is used as a file name and handed to apt: only a plain .deb name, and
+# never without its checksum.
+echo "$file" | grep -Eq '^craft-suite_[A-Za-z0-9.+~-]+_[a-z0-9]+\.deb$' || die "latest.txt names an odd file ($file); not using it"
+echo "$sum" | grep -Eq '^[0-9a-f]{64}$' || die "latest.txt has no SHA-256 checksum for $file; not using it"
+dpkg --validate-version "$latest" 2>/dev/null || die "latest.txt has an odd version ($latest)"
 
 newer=0
 if dpkg --compare-versions "$latest" gt "$current"; then newer=1; fi
@@ -127,9 +133,7 @@ fi
 
 deb="$tmp/$file"
 fetch "$file" "$deb" || die "download of $file failed"
-if [ -n "$sum" ]; then
-  echo "$sum  $deb" | sha256sum -c --status - || die "$file does not match its checksum; not installing it"
-fi
+echo "$sum  $deb" | sha256sum -c --status - || die "$file does not match its checksum; not installing it"
 # apt reads the file as its own unprivileged user; the token file stays private.
 chmod 0755 "$tmp"
 chmod 0644 "$deb"

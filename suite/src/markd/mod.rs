@@ -22,8 +22,9 @@ mod host;
 #[path = "win_host.rs"]
 mod host;
 
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::collections::{HashMap, HashSet};
+use std::io::Read;
+use std::path::{Component, Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 
 use crate::app::Action;
@@ -45,6 +46,9 @@ pub struct State {
     pub dirty: bool,
     /// The file the page has open (`setCurrentDocument`); relative images load from its folder.
     pub path: Option<PathBuf>,
+    /// Files the user chose (a dialog, the file the tab opened with): the page may read and write
+    /// these whatever they are, and other files only when they look like Markdown (`bridge`).
+    pub granted: HashSet<PathBuf>,
     /// The file the tab opens with, handed over once (`getLaunchDocument`).
     pub launch: Option<PathBuf>,
     /// The page answered the suite's `close` event: true when the document may close.
@@ -198,6 +202,49 @@ fn percent_decode(s: &str) -> String {
     String::from_utf8_lossy(&out).into_owned()
 }
 
+/// The largest file the page server reads into memory (a video beside the document, say).
+const SERVE_LIMIT: u64 = 512 << 20;
+
+/// The page's content security policy: its own scripts only, so script written into a document
+/// never runs (`'unsafe-eval'` is for Vega's expressions); inline styles for the diagrams; and
+/// pictures, media and data from anywhere, as documents link them.
+const CSP: &str = "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; \
+    img-src * data: blob:; media-src * data: blob:; font-src 'self' data:; connect-src * data: blob:; \
+    worker-src 'self' blob:; frame-src 'self' about: data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'";
+
+fn read_limited(file: &Path) -> Option<Vec<u8>> {
+    let meta = std::fs::metadata(file).ok()?;
+    if !meta.is_file() || meta.len() > SERVE_LIMIT {
+        return None;
+    }
+    std::fs::read(file).ok()
+}
+
+/// One of the page's own files under `root`, and its name. The text files are installed gzipped
+/// (packaging/build-markd-web.sh) and unpacked here.
+fn web_file(root: &Path, relative: &str) -> Option<(PathBuf, Vec<u8>)> {
+    let inside = |p: PathBuf| p.canonicalize().ok().filter(|p| p.starts_with(root));
+    if let Some(file) = inside(root.join(relative)) {
+        let bytes = read_limited(&file)?;
+        return Some((file, bytes));
+    }
+    let gz = inside(root.join(format!("{relative}.gz")))?;
+    let mut bytes = Vec::new();
+    flate2::read::GzDecoder::new(std::fs::File::open(&gz).ok()?).take(SERVE_LIMIT).read_to_end(&mut bytes).ok()?;
+    Some((gz.with_extension(""), bytes))
+}
+
+/// The picture `relative` beside a document in `folder`: a path down from the folder (no `..`,
+/// no absolute path, no link out of it) to a picture or media file.
+fn doc_file(folder: &Path, relative: &str) -> Option<PathBuf> {
+    if relative.is_empty() || Path::new(relative).components().any(|c| !matches!(c, Component::Normal(_))) {
+        return None;
+    }
+    let folder = folder.canonicalize().ok()?;
+    let file = folder.join(relative).canonicalize().ok()?;
+    (file.starts_with(&folder) && is_media(&file)).then_some(file)
+}
+
 /// Answers the page's requests: its own files, and pictures beside the open document.
 fn serve(view: &str, uri: &str) -> (u16, &'static str, Vec<u8>) {
     let not_found = (404, "text/plain", b"not found".to_vec());
@@ -208,26 +255,37 @@ fn serve(view: &str, uri: &str) -> (u16, &'static str, Vec<u8>) {
     if let Some(rest) = path.strip_prefix("doc/") {
         let Some(tab) = tab_by_view_id(view) else { return not_found };
         let Some(folder) = tab.lock().path.as_ref().and_then(|p| p.parent().map(Path::to_path_buf)) else { return not_found };
-        let Some((_token, relative)) = rest.split_once('/') else { return not_found };
-        let file = folder.join(relative);
-        if !is_media(&file) {
-            return (403, "text/plain", b"not a picture".to_vec());
-        }
-        return match std::fs::read(&file) {
-            Ok(bytes) => (200, mime_of(&file), bytes),
-            Err(_) => not_found,
+        // `<cache-buster>/<path>`: the page picks the first part to reload changed pictures.
+        let Some((_, relative)) = rest.split_once('/') else { return not_found };
+        let Some(file) = doc_file(&folder, relative) else { return (403, "text/plain", b"not a picture beside the document".to_vec()) };
+        return match read_limited(&file) {
+            Some(bytes) => (200, mime_of(&file), bytes),
+            None => not_found,
         };
     }
     let Some(root) = web_dir() else { return not_found };
     let relative = if path.is_empty() { "index.html" } else { path.as_str() };
-    let Ok(file) = root.join(relative).canonicalize() else { return not_found };
-    if !file.starts_with(root) {
-        return not_found;
+    match web_file(root, relative) {
+        Some((file, bytes)) => (200, mime_of(&file), bytes),
+        None => not_found,
     }
-    match std::fs::read(&file) {
-        Ok(bytes) => (200, mime_of(&file), bytes),
-        Err(_) => not_found,
-    }
+}
+
+/// Answers a request of the page's on a thread of its own, so reading and unpacking files doesn't
+/// hold up the window (the responder hands the answer back to the web view's thread).
+pub(super) fn respond(view: &str, request: &wry::http::Request<Vec<u8>>, responder: wry::RequestAsyncResponder) {
+    let (view, uri) = (view.to_string(), request.uri().to_string());
+    std::thread::spawn(move || {
+        let (status, mime, body) = serve(&view, &uri);
+        let mut response = wry::http::Response::builder().status(status).header(wry::http::header::CONTENT_TYPE, mime);
+        if mime.starts_with("text/html") {
+            response = response.header("Content-Security-Policy", CSP);
+        }
+        match response.body(body) {
+            Ok(r) => responder.respond(r),
+            Err(e) => log::warn!("markd page: {e}"),
+        }
+    });
 }
 
 /// The script every page gets before its own: the `MarkdHost` the page's `native.ts` looks for.
@@ -339,6 +397,7 @@ impl MarkTab {
                 name: launch.and_then(|p| Path::new(p).file_name()).map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "Untitled.md".into()),
                 path: launch.map(PathBuf::from),
                 launch: launch.map(PathBuf::from),
+                granted: launch.map(PathBuf::from).into_iter().collect(),
                 ..Default::default()
             }),
         });
@@ -372,6 +431,7 @@ impl MarkTab {
     /// Opens `path` in this tab (the page asks about unsaved changes first).
     pub fn open_here(&mut self, path: &str) {
         let mut s = self.shared.lock();
+        s.granted.insert(PathBuf::from(path));
         if !s.ready {
             s.launch = Some(PathBuf::from(path));
             s.path = Some(PathBuf::from(path));
@@ -560,4 +620,49 @@ pub fn sync<'a>(ctx: &egui::Context, frame: &eframe::Frame, active: Option<u64>,
         tab.sync(ctx, !skip && Some(id) == active);
     }
     host::pump(frame);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn doc_files_stay_beside_the_document() {
+        let dir = std::env::temp_dir().join(format!("markd-serve-test-{}", std::process::id()));
+        std::fs::create_dir_all(dir.join("pics")).unwrap();
+        std::fs::write(dir.join("pics/a.png"), b"png").unwrap();
+        std::fs::write(dir.join("notes.txt"), b"secret").unwrap();
+        assert!(doc_file(&dir, "pics/a.png").is_some());
+        assert!(doc_file(&dir, "notes.txt").is_none(), "not a picture");
+        assert!(doc_file(&dir, "../markd-serve-test/pics/a.png").is_none());
+        assert!(doc_file(&dir, "/etc/passwd").is_none());
+        assert!(doc_file(&dir, "").is_none());
+        #[cfg(unix)]
+        {
+            std::os::unix::fs::symlink("/usr/share/pixmaps", dir.join("out")).unwrap();
+            let outside = std::fs::read_dir("/usr/share/pixmaps").ok().and_then(|mut d| d.find_map(|e| e.ok().map(|e| e.file_name())));
+            if let Some(name) = outside {
+                assert!(doc_file(&dir, &format!("out/{}", name.to_string_lossy())).is_none(), "through a link");
+            }
+        }
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn web_files_are_unpacked() {
+        use std::io::Write;
+        let dir = std::env::temp_dir().join(format!("markd-web-test-{}", std::process::id()));
+        std::fs::create_dir_all(dir.join("assets")).unwrap();
+        let root = dir.canonicalize().unwrap();
+        let mut gz = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+        gz.write_all(b"console.log(1)").unwrap();
+        std::fs::write(root.join("assets/app.js.gz"), gz.finish().unwrap()).unwrap();
+        std::fs::write(root.join("index.html"), b"<html>").unwrap();
+        let (file, bytes) = web_file(&root, "assets/app.js").unwrap();
+        assert_eq!(bytes, b"console.log(1)");
+        assert_eq!(mime_of(&file), "text/javascript; charset=utf-8");
+        assert_eq!(web_file(&root, "index.html").unwrap().1, b"<html>");
+        assert!(web_file(&root, "../../etc/passwd").is_none());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }
