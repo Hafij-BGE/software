@@ -292,9 +292,11 @@ git clone https://github.com/Hafij-BGE/software.git && cd software
 packaging/build-deb.sh --with-fonts            # -> dist/craft-suite_0.1.0-r<time>_amd64.deb
 ```
 
-- `--with-fonts` embeds the fonts the official releases embed (including the Japanese and Chinese
+- `--with-fonts` adds the fonts the official releases embed (including the Japanese and Chinese
   interface fonts) from [craft-fonts](https://github.com/storytold/craft-fonts); leave it out for
-  a quicker build. A first build takes a while (three office apps).
+  a quicker build. The package installs them once, in `/usr/share/craft-suite/fonts`, and all
+  four binaries map them from there (the Windows build embeds them). A first build takes a while
+  (three office apps).
 - **Run without packaging:** `packaging/build-markd-web.sh` once (Markd's web files, in
   `build/markd/www`), then `cd suite && cargo run --release`. Without Markd (no WebKitGTK needed):
   `cargo build --release --no-default-features --features ai`.
@@ -313,6 +315,7 @@ upstream/gridcraft/   GridCraft, as a git subtree
 upstream/markd/       Markd, as a git subtree
 upstream.conf         which repositories and branches upstream/ follows
 suite/                the Craft Suite app: the tabbed window that hosts all four
+crates/font-files/     maps the shared craft-fonts in /usr/share/craft-suite/fonts (Linux package)
 packaging/            build scripts (.deb, Windows, Markd web files), desktop entries,
                       craft-suite-update, publish-release.sh
 scripts/              update-upstream.sh, make-app-icons.py, merge-locks.py, backup-deps.sh

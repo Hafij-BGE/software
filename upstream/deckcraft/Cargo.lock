@@ -812,6 +812,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "craft-font-files"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "memmap2",
+]
+
+[[package]]
 name = "craft-media"
 version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=f0ad6c1e1d297908915f4be315b0fcfc9be7b5d4#f0ad6c1e1d297908915f4be315b0fcfc9be7b5d4"
@@ -1018,6 +1026,7 @@ dependencies = [
 name = "deckcraft-fonts"
 version = "0.11.1"
 dependencies = [
+ "craft-font-files",
  "epaint_default_fonts",
  "harfrust 0.13.3",
  "kurbo",

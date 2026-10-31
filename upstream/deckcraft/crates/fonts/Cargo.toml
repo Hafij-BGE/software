@@ -9,6 +9,8 @@ description = "DeckCraft fonts: font database (craft-fonts + system), substitute
 workspace = true
 
 [dependencies]
+# Linux packages map craft-fonts from /usr/share/craft-suite/fonts (CRAFT_FONTS_SHARED, see build.rs).
+craft-font-files = { path = "../../../../crates/font-files" }
 kurbo = { workspace = true }
 skrifa = { workspace = true }
 harfrust = { workspace = true }
