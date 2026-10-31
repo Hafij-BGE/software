@@ -9,6 +9,9 @@
 use std::fmt::Write as _;
 use std::path::PathBuf;
 
+#[path = "../../../../crates/font-files/build_hook.rs"]
+mod shared_fonts;
+
 fn main() {
     println!("cargo::rerun-if-env-changed=CRAFT_FONTS_DIR");
     println!("cargo::rerun-if-env-changed=CRAFT_FONTS_REQUIRED");
@@ -33,6 +36,7 @@ fn main() {
         }
     }
     src.push_str("];\n");
+    let src = shared_fonts::rewrite(src);
     let out = PathBuf::from(std::env::var_os("OUT_DIR").unwrap_or_default()).join("craft_fonts.rs");
     if let Err(e) = std::fs::write(&out, src) {
         println!("cargo::error=writing {}: {e}", out.display());

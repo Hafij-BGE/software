@@ -10,9 +10,11 @@
 # Usage: packaging/build-deb.sh [--skip-build] [--with-fonts] [--update-url URL]
 #
 #   --skip-build    package what's already in $CARGO_TARGET_DIR/release
-#   --with-fonts    embed the craft-fonts each upstream release embeds (Japanese and Chinese UI
+#   --with-fonts    ship the craft-fonts each upstream release embeds (Japanese and Chinese UI
 #                   text among them): clones github.com/storytold/craft-fonts at the commit each
-#                   app pins in its release workflow
+#                   app pins in its release workflow. The package holds them once, in
+#                   /usr/share/craft-suite/fonts, and every binary maps them from there instead
+#                   of embedding its own copy (CRAFT_FONTS_SHARED, crates/font-files)
 #   --update-url    where craft-suite-update looks for releases (default: this repository's
 #                   GitHub releases, from GITHUB_REPOSITORY or the origin remote)
 #
@@ -26,6 +28,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HERE="$ROOT/packaging"
 APPS=(wordcraft deckcraft gridcraft)
+FONTS_SHARED=/usr/share/craft-suite/fonts
 
 SKIP_BUILD=0
 WITH_FONTS=0
@@ -68,7 +71,7 @@ if [ "$SKIP_BUILD" = 0 ]; then
     upper="$(echo "$app" | tr '[:lower:]' '[:upper:]')"
     echo "==> $app-cli (upstream ${sha:0:8})"
     (cd "$ROOT/upstream/$app" &&
-      env "${upper}_BUILD_SHA=$sha" ${fonts:+CRAFT_FONTS_DIR="$fonts"} \
+      env "${upper}_BUILD_SHA=$sha" ${fonts:+CRAFT_FONTS_DIR="$fonts" CRAFT_FONTS_SHARED="$FONTS_SHARED"} \
         cargo build --release --locked -p "$app-cli")
   done
   # The tabbed window links all three apps' libraries; WordCraft's and DeckCraft's font crates
@@ -77,7 +80,7 @@ if [ "$SKIP_BUILD" = 0 ]; then
   if [ "$WITH_FONTS" = 1 ] && [ -n "$(fonts_ref wordcraft)" ]; then fonts="$(fonts_dir "$(fonts_ref wordcraft)")"; fi
   echo "==> craft-suite"
   (cd "$ROOT/suite" &&
-    env WORDCRAFT_BUILD_SHA="$(upstream_commit wordcraft)" ${fonts:+CRAFT_FONTS_DIR="$fonts"} \
+    env WORDCRAFT_BUILD_SHA="$(upstream_commit wordcraft)" ${fonts:+CRAFT_FONTS_DIR="$fonts" CRAFT_FONTS_SHARED="$FONTS_SHARED"} \
       cargo build --release)
   "$HERE/build-markd-web.sh" "$ROOT/build/markd/www"
 fi
@@ -98,6 +101,29 @@ for app in "${APPS[@]}"; do
   install -Dm755 "$BIN/$app-cli" "$STAGE/usr/bin/$app-cli"
 done
 strip "$STAGE"/usr/bin/* 2>/dev/null || true
+# The fonts the binaries map at run time, at their paths in the craft-fonts checkouts: of the files
+# the pinned checkouts' manifests list, the ones a binary names (an app can leave out a listed
+# face). Two pins may share a file only if its content is the same.
+if [ "$WITH_FONTS" = 1 ]; then
+  declare -A FONT_SRC=()
+  for ref in $(for app in "${APPS[@]}"; do fonts_ref "$app"; done | sort -u); do
+    dir="$(cd "$(fonts_dir "$ref")" && pwd -P)"
+    while read -r file; do
+      src="$(realpath -e "$dir/$file")"
+      rel="${src#"$dir"/}"
+      if [ -z "${FONT_SRC[$rel]:-}" ]; then
+        FONT_SRC[$rel]="$src"
+      elif ! cmp -s "$src" "${FONT_SRC[$rel]}"; then
+        echo "error: craft-fonts $ref: $rel differs from another pin's copy" >&2
+        exit 1
+      fi
+    done < <(grep -hv '^[[:space:]]*\(#\|$\)' "$dir"/fonts/*manifest.txt | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $3); print $3}')
+  done
+  while read -r path; do
+    install -Dm644 "${FONT_SRC[${path#"$FONTS_SHARED/"}]}" "$STAGE$path"
+  done < <(for rel in "${!FONT_SRC[@]}"; do echo "$FONTS_SHARED/$rel"; done |
+    LC_ALL=C grep -aohFf - "$STAGE"/usr/bin/* | sort -u)
+fi
 install -Dm755 "$HERE/craft-suite-update" "$STAGE/usr/bin/craft-suite-update"
 
 for f in "$HERE"/craft-suite*.desktop; do
@@ -169,6 +195,11 @@ License: MIT or Apache-2.0
 
 Files: usr/share/craft-suite/markd/*
 License: MIT
+
+Files: usr/share/craft-suite/fonts/*
+License: OFL-1.1
+Comment: craft-fonts (https://github.com/storytold/craft-fonts). Each font family's licence is
+ in this folder as OFL-<family folder>.txt.
 
 Files: usr/share/craft-suite/templates/*
 License: CC0-1.0
