@@ -414,6 +414,26 @@ fn installed(r: Result<serde_json::Value, String>, from: &str) -> (String, bool)
     }
 }
 
+/// A new folder `<prefix>-<n>` in the temporary folder that only this user can open: made here
+/// (never one that's already there, which another user could have put in place).
+fn private_temp_dir(prefix: &str) -> Result<PathBuf, String> {
+    let base = std::env::temp_dir();
+    let start = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+    for n in 0..100u128 {
+        let dir = base.join(format!("{prefix}-{}-{}", std::process::id(), start.wrapping_add(n)));
+        #[cfg_attr(not(unix), allow(unused_mut))]
+        let mut builder = std::fs::DirBuilder::new();
+        #[cfg(unix)]
+        std::os::unix::fs::DirBuilderExt::mode(&mut builder, 0o700);
+        match builder.create(&dir) {
+            Ok(()) => return Ok(dir),
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(e) => return Err(e.to_string()),
+        }
+    }
+    Err("Couldn't make a temporary folder for the font.".into())
+}
+
 /// Downloads `family` from Google Fonts (regular, bold, italic and bold italic when it has them)
 /// into a new folder, for `font.add {folder}`. Fonts there are free (SIL Open Font Licence or
 /// Apache 2.0); Microsoft's own fonts, such as Aptos or Calibri, aren't among them.
@@ -442,16 +462,14 @@ fn google_fonts(family: &str) -> Result<PathBuf, String> {
             "“{fam}” isn't on Google Fonts (Microsoft's fonts, such as Aptos and Calibri, aren't). Install it from Windows, add its files, or choose a similar font."
         ));
     };
-    let dir = std::env::temp_dir().join(format!("craft-suite-font-{}-{}", std::process::id(), fam.replace(' ', "")));
-    let _ = std::fs::remove_dir_all(&dir);
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let dir = private_temp_dir(&format!("craft-suite-font-{}", fam.replace(' ', "")))?;
     let mut got = HashSet::new();
     for face in css.split("@font-face").skip(1) {
         let Some(url) = face.split("url(").nth(1).and_then(|s| s.split(')').next()) else { continue };
         if !url.starts_with("https://fonts.gstatic.com/") || !(url.ends_with(".ttf") || url.ends_with(".otf")) || !got.insert(url.to_string()) {
             continue;
         }
-        let weight = face.split("font-weight:").nth(1).and_then(|s| s.trim().split(';').next()).unwrap_or("400").trim().to_string();
+        let weight: String = face.split("font-weight:").nth(1).and_then(|s| s.trim().split(';').next()).unwrap_or("400").chars().filter(char::is_ascii_digit).take(4).collect();
         let italic = face.contains("font-style: italic");
         let ext = if url.ends_with(".otf") { "otf" } else { "ttf" };
         let file = dir.join(format!("{}-{}{}.{ext}", fam.replace(' ', ""), weight, if italic { "Italic" } else { "" }));

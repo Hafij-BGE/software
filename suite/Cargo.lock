@@ -1210,6 +1210,7 @@ dependencies = [
  "deckcraft-ui-egui",
  "eframe",
  "egui",
+ "flate2",
  "gdkx11",
  "gridcraft-engine",
  "gridcraft-ui-egui",

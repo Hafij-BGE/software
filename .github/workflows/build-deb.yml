@@ -10,6 +10,8 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Write access only for publishing the release; the token stays out of the checkout (the build
+# runs third-party build scripts), and the release steps get it from GH_TOKEN.
 permissions:
   contents: write
 
@@ -40,6 +42,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # the version counts commits; the subtree records name upstream commits
+          persist-credentials: false
       # Markd's web version (packaging/build-markd-web.sh).
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -103,6 +106,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22

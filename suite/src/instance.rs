@@ -7,7 +7,7 @@
 //! On Windows there's no such socket yet: each start opens a window of its own.
 
 #[cfg(unix)]
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 #[cfg(unix)]
 use std::os::unix::net::{UnixListener, UnixStream};
 #[cfg(unix)]
@@ -64,7 +64,14 @@ pub fn cleanup() {}
 /// Sends `request` to a running window; true when one took it.
 #[cfg(unix)]
 pub fn forward(request: &Request) -> bool {
-    let Ok(mut stream) = UnixStream::connect(socket_path()) else { return false };
+    let path = socket_path();
+    // Only to a window of this user's (the shared temporary folder could hold anyone's socket).
+    use std::os::unix::fs::MetadataExt;
+    let me = std::fs::metadata("/proc/self").map(|m| m.uid()).ok();
+    if std::fs::symlink_metadata(&path).map(|m| m.uid()).ok() != me {
+        return false;
+    }
+    let Ok(mut stream) = UnixStream::connect(&path) else { return false };
     let mut text = String::new();
     for f in &request.files {
         text.push_str(&format!("open {f}\n"));
@@ -93,10 +100,15 @@ pub fn serve(ctx: egui::Context) -> Option<Receiver<Message>> {
             return None;
         }
     };
+    // Only this user may connect.
+    use std::os::unix::fs::PermissionsExt;
+    let _ = std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600));
     let (tx, rx) = channel();
     std::thread::spawn(move || {
         for stream in listener.incoming().flatten() {
-            for line in BufReader::new(stream).lines().map_while(Result::ok) {
+            // A client that never finishes can't hold the listener up, nor send without end.
+            let _ = stream.set_read_timeout(Some(std::time::Duration::from_secs(5)));
+            for line in BufReader::new(stream.take(1 << 20)).lines().map_while(Result::ok) {
                 let message = match line.split_once(' ') {
                     Some(("open", p)) => Message::Open(p.to_string()),
                     Some(("new", k)) => Kind::from_cli(k).map(Message::New).unwrap_or(Message::Focus),
