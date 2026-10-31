@@ -10,6 +10,9 @@
 # Needs: Node.js 20.19 or newer and pnpm 10 (`corepack enable`; upstream/markd/package.json pins
 # the version). Installs Markd's JavaScript dependencies into upstream/markd/node_modules
 # (ignored by git) without running their install scripts (no Electron download).
+#
+# Builds with packaging/markd-web.vite.mjs (Markd's config with the suite's trims) and gzips the
+# text files under assets/; the Markd tabs unpack them as they serve them (suite/src/markd).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -25,5 +28,10 @@ echo "==> markd web ($(git -C "$ROOT" log -1 --format=%h -- upstream/markd 2>/de
 "${PNPM[@]}" --filter @muyajs/core build:types
 cd packages/android
 "${PNPM[@]}" exec tsc --noEmit
-"${PNPM[@]}" exec vite build --base "$BASE" --outDir "$OUT" --emptyOutDir
+# vite resolves a config's imports from its own folder, so the wrapper goes beside Markd's.
+cp "$ROOT/packaging/markd-web.vite.mjs" vite.suite.config.mjs
+trap 'rm -f "$ROOT/upstream/markd/packages/android/vite.suite.config.mjs"' EXIT
+"${PNPM[@]}" exec vite build --config vite.suite.config.mjs --base "$BASE" --outDir "$OUT" --emptyOutDir
 test -f "$OUT/index.html"
+find "$OUT/assets" -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.css' -o -name '*.svg' -o -name '*.json' -o -name '*.map' -o -name '*.ttf' -o -name '*.txt' \) -exec gzip -9n {} +
+du -sh "$OUT"

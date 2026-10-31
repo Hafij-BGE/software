@@ -47,6 +47,8 @@ keyring-core = { version = "1", optional = true }
 # Markd's web version. Only with the `markd` feature (on by default).
 wry = { version = "0.57", optional = true }
 base64 = { version = "0.22", optional = true }
+# Unpacks the page's text files, installed gzipped (packaging/build-markd-web.sh).
+flate2 = { version = "1", optional = true }
 
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
 winit = { version = "0.30", default-features = false, features = ["x11"] }
@@ -72,7 +74,7 @@ default = ["ai", "markd"]
 ai = ["dep:keyring-core", "dep:zbus-secret-service-keyring-store", "dep:windows-native-keyring-store"]
 # Markd tabs. Linux needs WebKitGTK 4.1 (libwebkit2gtk-4.1-dev to build). To build without them:
 # cargo build --no-default-features --features ai.
-markd = ["dep:wry", "dep:base64", "dep:gtk", "dep:gdkx11", "dep:webkit2gtk", "dep:x11-dl"]
+markd = ["dep:wry", "dep:base64", "dep:flate2", "dep:gtk", "dep:gdkx11", "dep:webkit2gtk", "dep:x11-dl"]
 
 [build-dependencies]
 # Icon and version information for craft-suite.exe (build.rs; nothing on other systems).

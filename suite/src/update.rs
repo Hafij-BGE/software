@@ -9,7 +9,7 @@ use std::process::{Command, Stdio};
 use std::sync::mpsc::{Receiver, channel};
 
 const SHARE_DIR: &str = "/usr/share/craft-suite";
-const UPDATER: &str = "craft-suite-update";
+const UPDATER: &str = "/usr/bin/craft-suite-update";
 
 /// Where the build's VERSION and upstream.txt are: /usr/share/craft-suite from the .deb, the
 /// program's own folder on Windows.

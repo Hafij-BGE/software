@@ -6,7 +6,9 @@
 // Every message carries this tab's secret (`token`, filled in by the suite), which only this
 // script knows: the suite drops messages without it, such as ones from frames inside a document.
 (() => {
-  if (window.top !== window || window.MarkdHost) return
+  // Only Markd's own page: not a data:, blob: or about: document the page was sent to.
+  const own = location.href.startsWith('markd://app/') || location.href.startsWith('https://markd.app/')
+  if (window.top !== window || window.MarkdHost || !own) return
   const ipc = window.ipc
   const token = '@TOKEN@'
   const send = (message) => ipc.postMessage(JSON.stringify({ t: token, m: message }))
