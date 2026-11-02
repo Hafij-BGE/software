@@ -96,6 +96,15 @@ pub const MAX_VBA_RELATED: usize = 64;
 pub const EMBEDDED_PARTS: &str = "wordcraft:embedded.parts";
 /// The font table kept from a file (read by `Reader::keep_part_tree`), with the fonts it embeds.
 pub const FONT_TABLE_PART: &str = "word/fontTable.xml";
+
+/// The spelling the font table is stored under in `parts` (part names are case-insensitive, so a
+/// package may spell it `WORD/FONTTABLE.XML`), preferring the exact [`FONT_TABLE_PART`].
+pub fn font_table_key<V>(parts: &BTreeMap<String, V>) -> Option<&str> {
+    if let Some((k, _)) = parts.get_key_value(FONT_TABLE_PART) {
+        return Some(k.as_str());
+    }
+    parts.keys().find(|k| k.eq_ignore_ascii_case(FONT_TABLE_PART)).map(String::as_str)
+}
 /// Custom XML roots kept by the package (P) or main document (D): `owner\ttype\tpart`.
 /// Their opaque bytes and related parts use the same bounded manifest as embedded objects.
 pub const CUSTOM_XML_ROOTS: &str = "wordcraft:customXml.roots";
@@ -203,6 +212,8 @@ impl Package {
     }
 
     pub fn open_limited(bytes: &[u8], max_part: u64, max_total: u64) -> Result<Package, DocxError> {
+        // Before `zip` parses every entry the end record declares (#3660).
+        wordcraft_doc::zip_guard::check(bytes, MAX_ENTRIES as u64).map_err(DocxError::Limit)?;
         let mut zip = zip::ZipArchive::new(Cursor::new(bytes)).map_err(|e| DocxError::Zip(e.to_string()))?;
         if zip.len() > MAX_ENTRIES {
             return Err(DocxError::Limit(format!("{} zip entries", zip.len())));
@@ -412,7 +423,8 @@ fn rel_targets(files: &BTreeMap<String, Arc<Vec<u8>>>) -> HashSet<String> {
     let mut named = HashSet::new();
     for (name, bytes) in files {
         // `dir/_rels/file.rels` relates `dir/file`, so its targets resolve against `dir`.
-        let Some(at) = name.rfind("_rels/").filter(|_| name.to_ascii_lowercase().ends_with(".rels")) else { continue };
+        let lower = name.to_ascii_lowercase();
+        let Some(at) = lower.rfind("_rels/").filter(|_| lower.ends_with(".rels")) else { continue };
         let dir = name.get(..at).unwrap_or("").trim_end_matches('/');
         let Ok(root) = xml::parse(bytes) else { continue };
         for r in root.els().filter(|e| e.local() == "Relationship") {
@@ -512,6 +524,21 @@ mod tests {
         let folded: Vec<_> = warned.iter().filter(|w| w.contains("other spellings")).collect();
         assert_eq!(folded.len(), 1, "one warning for the package: {warned:?}");
         assert!(folded.iter().all(|w| w.contains("2 zip entries")), "{folded:?}");
+    }
+
+    #[test]
+    fn a_package_declaring_too_many_entries_is_refused_before_zip_reads_them() {
+        // #3660: a ZIP64 end record declaring more than MAX_ENTRIES.
+        let bomb = wordcraft_doc::zip_guard::zip64_entry_count_sample(MAX_ENTRIES as u64 + 1);
+        assert!(matches!(Package::open(&bomb), Err(DocxError::Limit(e)) if e.contains("declares")));
+        assert_eq!(crate::package_title(std::io::Cursor::new(bomb), 1 << 20), None);
+        // A real package still opens, and its title still reads.
+        let z = zip_of(&[(
+            "docProps/core.xml",
+            br#"<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>Plan</dc:title></cp:coreProperties>"#.to_vec(),
+        )]);
+        assert!(Package::open(&z).is_ok());
+        assert_eq!(crate::package_title(std::io::Cursor::new(z), 1 << 20).as_deref(), Some("Plan"));
     }
 
     #[test]
