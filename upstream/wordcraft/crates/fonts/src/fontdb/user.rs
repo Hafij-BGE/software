@@ -665,6 +665,7 @@ fn write_unique(dir: &Path, name: &str, bytes: &[u8]) -> std::io::Result<PathBuf
 }
 
 #[cfg(test)]
+<<<<<<< HEAD
 pub(crate) mod tests {
     use super::*;
 
@@ -1142,3 +1143,6 @@ pub(crate) mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 }
+=======
+pub(crate) mod tests;
+>>>>>>> e8eb46e2884baed16fb3a037397a00d23086d8d1
