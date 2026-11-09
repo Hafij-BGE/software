@@ -8,6 +8,10 @@ description = "WordCraft fonts: font database (bundled OFL + system), metrics, g
 [lints]
 workspace = true
 
+[features]
+# Opt-in test harness support; enabling this alone never changes the application database.
+test-support = []
+
 [dependencies]
 # Linux packages map craft-fonts from /usr/share/craft-suite/fonts (CRAFT_FONTS_SHARED, see build.rs).
 craft-font-files = { path = "../../../../crates/font-files" }
