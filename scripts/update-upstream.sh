@@ -117,6 +117,19 @@ suite_path.write_text(suite)
 PY
 fi
 
+# The suite adds dependencies to the upstream workspaces (craft-font-files), so the lock file a
+# subtree pull brings can lag the workspace's Cargo.toml, and the --locked builds in
+# packaging/build-deb.sh and build-windows.sh would then fail.
+for app in "${updated[@]}"; do
+  [ -f "upstream/$app/Cargo.toml" ] || continue
+  echo "==> refreshing upstream/$app/Cargo.lock"
+  (cd "upstream/$app" && cargo metadata --format-version 1 >/dev/null)
+  if ! git diff --quiet -- "upstream/$app/Cargo.lock"; then
+    git add "upstream/$app/Cargo.lock"
+    git commit -q -m "Refresh upstream/$app/Cargo.lock for --locked builds"
+  fi
+done
+
 echo "==> re-seeding suite/Cargo.lock"
 python3 -I scripts/merge-locks.py
 (cd suite && cargo metadata --format-version 1 >/dev/null)
@@ -124,4 +137,6 @@ if ! git diff --quiet -- suite/Cargo.lock suite/Cargo.toml; then
   git add suite/Cargo.lock suite/Cargo.toml
   git commit -q -m "Refresh suite/Cargo.lock after updating ${updated[*]}"
 fi
-echo "Updated: ${updated[*]}. Build with packaging/build-deb.sh"
+scripts/preflight.sh --quick
+echo "Updated: ${updated[*]}. Before pushing, run scripts/preflight.sh (cargo check of every app and"
+echo "the suite); build with packaging/build-deb.sh"
