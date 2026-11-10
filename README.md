@@ -318,7 +318,8 @@ suite/                the Craft Suite app: the tabbed window that hosts all four
 crates/font-files/     maps the shared craft-fonts in /usr/share/craft-suite/fonts (Linux package)
 packaging/            build scripts (.deb, Windows, Markd web files), desktop entries,
                       craft-suite-update, publish-release.sh
-scripts/              update-upstream.sh, make-app-icons.py, merge-locks.py, backup-deps.sh
+scripts/              update-upstream.sh, preflight.sh, make-app-icons.py, merge-locks.py,
+                      backup-deps.sh
 backup/               copies of ArtCraft's craft-libs and craft-fonts, in case github.com/storytold
                       can't be reached
 templates/            the Home page's templates, index.json and ATTRIBUTION.md (scripts/templates/)
@@ -343,8 +344,12 @@ messages it sends Markd's Android app.
 ```sh
 scripts/update-upstream.sh --check   # which apps have new upstream commits
 scripts/update-upstream.sh           # merge them (all apps, or name some: wordcraft gridcraft)
+scripts/preflight.sh                 # the checks CI failed on before: lock files, fork pins, cargo check
 packaging/build-deb.sh               # build the new package
 ```
+
+`scripts/preflight.sh --install-hook` makes `git push` run `scripts/preflight.sh --quick` (lock
+files and fork pins, a few seconds) first. The script's header lists each check and its fix.
 
 What happens automatically:
 
