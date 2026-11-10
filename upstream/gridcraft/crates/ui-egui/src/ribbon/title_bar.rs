@@ -45,6 +45,16 @@ pub fn title_bar(app: &mut SheetApp, ui: &mut Ui) {
             let max = ui.ctx().input(|i| i.viewport().maximized.unwrap_or(false));
             ui.ctx().send_viewport_cmd(egui::ViewportCommand::Maximized(!max));
         }
+        // A host's window buttons at the right end (`Chrome::title_bar_end`): the controls go in a
+        // narrower child (a panel can't shrink below its full width).
+        let mut narrow;
+        let ui = if app.chrome.title_bar_end > 0.0 {
+            let end = pos2((rect.max.x - app.chrome.title_bar_end).max(rect.min.x), rect.max.y);
+            narrow = ui.new_child(egui::UiBuilder::new().max_rect(egui::Rect::from_min_max(rect.min, end)).layout(*ui.layout()));
+            &mut narrow
+        } else {
+            ui
+        };
         ui.horizontal_centered(|ui| {
             ui.add_space(TITLE_LEFT_PAD);
             // AutoSave toggle (saves after each change when the workbook has a file).

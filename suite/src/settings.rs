@@ -126,13 +126,18 @@ pub enum TitleBar {
     Integrated,
     /// The desktop's own title bar above the tabs.
     System,
+    /// No title bar of its own: the window buttons sit at the right end of each app's top row
+    /// (AutoSave, the file name, Share, Search), at that row's height. Home, Settings and Markd
+    /// tabs, which have no such row, keep the suite's.
+    InApp,
 }
 
 impl TitleBar {
-    pub const ALL: [TitleBar; 2] = [TitleBar::Integrated, TitleBar::System];
+    pub const ALL: [TitleBar; 3] = [TitleBar::Integrated, TitleBar::InApp, TitleBar::System];
     pub fn label(self) -> &'static str {
         match self {
             TitleBar::Integrated => "Tabs in the title bar",
+            TitleBar::InApp => "Window buttons in each app's top bar",
             TitleBar::System => "The desktop's title bar",
         }
     }
@@ -187,6 +192,9 @@ pub struct Settings {
     pub tab_min_width: f32,
     /// Width of the side tab bar when tabs are on the left or right.
     pub side_width: f32,
+    /// The side tab bar folds to a thin strip at the window's edge and opens over the page
+    /// while the pointer is on it (the arrow at its top switches this too).
+    pub side_auto_hide: bool,
     pub show_icons: bool,
     pub close_buttons: CloseButtons,
     /// Pinned tabs show their icon only.
@@ -205,6 +213,14 @@ pub struct Settings {
 
     // ---- window
     pub title_bar: TitleBar,
+    /// Every app's interface (menus, ribbons, panels, the tab bar) in one font, Inter (as
+    /// WordCraft and DeckCraft use), instead of each app's own. Documents keep their fonts.
+    pub same_font: bool,
+    /// Every app's interface at one size (`ui_size`) instead of each app's own interface size;
+    /// the tab bar then keeps its size from tab to tab.
+    pub same_size: bool,
+    /// The interface size with `same_size`, in percent of the display's own scale.
+    pub ui_size: u16,
 
     // ---- behaviour
     pub new_tab_opens: NewTabOpens,
@@ -249,6 +265,7 @@ impl Default for Settings {
             tab_max_width: 220.0,
             tab_min_width: 90.0,
             side_width: 220.0,
+            side_auto_hide: false,
             show_icons: true,
             close_buttons: CloseButtons::Always,
             compact_pinned: true,
@@ -261,6 +278,9 @@ impl Default for Settings {
             tint_bar_with_active: false,
             theme: SuiteTheme::System,
             title_bar: TitleBar::Integrated,
+            same_font: true,
+            same_size: true,
+            ui_size: 100,
             new_tab_opens: NewTabOpens::Home,
             reuse_blank_tab: true,
             font_notice: true,
@@ -316,6 +336,7 @@ impl Settings {
         self.tab_min_width = self.tab_min_width.clamp(40.0, 400.0);
         self.tab_max_width = self.tab_max_width.clamp(self.tab_min_width, 600.0);
         self.side_width = self.side_width.clamp(120.0, 480.0);
+        self.ui_size = self.ui_size.clamp(75, 200);
         self.recent.truncate(RECENT_MAX);
     }
 

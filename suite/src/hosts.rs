@@ -386,6 +386,44 @@ impl Doc {
         }
     }
 
+    /// The zoom factor the app sets for its own interface size each frame (see `pinned_zoom` in
+    /// `app.rs`), or `None` for an app that sets none.
+    pub fn own_zoom(&self, ctx: &egui::Context) -> Option<f32> {
+        match self {
+            Doc::Word(t) => {
+                let native = ctx.native_pixels_per_point().unwrap_or(1.0);
+                let native = wordcraft_ui_egui::theme::usable_scale(native);
+                Some(t.app.ui.interface_size.zoom_factor(native))
+            }
+            Doc::Deck(t) => Some(t.app.ui.ui_scale.clamp(0.5, 3.0)),
+            Doc::Grid(t) => Some(t.app.ui.zoom_factor()),
+            #[cfg(feature = "markd")]
+            Doc::Mark(_) => None,
+        }
+    }
+
+    /// The app draws its own top row (AutoSave, the file name, Share, Search), where the window
+    /// buttons can go (`TitleBar::InApp`).
+    pub fn has_title_bar(&self) -> bool {
+        match self {
+            Doc::Word(_) | Doc::Deck(_) => true,
+            Doc::Grid(t) => t.app.chrome.title_bar,
+            #[cfg(feature = "markd")]
+            Doc::Mark(_) => false,
+        }
+    }
+
+    /// Keeps `width` free at the right end of the app's top row, for the window buttons.
+    pub fn set_title_bar_end(&mut self, width: f32) {
+        match self {
+            Doc::Word(t) => t.app.title_bar_end = width,
+            Doc::Deck(t) => t.app.title_bar_end = width,
+            Doc::Grid(t) => t.app.chrome.title_bar_end = width,
+            #[cfg(feature = "markd")]
+            Doc::Mark(_) => {}
+        }
+    }
+
     /// A slideshow fills the screen: the suite's title bar, tab bar and side panels step aside
     /// so the slides get the whole window (a show "browsed by an individual" stays in a window).
     pub fn presenting(&self) -> bool {

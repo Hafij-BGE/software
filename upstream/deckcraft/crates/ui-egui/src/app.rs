@@ -80,6 +80,7 @@ impl SlideApp {
             canvas_region: None,
             palette: None,
             integrated_titlebar: false,
+            title_bar_end: 0.0,
             backstage: None,
             pending_urls: vec![],
             print_previews: files::PrintPreviews::default(),

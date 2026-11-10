@@ -305,6 +305,18 @@ pub fn title_bar(app: &mut WordApp, ui: &mut Ui) {
                 let max = ui.ctx().input(|i| i.viewport().maximized.unwrap_or(false));
                 ui.ctx().send_viewport_cmd(egui::ViewportCommand::Maximized(!max));
             }
+            // A host's window buttons at the right end (`title_bar_end`): the controls go in a
+            // narrower child (a panel can't shrink below its full width).
+            let mut narrow;
+            let ui = if app.title_bar_end > 0.0 {
+                let r = ui.max_rect();
+                let end = egui::pos2((r.max.x - app.title_bar_end).max(r.min.x), r.max.y);
+                narrow = ui.new_child(egui::UiBuilder::new().max_rect(Rect::from_min_max(r.min, end)).layout(*ui.layout()));
+                &mut narrow
+            } else {
+                ui
+            };
+            let full = Rect::from_min_max(full.min, egui::pos2(ui.max_rect().max.x, full.max.y));
             // The free stretch between the two clusters, for the centred title. Right to left the
             // clusters swap sides: AutoSave and the Quick Access Toolbar start at the right.
             let rtl = crate::rtl::on();
