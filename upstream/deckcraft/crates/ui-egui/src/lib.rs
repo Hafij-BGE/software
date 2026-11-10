@@ -292,6 +292,9 @@ pub struct SlideApp {
     /// Room a host that embeds the app keeps at the right end of the title bar for its own window
     /// buttons (0 by default). The title bar's controls end before it.
     pub title_bar_end: f32,
+    /// The format Save suggests for a presentation that has no file yet: "deckcraft" (the
+    /// default) or "pptx". A host that sets one default for its apps changes it.
+    pub new_file_format: &'static str,
     /// The File tab's full-window view (Backstage). Over a presentation it replaces the ribbon,
     /// slides and status bar until Esc or Back; with nothing open it is the start screen. Opening,
     /// creating or closing a presentation leaves it.

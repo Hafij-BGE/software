@@ -81,6 +81,7 @@ impl SlideApp {
             palette: None,
             integrated_titlebar: false,
             title_bar_end: 0.0,
+            new_file_format: "deckcraft",
             backstage: None,
             pending_urls: vec![],
             print_previews: files::PrintPreviews::default(),

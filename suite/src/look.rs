@@ -14,9 +14,9 @@
 //!   from each app's own font definitions), so no style ever names a missing family, including
 //!   during an app's first frames, while it installs its own fonts.
 
-use std::sync::Arc;
+use egui::{FontDefinitions, FontFamily};
 
-use egui::{FontData, FontDefinitions, FontFamily};
+use crate::uifont::Face;
 
 #[derive(Clone)]
 pub struct Look {
@@ -35,10 +35,10 @@ impl Look {
     }
 
     /// First half of putting this look back: its fonts (with every other family in `union`, and
-    /// the interface in the suite's font when `same_font`), in from the next pass. Identical
+    /// the interface in the suite's font `face`, if any), in from the next pass. Identical
     /// fonts cost a comparison.
-    pub fn restore_fonts(&self, ctx: &egui::Context, union: &FontDefinitions, same_font: bool) {
-        ctx.set_fonts(with_suite_font(&merged(&self.fonts, union), same_font));
+    pub fn restore_fonts(&self, ctx: &egui::Context, union: &FontDefinitions, face: Option<&Face>) {
+        ctx.set_fonts(with_suite_font(&merged(&self.fonts, union), face));
     }
 
     /// Second half, once the fonts are in: the options (visuals, spacing, theme, zoom).
@@ -94,9 +94,8 @@ pub fn seed_union(home: &FontDefinitions) -> FontDefinitions {
     union
 }
 
-/// The suite's interface font (`Settings::same_font`): Inter, the face WordCraft and DeckCraft
-/// draw their interfaces with. GridCraft uses the system's sans, so without this its ribbon and
-/// the tab bar change font when a workbook's tab is shown.
+/// The suite's interface font (`Settings::ui_font`, see `uifont.rs`) goes first in the
+/// families the apps draw interface text with, under these names plus the font's key.
 const SUITE_UI: &str = "craft-suite-ui";
 const SUITE_UI_BOLD: &str = "craft-suite-ui-bold";
 
@@ -105,46 +104,47 @@ const SUITE_UI_BOLD: &str = "craft-suite-ui-bold";
 const PLAIN: [&str; 1] = ["ui"];
 const BOLD: [&str; 1] = ["ui-bold"];
 
-fn inter(style: &str) -> Option<Arc<FontData>> {
-    deckcraft_fonts::CRAFT_FONTS
-        .iter()
-        .find(|f| f.family == "Inter" && f.style == style)
-        .map(|f| Arc::new(FontData::from_static(f.bytes)))
+fn names(face: &Face) -> (String, String) {
+    (format!("{SUITE_UI}:{}", face.key), format!("{SUITE_UI_BOLD}:{}", face.key))
 }
 
-/// Whether `defs` already draw the interface in the suite's font.
-pub fn has_suite_font(defs: &FontDefinitions) -> bool {
-    defs.families
-        .get(&FontFamily::Proportional)
-        .and_then(|chain| chain.first())
-        .is_some_and(|name| name == SUITE_UI)
+fn is_suite_name(name: &str) -> bool {
+    name.starts_with(SUITE_UI)
 }
 
-/// `defs` with the interface in the suite's font (`on`) or in the app's own (`!on`): the suite's
-/// faces go first in the interface families, or come out of every family again.
-pub fn with_suite_font(defs: &FontDefinitions, on: bool) -> FontDefinitions {
+/// Whether `defs` draw the interface in `face` (or, for `None`, in the app's own font).
+pub fn has_suite_font(defs: &FontDefinitions, face: Option<&Face>) -> bool {
+    let first = defs.families.get(&FontFamily::Proportional).and_then(|chain| chain.first());
+    match face {
+        Some(face) => first.is_some_and(|name| *name == names(face).0),
+        None => defs.families.values().all(|chain| !chain.iter().any(|n| is_suite_name(n))),
+    }
+}
+
+/// `defs` with the interface in `face`, or in the app's own font (`None`): the suite's faces go
+/// first in the interface families, or come out of every family again.
+pub fn with_suite_font(defs: &FontDefinitions, face: Option<&Face>) -> FontDefinitions {
     let mut out = defs.clone();
     for chain in out.families.values_mut() {
-        chain.retain(|name| name != SUITE_UI && name != SUITE_UI_BOLD);
+        chain.retain(|name| !is_suite_name(name));
     }
-    if !on {
-        return out;
-    }
-    let (Some(regular), Some(bold)) = (inter("Regular"), inter("SemiBold")) else {
+    out.font_data.retain(|name, _| !is_suite_name(name));
+    let Some(face) = face else {
         return out;
     };
-    out.font_data.entry(SUITE_UI.into()).or_insert(regular);
-    out.font_data.entry(SUITE_UI_BOLD.into()).or_insert(bold);
+    let (regular, bold) = names(face);
+    out.font_data.insert(regular.clone(), face.regular.clone());
+    out.font_data.insert(bold.clone(), face.bold.clone());
     let plain = std::iter::once(FontFamily::Proportional)
         .chain(PLAIN.iter().map(|n| FontFamily::Name((*n).into())));
     for family in plain {
         if let Some(chain) = out.families.get_mut(&family) {
-            chain.insert(0, SUITE_UI.into());
+            chain.insert(0, regular.clone());
         }
     }
     for name in BOLD {
         if let Some(chain) = out.families.get_mut(&FontFamily::Name(name.into())) {
-            chain.insert(0, SUITE_UI_BOLD.into());
+            chain.insert(0, bold.clone());
         }
     }
     out

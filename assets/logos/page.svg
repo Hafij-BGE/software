@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Craft Suite logo "Page" (original; MIT OR Apache-2.0): a page with a line per app. -->
+  <circle cx="128" cy="128" r="112" fill="#f6efe1"/>
+  <path d="M74 44 H156 L190 78 V212 H74 Z" fill="#fff" stroke="#1b2340" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M156 44 V78 H190" fill="#e6dccb" stroke="#1b2340" stroke-width="10" stroke-linejoin="round"/>
+  <g stroke-width="14" stroke-linecap="round">
+    <line x1="98" y1="110" x2="166" y2="110" stroke="#3b5bdb"/>
+    <line x1="98" y1="140" x2="166" y2="140" stroke="#f26b1d"/>
+    <line x1="98" y1="170" x2="146" y2="170" stroke="#1f9d55"/>
+  </g>
+  <circle cx="186" cy="186" r="30" fill="#6d4ae8" stroke="#f6efe1" stroke-width="8"/>
+  <path d="M172 186 l10 10 l18 -20" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

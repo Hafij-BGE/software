@@ -13,7 +13,7 @@ use std::rc::Rc;
 use serde_json::json;
 
 use crate::kind::Kind;
-use crate::settings::no_prefs;
+use crate::settings::{AutoSave, Settings, SuiteTheme, no_prefs};
 use crate::{deck_audio, grid_print, word_animations, word_clipboard, word_file_dialogs, word_print, word_region};
 
 pub enum Doc {
@@ -339,6 +339,97 @@ impl Doc {
             Doc::Mark(t) => return t.untouched(),
         };
         single && self.path().is_none() && !self.dirty()
+    }
+
+    /// Uses the suite's theme (Settings › Window › Theme) instead of the app's own choice.
+    /// `system_dark`: the desktop is dark, for an app with no "follow the system" of its own.
+    pub fn follow_theme(&mut self, theme: SuiteTheme, system_dark: bool) {
+        let dark = match theme {
+            SuiteTheme::Light => false,
+            SuiteTheme::Dark => true,
+            SuiteTheme::System => system_dark,
+        };
+        match self {
+            Doc::Word(t) => {
+                use wordcraft_ui_egui::theme::Appearance;
+                t.app.ui.theme = match theme {
+                    SuiteTheme::System => Appearance::System,
+                    SuiteTheme::Light => Appearance::Light,
+                    SuiteTheme::Dark => Appearance::Dark,
+                };
+            }
+            Doc::Deck(t) => {
+                if (t.app.ui.brightness == deckcraft_ui_egui::theme::Brightness::Dark) != dark {
+                    let _ = t.app.run("view.dark", json!({ "on": dark }));
+                }
+            }
+            Doc::Grid(t) => {
+                t.app.ui.system_theme = theme == SuiteTheme::System;
+                t.app.ui.dark = dark;
+            }
+            #[cfg(feature = "markd")]
+            Doc::Mark(t) => t.set_theme(match theme {
+                SuiteTheme::System => "system",
+                SuiteTheme::Light => "word",
+                SuiteTheme::Dark => "word-dark",
+            }),
+        }
+    }
+
+    /// Takes the suite's choices for every app (Settings › You and your files) where one is
+    /// made; each app keeps its own for the rest.
+    pub fn follow_settings(&mut self, s: &Settings) {
+        let name = s.user_name.trim();
+        let autosave = match s.autosave {
+            AutoSave::EachApp => None,
+            AutoSave::On => Some(true),
+            AutoSave::Off => Some(false),
+        };
+        match self {
+            Doc::Word(t) => {
+                if !name.is_empty() && t.app.session.author != name {
+                    t.app.session.author = name.to_string();
+                }
+                if !name.is_empty() && t.app.session.initials != s.user_initials.trim() {
+                    t.app.session.initials = s.user_initials.trim().to_string();
+                }
+                if let Some(on) = autosave {
+                    t.app.autosave = on;
+                }
+                let lang = s.spell_language.trim();
+                if !lang.is_empty() && t.app.session.prefs.default_language.as_deref() != Some(lang) {
+                    t.app.session.prefs.default_language = Some(lang.to_string());
+                }
+            }
+            Doc::Deck(t) => {
+                if !name.is_empty() && t.app.session.prefs.author != name {
+                    t.app.session.prefs.author = name.to_string();
+                }
+                t.app.new_file_format = if s.pptx_for_new { "pptx" } else { "deckcraft" };
+            }
+            Doc::Grid(t) => {
+                if !name.is_empty() && t.app.session.prefs.user_name != name {
+                    t.app.session.prefs.user_name = name.to_string();
+                }
+                if let Some(on) = autosave {
+                    t.app.ui.autosave = on;
+                }
+            }
+            #[cfg(feature = "markd")]
+            Doc::Mark(_) => {}
+        }
+    }
+
+    /// The file the app last opened or saved (the top of its own recent list).
+    pub fn latest_recent(&self) -> Option<&str> {
+        match self {
+            Doc::Word(t) => t.app.ui.recent.first(),
+            Doc::Deck(t) => t.app.ui.recent.first(),
+            Doc::Grid(t) => t.app.ui.recent.first(),
+            #[cfg(feature = "markd")]
+            Doc::Mark(_) => None,
+        }
+        .map(String::as_str)
     }
 
     /// Called when the tab becomes the active one, after the suite restored its look.

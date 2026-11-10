@@ -25,6 +25,16 @@ pub(super) fn designer(app: &mut SlideApp, ui: &mut Ui) {
     let px = (w * ppp).round().max(16.0) as u32;
     let ideas = deckcraft_engine::cmd::ideas::ideas_for(&doc, idx);
     let themes = deckcraft_model::theme::builtin_themes();
+    // The current theme in its other colours, as Design › Variants offers them.
+    let current_colors = doc.masters.first().map(|m| m.theme.colors.clone());
+    let variants: Vec<_> = doc
+        .masters
+        .first()
+        .map(|m| deckcraft_model::theme::theme_variants(&m.theme))
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|v| Some(&v.colors) != current_colors.as_ref().map(|c| &c.colors))
+        .collect();
     let cache_id = egui::Id::unique("design-idea-thumbs");
     let key = (key_doc.0, key_doc.1, idx, px);
     let mut cache: IdeaThumbs = ui.ctx().data_mut(|d| d.get_temp(cache_id)).unwrap_or_default();
@@ -48,6 +58,13 @@ pub(super) fn designer(app: &mut SlideApp, ui: &mut Ui) {
             if deckcraft_engine::cmd::ideas::apply_idea(&mut d, &sel, idx, id).is_ok() {
                 render(format!("layout:{id}"), &d);
             }
+        }
+        for (i, colors) in variants.iter().enumerate() {
+            let mut d = (*doc).clone();
+            if let Some(m) = d.masters.first_mut() {
+                std::sync::Arc::make_mut(m).theme.colors = colors.clone();
+            }
+            render(format!("variant:{i}"), &d);
         }
         for th in &themes {
             let mut d = (*doc).clone();
@@ -81,6 +98,20 @@ pub(super) fn designer(app: &mut SlideApp, ui: &mut Ui) {
     for (id, label) in &ideas {
         if thumb(ui, &format!("layout:{id}"), label) {
             run(app, "design.applyIdea", json!({"id": id}));
+        }
+    }
+    if !variants.is_empty() {
+        ui.add_space(4.0);
+        ui.label(egui::RichText::new("Colours (whole presentation)").color(t.text_dim));
+        ui.add_space(4.0);
+        let all = doc.masters.first().map(|m| deckcraft_model::theme::theme_variants(&m.theme)).unwrap_or_default();
+        for (i, v) in variants.iter().enumerate() {
+            let index = all.iter().position(|a| a.colors == v.colors);
+            if thumb(ui, &format!("variant:{i}"), &v.name)
+                && let Some(index) = index
+            {
+                run(app, "design.variant", json!({"index": index}));
+            }
         }
     }
     ui.add_space(4.0);

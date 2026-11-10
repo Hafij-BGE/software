@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Craft Suite logo "Sheets" (original; MIT OR Apache-2.0): a page over fanned sheets. -->
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4c6ef5"/><stop offset="1" stop-color="#6d4ae8"/></linearGradient></defs>
+  <rect x="16" y="16" width="224" height="224" rx="52" fill="url(#g)"/>
+  <g transform="rotate(-14 128 150)"><rect x="62" y="70" width="104" height="130" rx="14" fill="#1f9d55"/></g>
+  <g transform="rotate(10 128 150)"><rect x="92" y="66" width="104" height="130" rx="14" fill="#f26b1d"/></g>
+  <rect x="74" y="58" width="108" height="138" rx="14" fill="#ffffff"/>
+  <g fill="#3b5bdb"><rect x="92" y="84" width="72" height="9" rx="4.5"/><rect x="92" y="104" width="72" height="9" rx="4.5"/><rect x="92" y="124" width="72" height="9" rx="4.5"/><rect x="92" y="144" width="44" height="9" rx="4.5"/></g>
+  <path d="M188 40 l7 17 l17 7 l-17 7 l-7 17 l-7 -17 l-17 -7 l17 -7 z" fill="#ffd43b"/>
+</svg>

@@ -21,14 +21,27 @@ pub fn specs() -> Vec<CommandSpec> {
 /// An idea: id and label.
 pub type Idea = (&'static str, &'static str);
 
-const PICTURE_IDEAS: [Idea; 4] = [
+const PICTURE_IDEAS: [Idea; 6] = [
     ("fullBleed", "Full-bleed picture, title on a band"),
     ("pictureLeft", "Picture left, text right"),
     ("pictureRight", "Picture right, text left"),
     ("framed", "Framed picture beside the title"),
+    ("pictureTop", "Picture across the top, text below"),
+    ("pictureBottom", "Title and text above a picture strip"),
 ];
-const TEXT_IDEAS: [Idea; 3] =
-    [("titleColumn", "Title column beside the text"), ("centred", "Centred title over the text"), ("titleBottom", "Text above, title at the foot")];
+const TEXT_IDEAS: [Idea; 5] = [
+    ("titleColumn", "Title column beside the text"),
+    ("centred", "Centred title over the text"),
+    ("titleBottom", "Text above, title at the foot"),
+    ("titleRight", "Text beside a title column on the right"),
+    ("narrow", "Title and a narrow text column on the left"),
+];
+/// Ideas for a slide that has only a title (a section or closing slide).
+const TITLE_IDEAS: [Idea; 3] = [
+    ("titleMiddle", "Title in the middle of the slide"),
+    ("titleLowerThird", "Title on the lower third"),
+    ("titleTopLeft", "Large title at the top left"),
+];
 
 /// The roles of a slide's top-level shapes, by index.
 struct Roles {
@@ -101,6 +114,9 @@ pub fn ideas_for(doc: &Presentation, index: usize) -> Vec<Idea> {
         PICTURE_IDEAS.to_vec()
     } else if r.title.is_some() && !r.text.is_empty() {
         TEXT_IDEAS.to_vec()
+    } else if r.title.and_then(|t| slide.shapes.get(t)).is_some_and(|t| t.text.as_ref().is_some_and(|x| !x.text().trim().is_empty())) {
+        // An empty title would look the same in every idea.
+        TITLE_IDEAS.to_vec()
     } else {
         vec![]
     }
@@ -210,6 +226,52 @@ pub fn apply_idea(doc: &mut Presentation, sel: &Selection, index: usize, id: &st
                 place.push((t, Xfrm::new(m, sh * 0.72, sw - 2.0 * m, sh * 0.2)));
             }
         }
+        "pictureTop" => {
+            if let Some(p) = r.picture {
+                place.push((p, Xfrm::new(0.0, 0.0, sw, sh * 0.5)));
+            }
+            if let Some(t) = r.title {
+                place.push((t, Xfrm::new(m, sh * 0.5 + m * 0.6, sw - 2.0 * m, sh * 0.16)));
+            }
+            let top = sh * 0.5 + m * 0.6 + sh * 0.18;
+            stack(Xfrm::new(m, top, sw - 2.0 * m, (sh - m - top).max(1.0)), &mut place);
+        }
+        "pictureBottom" => {
+            if let Some(t) = r.title {
+                place.push((t, Xfrm::new(m, m, sw - 2.0 * m, sh * 0.16)));
+            }
+            stack(Xfrm::new(m, m + sh * 0.18, sw - 2.0 * m, sh * 0.62 - m - sh * 0.18 - m * 0.4), &mut place);
+            if let Some(p) = r.picture {
+                place.push((p, Xfrm::new(0.0, sh * 0.62, sw, sh * 0.38)));
+            }
+        }
+        "titleRight" => {
+            stack(Xfrm::new(m, m, sw * 0.64 - 2.0 * m, sh - 2.0 * m), &mut place);
+            if let Some(t) = r.title {
+                place.push((t, Xfrm::new(sw * 0.66, m, sw * 0.34 - m, sh - 2.0 * m)));
+            }
+        }
+        "narrow" => {
+            if let Some(t) = r.title {
+                place.push((t, Xfrm::new(m, m, sw * 0.6, sh * 0.22)));
+            }
+            stack(Xfrm::new(m, m + sh * 0.26, sw * 0.5, sh - 2.0 * m - sh * 0.26), &mut place);
+        }
+        "titleMiddle" => {
+            if let Some(t) = r.title {
+                place.push((t, Xfrm::new(sw * 0.1, sh * 0.36, sw * 0.8, sh * 0.28)));
+            }
+        }
+        "titleLowerThird" => {
+            if let Some(t) = r.title {
+                place.push((t, Xfrm::new(m, sh * 0.62, sw - 2.0 * m, sh * 0.24)));
+            }
+        }
+        "titleTopLeft" => {
+            if let Some(t) = r.title {
+                place.push((t, Xfrm::new(m, m, sw * 0.7, sh * 0.4)));
+            }
+        }
         _ => return Err(bad("design.applyIdea", format!("no idea `{id}`"))),
     }
     let slide = doc.slides.get_mut(index).ok_or_else(|| bad("design.applyIdea", "no slide"))?;
@@ -317,9 +379,9 @@ mod tests {
     fn picture_slides_get_layout_ideas_and_text_slides_get_text_ideas() {
         let s = deck(true);
         let ids: Vec<&str> = ideas_for(&s.doc().unwrap().doc, 0).iter().map(|i| i.0).collect();
-        assert_eq!(ids, ["fullBleed", "pictureLeft", "pictureRight", "framed"]);
+        assert_eq!(ids, ["fullBleed", "pictureLeft", "pictureRight", "framed", "pictureTop", "pictureBottom"]);
         let s = deck(false);
-        assert_eq!(ideas_for(&s.doc().unwrap().doc, 0).len(), 3);
+        assert_eq!(ideas_for(&s.doc().unwrap().doc, 0).len(), TEXT_IDEAS.len());
         assert!(ideas_for(&s.doc().unwrap().doc, 9).is_empty());
     }
 
@@ -352,6 +414,19 @@ mod tests {
         let t = shape(&s, 500);
         assert!(t.fill.is_some());
         assert!(t.xfrm.unwrap().y > 300.0);
+    }
+
+    #[test]
+    fn a_title_only_slide_gets_title_ideas() {
+        let mut s = deck(false);
+        let slide = Arc::make_mut(&mut Arc::make_mut(&mut s.doc_mut().unwrap().doc).slides[0]);
+        slide.shapes.retain(|x| x.id == ShapeId(500));
+        let ids: Vec<&str> = ideas_for(&s.doc().unwrap().doc, 0).iter().map(|i| i.0).collect();
+        assert_eq!(ids, ["titleMiddle", "titleLowerThird", "titleTopLeft"]);
+        s.execute("design.applyIdea", &json!({"id": "titleLowerThird"})).unwrap();
+        let x = shape(&s, 500).xfrm.unwrap();
+        assert!(x.y > 300.0 && x.y + x.h <= 540.01, "{x:?}");
+        assert!(s.execute("design.applyIdea", &json!({"id": "centred"})).is_err(), "text ideas need text");
     }
 
     #[test]
@@ -489,7 +564,7 @@ mod tests {
         });
         assert!(ideas_for(&s.doc().unwrap().doc, 0).is_empty());
         Arc::make_mut(&mut Arc::make_mut(&mut s.doc_mut().unwrap().doc).slides[0]).shapes[2].hidden = true;
-        assert_eq!(ideas_for(&s.doc().unwrap().doc, 0).len(), 3);
+        assert_eq!(ideas_for(&s.doc().unwrap().doc, 0).len(), TEXT_IDEAS.len());
     }
 
     #[test]
@@ -505,7 +580,7 @@ mod tests {
         assert!(ideas_for(&s.doc().unwrap().doc, 0).is_empty());
         assert!(s.execute("design.applyIdea", &json!({"id": "pictureLeft"})).is_err());
         Arc::make_mut(&mut Arc::make_mut(&mut s.doc_mut().unwrap().doc).slides[0]).shapes[3].hidden = true;
-        assert_eq!(ideas_for(&s.doc().unwrap().doc, 0).len(), 4);
+        assert_eq!(ideas_for(&s.doc().unwrap().doc, 0).len(), PICTURE_IDEAS.len());
     }
 
     #[test]
@@ -513,7 +588,7 @@ mod tests {
         let mut s = deck(false);
         let slide = Arc::make_mut(&mut Arc::make_mut(&mut s.doc_mut().unwrap().doc).slides[0]);
         slide.shapes.push(Shape { id: ShapeId(512), text_box: true, xfrm: Some(Xfrm::new(10.0, 10.0, 100.0, 40.0)), ..Default::default() });
-        assert_eq!(ideas_for(&s.doc().unwrap().doc, 0).len(), 3, "invisible and empty: nothing in the way");
+        assert_eq!(ideas_for(&s.doc().unwrap().doc, 0).len(), TEXT_IDEAS.len(), "invisible and empty: nothing in the way");
         let slide = Arc::make_mut(&mut Arc::make_mut(&mut s.doc_mut().unwrap().doc).slides[0]);
         slide.shapes[2].fill = Some(Fill::solid(deckcraft_model::ColorRef::rgb(Rgba::rgba(200, 80, 20, 255))));
         assert!(ideas_for(&s.doc().unwrap().doc, 0).is_empty(), "a filled empty box would stay on top");
@@ -530,7 +605,7 @@ mod tests {
             fill: Some(Fill::None),
             ..Default::default()
         });
-        assert_eq!(ideas_for(&s.doc().unwrap().doc, 0).len(), 3, "an explicit no fill shows nothing");
+        assert_eq!(ideas_for(&s.doc().unwrap().doc, 0).len(), TEXT_IDEAS.len(), "an explicit no fill shows nothing");
     }
 
     #[test]
