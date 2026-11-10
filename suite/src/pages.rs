@@ -9,7 +9,7 @@ use egui::{Align2, Color32, CornerRadius, FontId, Galley, Painter, Rect, RichTex
 
 use crate::app::{Action, SuiteApp};
 use crate::kind::Kind;
-use crate::settings::{CloseButtons, ColorStyle, Mixing, NewTabOpens, NewTabPlacement, Settings, SuiteTheme, TabPosition, TitleBar};
+use crate::settings::{AutoSave, CloseButtons, ColorStyle, Logo, Mixing, NewTabOpens, NewTabPlacement, Settings, SuiteTheme, TabPosition, TitleBar, UiFont};
 use crate::tabbar::{Palette, palette};
 use crate::update;
 
@@ -665,6 +665,26 @@ pub(crate) fn card(ui: &mut Ui, pal: &Palette, title: &str, note: &str, add: imp
     });
 }
 
+/// The spelling languages offered (the tags Word's own Language box takes).
+const SPELL_LANGUAGES: &[(&str, &str)] = &[
+    ("en-US", "English (United States)"),
+    ("en-GB", "English (United Kingdom)"),
+    ("tr-TR", "Turkish"),
+    ("bn-BD", "Bangla"),
+    ("de-DE", "German"),
+    ("fr-FR", "French"),
+    ("es-ES", "Spanish"),
+    ("it-IT", "Italian"),
+    ("pt-BR", "Portuguese (Brazil)"),
+    ("nl-NL", "Dutch"),
+    ("ar-SA", "Arabic"),
+    ("hi-IN", "Hindi"),
+];
+
+fn language_name(tag: &str) -> String {
+    SPELL_LANGUAGES.iter().find(|(t, _)| *t == tag).map_or_else(|| tag.to_string(), |(_, n)| n.to_string())
+}
+
 fn radio_row<T: PartialEq + Copy>(ui: &mut Ui, value: &mut T, options: &[(T, &str)]) {
     ui.horizontal_wrapped(|ui| {
         for (v, label) in options {
@@ -711,7 +731,10 @@ fn settings_body(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette) {
 
             ui.label("Interface");
             ui.vertical(|ui| {
-                ui.checkbox(&mut s.same_font, "Same font in every app (Inter)");
+                ui.horizontal(|ui| {
+                    ui.label("Font");
+                    font_picker(ui, &mut s.ui_font);
+                });
                 ui.checkbox(&mut s.same_size, "Same size in every app");
                 if s.same_size {
                     ui.add(egui::Slider::new(&mut s.ui_size, 75..=200).text("size").suffix(" %"));
@@ -724,9 +747,22 @@ fn settings_body(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette) {
             });
             ui.end_row();
 
+            ui.label("Logo");
+            logo_picker(app, ui);
+            ui.end_row();
+
+            let s = &mut app.settings;
             ui.label("Theme");
             let themes: Vec<(SuiteTheme, &str)> = SuiteTheme::ALL.iter().map(|t| (*t, t.label())).collect();
-            radio_row(ui, &mut s.theme, &themes);
+            ui.vertical(|ui| {
+                radio_row(ui, &mut s.theme, &themes);
+                ui.checkbox(&mut s.apps_follow_theme, "Every app uses it (Word, Slide, Spreadsheet, Markd)");
+                ui.label(
+                    RichText::new("Switched off, the suite's tab bar, Home and Settings use it and each app keeps its own (File › Options in the app).")
+                        .size(12.5)
+                        .weak(),
+                );
+            });
             ui.end_row();
         });
     });
@@ -844,6 +880,54 @@ fn settings_body(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette) {
         });
     });
 
+    card(ui, pal, "You and your files", "Every app takes these. Left empty, each app keeps its own.", |ui| {
+        grid(ui, "you", |ui| {
+            let s = &mut app.settings;
+            ui.label("Your name");
+            ui.vertical(|ui| {
+                ui.add(egui::TextEdit::singleline(&mut s.user_name).hint_text("Each app's own").desired_width(240.0));
+                ui.label(RichText::new("On comments, tracked changes and as the author of new files.").size(12.5).weak());
+            });
+            ui.end_row();
+
+            ui.label("Initials");
+            ui.add(egui::TextEdit::singleline(&mut s.user_initials).hint_text("From name").desired_width(110.0).char_limit(6));
+            ui.end_row();
+
+            ui.label("AutoSave");
+            ui.vertical(|ui| {
+                ui.horizontal_wrapped(|ui| {
+                    for a in AutoSave::ALL {
+                        ui.radio_value(&mut s.autosave, a, a.label());
+                    }
+                });
+                ui.label(RichText::new("Word and Spreadsheet save a file that's already saved as you work.").size(12.5).weak());
+            });
+            ui.end_row();
+
+            ui.label("Spelling language");
+            ui.vertical(|ui| {
+                let shown = if s.spell_language.is_empty() { "Each app's own".to_string() } else { language_name(&s.spell_language) };
+                egui::ComboBox::from_id_salt("spell-language").selected_text(shown).show_ui(ui, |ui| {
+                    ui.selectable_value(&mut s.spell_language, String::new(), "Each app's own");
+                    for (tag, name) in SPELL_LANGUAGES {
+                        ui.selectable_value(&mut s.spell_language, tag.to_string(), *name);
+                    }
+                });
+                ui.label(RichText::new("For new text in Word documents.").size(12.5).weak());
+            });
+            ui.end_row();
+
+            ui.label("New presentations");
+            ui.checkbox(&mut s.pptx_for_new, "Save as PowerPoint (.pptx)");
+            ui.end_row();
+
+            ui.label("Recent files");
+            ui.label(RichText::new("Files every app opens or saves show on the Home page.").size(12.5).weak());
+            ui.end_row();
+        });
+    });
+
     card(ui, pal, "Behaviour", "", |ui| {
         grid(ui, "behaviour", |ui| {
             let s = &mut app.settings;
@@ -946,4 +1030,71 @@ fn settings_body(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette) {
         app.settings = Settings::default();
         (app.settings.recent, app.settings.session) = keep;
     }
+}
+
+/// The interface font: each app's own, the desktop's, Inter, or any installed family.
+/// The suite's logos side by side; a click picks one for the window, the Home page and the
+/// desktop's launchers.
+fn logo_picker(app: &mut SuiteApp, ui: &mut Ui) {
+    ui.vertical(|ui| {
+        ui.horizontal_wrapped(|ui| {
+            for logo in Logo::ALL {
+                let chosen = app.settings.logo == logo;
+                let Some(tex) = app.logo_preview(ui.ctx(), logo) else { continue };
+                let r = ui
+                    .vertical(|ui| {
+                        ui.set_width(72.0);
+                        let img = egui::Image::new((tex.id(), egui::vec2(48.0, 48.0)));
+                        let b = ui.add(egui::Button::image(img).selected(chosen).min_size(egui::vec2(64.0, 64.0)));
+                        ui.label(RichText::new(logo.label()).size(12.0).strong_if(chosen));
+                        b
+                    })
+                    .inner
+                    .on_hover_text(format!("{} logo", logo.label()));
+                if r.clicked() {
+                    app.settings.logo = logo;
+                }
+            }
+        });
+        ui.label(
+            RichText::new("On the window, the Home page and, on Linux, the app grid and dock (it may take a moment, or a new login, to show there).")
+                .size(12.5)
+                .weak(),
+        );
+    });
+}
+
+trait StrongIf {
+    fn strong_if(self, on: bool) -> Self;
+}
+
+impl StrongIf for RichText {
+    fn strong_if(self, on: bool) -> Self {
+        if on { self.strong() } else { self }
+    }
+}
+
+fn font_picker(ui: &mut egui::Ui, font: &mut UiFont) {
+    let system = crate::uifont::system_family().unwrap_or_else(|| "Inter".into());
+    let label = |f: &UiFont| match f {
+        UiFont::Own => "Each app's own".to_string(),
+        UiFont::System => format!("System font ({system})"),
+        UiFont::Inter => "Inter".to_string(),
+        UiFont::Family(name) => name.clone(),
+    };
+    egui::ComboBox::from_id_salt("ui-font")
+        .selected_text(label(font))
+        .width(240.0)
+        .height(360.0)
+        .show_ui(ui, |ui| {
+            for choice in [UiFont::System, UiFont::Inter, UiFont::Own] {
+                let text = label(&choice);
+                ui.selectable_value(font, choice, text);
+            }
+            ui.separator();
+            for family in crate::uifont::families() {
+                let choice = UiFont::Family(family.clone());
+                ui.selectable_value(font, choice, family);
+            }
+        });
 }

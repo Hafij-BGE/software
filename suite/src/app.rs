@@ -120,6 +120,11 @@ pub struct SuiteApp {
     pending_look: Option<Look>,
     /// This frame started a switch: no app runs until the restored fonts are in (see `look`).
     skip_frame: bool,
+    /// The logo on the window and the Home and Settings tabs (Settings › Window › Logo).
+    logo_shown: crate::settings::Logo,
+    logo_previews: HashMap<crate::settings::Logo, egui::TextureHandle>,
+    /// The top of each app tab's own recent list when last looked at (new entries join Home's).
+    recent_seen: HashMap<u64, String>,
     icons: HashMap<Kind, egui::TextureHandle>,
     big_icons: HashMap<Kind, egui::TextureHandle>,
     incoming: Option<Receiver<instance::Message>>,
@@ -194,12 +199,6 @@ pub fn decode_png(bytes: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
     Some((img.width(), img.height(), img.into_raw()))
 }
 
-pub fn icon_data() -> egui::IconData {
-    let (width, height, rgba) =
-        decode_png(include_bytes!("../../assets/hicolor/128x128/apps/craft-suite.png")).unwrap_or((0, 0, Vec::new()));
-    egui::IconData { rgba, width, height }
-}
-
 fn texture(ctx: &egui::Context, name: &str, png: &[u8]) -> Option<egui::TextureHandle> {
     let (w, h, rgba) = decode_png(png)?;
     let image = egui::ColorImage::from_rgba_unmultiplied([w as usize, h as usize], &rgba);
@@ -230,6 +229,9 @@ impl SuiteApp {
             font_union: None,
             pending_look: None,
             skip_frame: false,
+            logo_shown: crate::settings::Logo::Classic,
+            logo_previews: HashMap::new(),
+            recent_seen: HashMap::new(),
             icons,
             big_icons,
             incoming,
@@ -279,6 +281,15 @@ impl SuiteApp {
 
     pub fn icon(&self, kind: Kind) -> Option<&egui::TextureHandle> {
         self.icons.get(&kind)
+    }
+
+    /// A 64 px picture of `logo` for the picker in Settings.
+    pub fn logo_preview(&mut self, ctx: &egui::Context, logo: crate::settings::Logo) -> Option<egui::TextureHandle> {
+        if !self.logo_previews.contains_key(&logo) {
+            let t = logo.texture(ctx, &format!("logo-preview-{logo:?}"), 64)?;
+            self.logo_previews.insert(logo, t);
+        }
+        self.logo_previews.get(&logo).cloned()
     }
 
     pub fn big_icon(&self, kind: Kind) -> Option<&egui::TextureHandle> {
@@ -736,6 +747,30 @@ impl SuiteApp {
         }
     }
 
+    /// Puts the chosen logo on the Home and Settings tabs and the window, and, once it changes
+    /// in Settings, on the desktop's launchers too.
+    fn show_logo(&mut self, ctx: &egui::Context) {
+        let logo = self.settings.logo;
+        if logo == self.logo_shown && self.icons.contains_key(&Kind::Home) {
+            return;
+        }
+        for k in [Kind::Home, Kind::Settings] {
+            if let Some(t) = logo.texture(ctx, &format!("icon-{k:?}"), 64) {
+                self.icons.insert(k, t);
+            }
+            if let Some(t) = logo.texture(ctx, &format!("big-icon-{k:?}"), 128) {
+                self.big_icons.insert(k, t);
+            }
+        }
+        if logo != self.logo_shown {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Icon(Some(std::sync::Arc::new(logo.icon_data()))));
+            if logo != self.saved.logo {
+                std::thread::spawn(move || crate::logo::set_desktop_icon(logo));
+            }
+        }
+        self.logo_shown = logo;
+    }
+
     fn save_settings(&mut self) {
         if self.settings != self.saved {
             self.settings.save();
@@ -1050,8 +1085,9 @@ impl eframe::App for SuiteApp {
                     _ => home.clone(),
                 }
             });
+            let face = crate::uifont::face(&self.settings.ui_font);
             if let (Some(target), Some(union)) = (&target, &self.font_union) {
-                target.restore_fonts(ctx, union, self.settings.same_font);
+                target.restore_fonts(ctx, union, face.as_ref());
             }
             self.pending_look = target;
             self.shown = Some(self.active);
@@ -1067,16 +1103,36 @@ impl eframe::App for SuiteApp {
         }
         // The suite's interface font and size (Settings › Window › Interface), kept while an app
         // installs fonts or sets its own zoom: the apps do both from their own preferences.
-        let same_font = self.settings.same_font;
-        if ctx.fonts(|f| crate::look::has_suite_font(f.definitions())) != same_font {
+        let face = crate::uifont::face(&self.settings.ui_font);
+        if !ctx.fonts(|f| crate::look::has_suite_font(f.definitions(), face.as_ref())) {
             let defs = ctx.fonts(|f| f.definitions().clone());
-            ctx.set_fonts(crate::look::with_suite_font(&defs, same_font));
+            ctx.set_fonts(crate::look::with_suite_font(&defs, face.as_ref()));
         }
         let suite_zoom = self.suite_zoom();
         if let Some(zoom) = suite_zoom
             && ctx.zoom_factor() != zoom
         {
             ctx.set_zoom_factor(zoom);
+        }
+        // One theme, name and the rest for every app (Settings): each takes them in its own frame.
+        let system_dark = ctx.system_theme() == Some(egui::Theme::Dark);
+        for tab in &mut self.tabs {
+            if let Content::Doc(doc) = &mut tab.content {
+                if self.settings.apps_follow_theme {
+                    doc.follow_theme(self.settings.theme, system_dark);
+                }
+                doc.follow_settings(&self.settings);
+                // A file an app opened or saved by itself joins the Home page's recent list.
+                if let Some(latest) = doc.latest_recent()
+                    && self.recent_seen.get(&tab.id).map(String::as_str) != Some(latest)
+                {
+                    let latest = latest.to_string();
+                    if self.recent_seen.contains_key(&tab.id) {
+                        self.settings.add_recent(&latest);
+                    }
+                    self.recent_seen.insert(tab.id, latest);
+                }
+            }
         }
         let pages_theme = self.theme_preference();
         if let Some(tab) = self.tabs.iter_mut().find(|t| t.id == self.active) {
@@ -1158,6 +1214,7 @@ impl eframe::App for SuiteApp {
         #[cfg(not(feature = "markd"))]
         let _ = skipped;
         self.update_title(ui.ctx());
+        self.show_logo(ui.ctx());
         self.save_settings();
     }
 

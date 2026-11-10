@@ -499,7 +499,7 @@ impl SlideApp {
                 Err(e) => self.set_status(e.to_string()),
             }
         } else {
-            self.save_as_dialog("deckcraft");
+            self.save_as_dialog(self.new_file_format);
         }
     }
 
@@ -516,7 +516,7 @@ impl SlideApp {
         let own = d.path.as_deref().and_then(|p| std::path::Path::new(p).file_name()).map(|n| n.to_string_lossy().to_string());
         let (name, save_as) = match (ext, own) {
             (None, Some(own)) => (own, false),
-            (ext, _) => (format!("{}.{}", d.title(), ext.unwrap_or("deckcraft")), true),
+            (ext, _) => (format!("{}.{}", d.title(), ext.unwrap_or(self.new_file_format)), true),
         };
         let saved = save_bytes(&d.doc, format_for_path(&name)).map_err(|e| e.to_string()).and_then(|bytes| {
             let host = self.services.host_save.as_mut().ok_or("no page to save to")?;

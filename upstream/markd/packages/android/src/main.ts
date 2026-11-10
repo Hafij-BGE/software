@@ -97,6 +97,13 @@ const wireNativeEvents = (): void => {
   // A host's assistant: what the document says, and its edits.
   onNativeEvent('snapshot', () => snapshot())
   onNativeEvent('edit', (payload) => applyEdit(payload))
+  // A host that sets one theme for all its apps (Craft Suite's Settings).
+  onNativeEvent('theme', (payload) => {
+    const { theme } = payload as { theme: string }
+    if ((theme === 'system' || theme === 'word' || theme === 'word-dark') && settings.theme !== theme) {
+      updateSettings({ theme })
+    }
+  })
 }
 
 const boot = async(): Promise<void> => {

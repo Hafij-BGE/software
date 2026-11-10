@@ -25,7 +25,9 @@ mod markd;
 mod pages;
 mod settings;
 mod system;
+mod logo;
 mod tabbar;
+mod uifont;
 mod templates;
 mod update;
 
@@ -124,7 +126,7 @@ fn main() -> std::process::ExitCode {
         .with_drag_and_drop(true)
         // Tabs in the title bar: the suite draws the window buttons (see `tabbar`).
         .with_decorations(settings.title_bar == settings::TitleBar::System)
-        .with_icon(app::icon_data());
+        .with_icon(settings.logo.icon_data());
     #[cfg_attr(not(all(unix, not(target_os = "macos"))), allow(unused_mut))]
     let mut options = eframe::NativeOptions { viewport, ..Default::default() };
     // As WordCraft and DeckCraft do: winit has no file drag-and-drop on Wayland, so run through

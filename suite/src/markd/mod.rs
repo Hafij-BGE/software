@@ -383,6 +383,8 @@ pub struct MarkTab {
     area: Option<egui::Rect>,
     /// The suite asked the page whether it may close.
     closing: bool,
+    /// The theme the page was last told to use (Settings › Window › Theme).
+    theme_sent: Option<&'static str>,
 }
 
 impl MarkTab {
@@ -407,7 +409,7 @@ impl MarkTab {
         } else {
             host::available().err()
         };
-        MarkTab { shared, created: false, error, rect_sent: None, visible_sent: false, area: None, closing: false }
+        MarkTab { shared, created: false, error, rect_sent: None, visible_sent: false, area: None, closing: false, theme_sent: None }
     }
 
     pub fn title(&self) -> String {
@@ -575,6 +577,14 @@ impl MarkTab {
                 Ok(serde_json::Value::Null)
             }
             _ => Err(format!("Markd doesn't take the command {id}")),
+        }
+    }
+
+    /// Uses `theme` ("system", "word" or "word-dark"), once the page is ready for it.
+    pub fn set_theme(&mut self, theme: &'static str) {
+        if self.theme_sent != Some(theme) && self.created && self.shared.lock().ready {
+            event(self.shared.id, "theme", serde_json::json!({ "theme": theme }));
+            self.theme_sent = Some(theme);
         }
     }
 

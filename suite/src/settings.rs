@@ -119,6 +119,66 @@ impl SuiteTheme {
     }
 }
 
+/// The interface font of every app (`Settings::ui_font`; see `uifont.rs`).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum UiFont {
+    /// Each app's own interface font.
+    Own,
+    /// Inter, bundled (the face WordCraft and DeckCraft draw their interfaces with).
+    Inter,
+    /// The desktop's interface font.
+    System,
+    /// An installed font family.
+    Family(String),
+}
+
+/// AutoSave in every app, or each app's own choice (Settings › You and your files).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AutoSave {
+    EachApp,
+    On,
+    Off,
+}
+
+impl AutoSave {
+    pub const ALL: [AutoSave; 3] = [AutoSave::EachApp, AutoSave::On, AutoSave::Off];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            AutoSave::EachApp => "Each app's own",
+            AutoSave::On => "On",
+            AutoSave::Off => "Off",
+        }
+    }
+}
+
+/// The suite's logo: on the window, the Home page and Settings, and (on Linux) in the desktop's
+/// app grid and dock. Classic is the icon the suite installs with.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum Logo {
+    Classic,
+    Tiles,
+    Ring,
+    Sheets,
+    Stack,
+    Page,
+}
+
+impl Logo {
+    pub const ALL: [Logo; 6] = [Logo::Classic, Logo::Tiles, Logo::Ring, Logo::Sheets, Logo::Stack, Logo::Page];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Logo::Classic => "Classic",
+            Logo::Tiles => "Tiles",
+            Logo::Ring => "Ring",
+            Logo::Sheets => "Sheets",
+            Logo::Stack => "Stack",
+            Logo::Page => "Page",
+        }
+    }
+}
+
 /// Where the window's title bar (move, minimize, maximize, close) is.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TitleBar {
@@ -210,17 +270,31 @@ pub struct Settings {
     /// Colour the whole tab bar with the active tab's app colour.
     pub tint_bar_with_active: bool,
     pub theme: SuiteTheme,
+    /// Every app (WordApp, SlideApp, SheetApp, Markd) follows `theme` instead of its own choice.
+    pub apps_follow_theme: bool,
 
     // ---- window
     pub title_bar: TitleBar,
-    /// Every app's interface (menus, ribbons, panels, the tab bar) in one font, Inter (as
-    /// WordCraft and DeckCraft use), instead of each app's own. Documents keep their fonts.
-    pub same_font: bool,
+    /// The one font of every app's interface (menus, ribbons, panels, the tab bar), or each
+    /// app's own (`UiFont::Own`). Documents keep their fonts.
+    pub ui_font: UiFont,
     /// Every app's interface at one size (`ui_size`) instead of each app's own interface size;
     /// the tab bar then keeps its size from tab to tab.
     pub same_size: bool,
     /// The interface size with `same_size`, in percent of the display's own scale.
     pub ui_size: u16,
+    pub logo: Logo,
+
+    // ---- you and your files (every app takes these; empty or EachApp leaves the app's own)
+    /// Your name on comments, tracked changes and a document's author.
+    pub user_name: String,
+    /// Your initials on comments (empty: from the name).
+    pub user_initials: String,
+    pub autosave: AutoSave,
+    /// The language spelling is checked in, as a tag like "en-US" (empty: each app's own).
+    pub spell_language: String,
+    /// New presentations save as PowerPoint (.pptx) instead of DeckCraft's own format.
+    pub pptx_for_new: bool,
 
     // ---- behaviour
     pub new_tab_opens: NewTabOpens,
@@ -278,7 +352,14 @@ impl Default for Settings {
             tint_bar_with_active: false,
             theme: SuiteTheme::System,
             title_bar: TitleBar::Integrated,
-            same_font: true,
+            logo: Logo::Classic,
+            apps_follow_theme: true,
+            user_name: String::new(),
+            user_initials: String::new(),
+            autosave: AutoSave::EachApp,
+            spell_language: String::new(),
+            pptx_for_new: false,
+            ui_font: UiFont::System,
             same_size: true,
             ui_size: 100,
             new_tab_opens: NewTabOpens::Home,

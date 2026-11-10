@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Craft Suite logo "Stack" (original; MIT OR Apache-2.0): three stacked layers. -->
+  <rect x="16" y="16" width="224" height="224" rx="52" fill="#1b2340"/>
+  <path d="M128 150 L212 178 L128 206 L44 178 Z" fill="#1f9d55"/>
+  <path d="M128 112 L212 140 L128 168 L44 140 Z" fill="#f26b1d"/>
+  <path d="M128 112 L212 140 L128 168 L44 140 Z" fill="#000" opacity=".12" transform="translate(0 6)"/>
+  <path d="M128 72 L212 100 L128 128 L44 100 Z" fill="#3b5bdb"/>
+  <path d="M128 72 L212 100 L128 128 L44 100 Z" fill="#fff" opacity=".12"/>
+  <path d="M128 84 L176 100 L128 116 L80 100 Z" fill="#fff" opacity=".9"/>
+</svg>
