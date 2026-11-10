@@ -115,10 +115,12 @@ impl Doc {
                 let key = format!("word:{}:{}", t.app.session.document_id(), t.app.session.path.as_ref().map(|p| p.to_string_lossy().to_string()).unwrap_or_default());
                 // A new document is in WordCraft's own default fonts (Word's Aptos): nothing to tell.
                 let new = t.app.session.path.is_none();
-                let list = wordcraft_engine::cmd::font::missing_fonts(&mut t.app.session)
+                // Fonts whose substitute measures the same (Carlito for Calibri) move no line: left out.
+                let list = wordcraft_engine::cmd::font::session_missing_fonts(&mut t.app.session)
                     .into_iter()
-                    .filter(|m| !(new && ["Aptos", "Aptos Display"].iter().any(|d| m.requested.eq_ignore_ascii_case(d))))
-                    .map(|m| MissingFont { name: m.requested, shown_with: Some(m.shown_with) })
+                    .filter(|m| !m.metric_compatible)
+                    .filter(|m| !(new && ["Aptos", "Aptos Display"].iter().any(|d| m.font.eq_ignore_ascii_case(d))))
+                    .map(|m| MissingFont { shown_with: m.shown_as.first().cloned(), name: m.font })
                     .collect();
                 Some((key, list))
             }
@@ -381,6 +383,17 @@ impl Doc {
             }
             #[cfg(feature = "markd")]
             Doc::Mark(_) => {}
+        }
+    }
+
+    /// A slideshow fills the screen: the suite's title bar, tab bar and side panels step aside
+    /// so the slides get the whole window (a show "browsed by an individual" stays in a window).
+    pub fn presenting(&self) -> bool {
+        match self {
+            Doc::Deck(t) => t.app.show.as_ref().is_some_and(|s| {
+                !s.reading && t.app.session.doc().map_or(true, |d| d.doc.show.show_type != "browsed")
+            }),
+            _ => false,
         }
     }
 
