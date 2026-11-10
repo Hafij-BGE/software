@@ -13,7 +13,7 @@ description = "Craft Suite: WordCraft, DeckCraft, GridCraft and Markd in one tab
 [dependencies]
 wordcraft-engine = { path = "../upstream/wordcraft/crates/engine" }
 wordcraft-ui-egui = { path = "../upstream/wordcraft/crates/ui-egui" }
-wordcraft-proof = { path = "../upstream/wordcraft/crates/proof" }
+wordcraft-proof = { package = "craft-proof", git = "https://github.com/storytold/craft-libs", rev = "01315d9c92b5b0e69082d35ca56099461a1efd45", version = "=0.1.0" }
 wordcraft-fonts = { path = "../upstream/wordcraft/crates/fonts" }
 wordcraft-control-key = { path = "../upstream/wordcraft/crates/control-key" }
 deckcraft-engine = { path = "../upstream/deckcraft/crates/engine" }
@@ -36,7 +36,8 @@ rfd = "0.17"
 arboard = { version = "3.6", default-features = false, features = ["image-data", "wayland-data-control"] }
 pollster = "0.4"
 cpal = "0.16"
-craft-print = { git = "https://github.com/storytold/craft-libs", rev = "b926b5c03e256c86ca10934f58d03f628810b5b7" }
+craft-print = { git = "https://github.com/storytold/craft-libs", rev = "a3e0b5a9440d18f19422a9dca13516747b7d3181" }
+tempfile = "3"
 
 # Ask AI (src/ai): HTTPS to the AI providers and the system keyring for their keys. Only with the
 # `ai` feature (on by default); `--no-default-features` builds the suite without any of it.
@@ -54,6 +55,7 @@ flate2 = { version = "1", optional = true }
 winit = { version = "0.30", default-features = false, features = ["x11"] }
 zbus = { version = "5", default-features = false, features = ["async-io", "blocking-api"] }
 wl-clipboard-rs = "0.9"
+x11rb = "0.13"
 zbus-secret-service-keyring-store = { version = "1", features = ["rt-async-io-crypto-rust"], optional = true }
 # Markd tabs: the versions wry 0.57 uses.
 gtk = { version = "0.18", optional = true }
