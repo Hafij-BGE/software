@@ -870,6 +870,12 @@ impl SuiteApp {
         self.settings.title_bar == TitleBar::Integrated
     }
 
+    /// The active tab is running a full-screen slideshow.
+    fn presenting(&self) -> bool {
+        self.shown == Some(self.active)
+            && matches!(self.tab(self.active).map(|t| &t.content), Some(Content::Doc(d)) if d.presenting())
+    }
+
     /// Whether the window fills the screen (no edges to resize, no border).
     pub fn maximized(ctx: &egui::Context) -> bool {
         ctx.input(|i| i.viewport().maximized.unwrap_or(false) || i.viewport().fullscreen.unwrap_or(false))
@@ -932,7 +938,7 @@ impl eframe::App for SuiteApp {
             info.events.retain(|e| !matches!(e, egui::ViewportEvent::Close));
             self.close_requested = true;
         }
-        if self.integrated() {
+        if self.integrated() && !self.presenting() {
             self.window_edges(raw);
         }
         // Documents dropped on the window open as tabs; anything else (a picture, a font) goes
@@ -1055,9 +1061,12 @@ impl eframe::App for SuiteApp {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
-        crate::tabbar::show(self, ui);
-        #[cfg(feature = "ai")]
-        crate::ai::panel(self, ui);
+        let presenting = self.presenting();
+        if !presenting {
+            crate::tabbar::show(self, ui);
+            #[cfg(feature = "ai")]
+            crate::ai::panel(self, ui);
+        }
         let skipped = self.skip_frame;
         if std::mem::take(&mut self.skip_frame) {
             ui.ctx().request_repaint();
@@ -1075,7 +1084,9 @@ impl eframe::App for SuiteApp {
                 Some(false) => {
                     if let Some(Tab { content: Content::Doc(doc), id, .. }) = self.tabs.iter_mut().find(|t| t.id == active) {
                         let id = *id;
-                        crate::fontbar::show(&mut self.fontbar, &mut self.settings, id, doc, ui);
+                        if !presenting {
+                            crate::fontbar::show(&mut self.fontbar, &mut self.settings, id, doc, ui);
+                        }
                         ui.push_id(("craft_suite_tab", id), |ui| doc.ui(ui, frame));
                     }
                 }
@@ -1084,7 +1095,7 @@ impl eframe::App for SuiteApp {
         }
         self.show_prompt(ui.ctx());
         self.show_toast(ui);
-        if self.integrated() {
+        if self.integrated() && !presenting {
             self.window_frame(ui.ctx());
         }
         #[cfg(feature = "markd")]

@@ -386,6 +386,17 @@ impl Doc {
         }
     }
 
+    /// A slideshow fills the screen: the suite's title bar, tab bar and side panels step aside
+    /// so the slides get the whole window (a show "browsed by an individual" stays in a window).
+    pub fn presenting(&self) -> bool {
+        match self {
+            Doc::Deck(t) => t.app.show.as_ref().is_some_and(|s| {
+                !s.reading && t.app.session.doc().map_or(true, |d| d.doc.show.show_type != "browsed")
+            }),
+            _ => false,
+        }
+    }
+
     pub fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
         match self {
             Doc::Word(t) => {
