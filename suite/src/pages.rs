@@ -701,7 +701,23 @@ fn settings_body(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette) {
                     RichText::new(match s.title_bar {
                         TitleBar::Integrated => "Drag an empty part of the tab bar to move the window; double-click it to maximize.",
                         TitleBar::System => "The desktop draws the title bar, with its own buttons, above the tabs.",
+                        TitleBar::InApp => "No separate title bar: minimize, maximize and close sit at the right of each app's own top row, at its height. Drag that row to move the window. Home, Settings and Markd keep a slim title row.",
                     })
+                    .size(12.5)
+                    .weak(),
+                );
+            });
+            ui.end_row();
+
+            ui.label("Interface");
+            ui.vertical(|ui| {
+                ui.checkbox(&mut s.same_font, "Same font in every app (Inter)");
+                ui.checkbox(&mut s.same_size, "Same size in every app");
+                if s.same_size {
+                    ui.add(egui::Slider::new(&mut s.ui_size, 75..=200).text("size").suffix(" %"));
+                }
+                ui.label(
+                    RichText::new("Menus, ribbons, panels and the tab bar. Documents keep their own fonts and zoom. Switched off, each app uses its own (File › Options in the app).")
                     .size(12.5)
                     .weak(),
                 );
@@ -779,6 +795,13 @@ fn settings_body(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette) {
             ui.add(egui::Slider::new(&mut s.side_width, 120.0..=480.0).suffix(" pt"));
             ui.end_row();
 
+            ui.label("Side tab bar");
+            ui.checkbox(
+                &mut s.side_auto_hide,
+                "Hide it at the window's edge; it opens when the pointer is there",
+            );
+            ui.end_row();
+
             ui.label("Icons");
             ui.checkbox(&mut s.show_icons, "Show app icons on tabs");
             ui.end_row();
@@ -852,7 +875,7 @@ fn settings_body(app: &mut SuiteApp, ui: &mut Ui, pal: &Palette) {
             ui.vertical(|ui| {
                 ui.checkbox(&mut s.middle_click_closes, "Middle-click closes a tab");
                 ui.checkbox(&mut s.double_click_bar_new_tab, "Double-click the empty tab bar for a new tab");
-                if s.title_bar == TitleBar::Integrated && s.tab_position == TabPosition::Top {
+                if s.title_bar != TitleBar::System && s.tab_position == TabPosition::Top {
                     ui.label(RichText::new("With the tabs in the title bar, double-clicking it maximizes the window instead.").size(12.5).weak());
                 }
             });

@@ -53,7 +53,7 @@ pub type Inbox = std::sync::Arc<std::sync::Mutex<Vec<(String, Vec<u8>)>>>;
 /// that embeds the sheet in its own window (and owns files itself) can turn off the title bar
 /// and the File tab, whose Backstage view then never opens. Not persisted: it describes the
 /// host, not a user preference.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Chrome {
     /// The title bar: AutoSave, Home, Save, Undo/Redo, the file name, Comments, Share, Search and
     /// the theme switch.
@@ -61,10 +61,13 @@ pub struct Chrome {
     /// The ribbon's File tab and the Backstage view it opens (also reached by keyboard and
     /// commands such as `ui.backstage`).
     pub file_tab: bool,
+    /// Room the host keeps at the right end of the title bar for its own window buttons (0 by
+    /// default). The title bar's controls end before it.
+    pub title_bar_end: f32,
 }
 
 impl Default for Chrome {
     fn default() -> Self {
-        Chrome { title_bar: true, file_tab: true }
+        Chrome { title_bar: true, file_tab: true, title_bar_end: 0.0 }
     }
 }

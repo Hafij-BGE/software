@@ -17,6 +17,8 @@ use crate::settings::{CloseButtons, ColorStyle, Mixing, Rgb, TabPosition};
 pub struct TabBarState {
     /// The tab being dragged.
     drag: Option<u64>,
+    /// The hidden side tab bar is open over the page (the pointer is on it).
+    peek: bool,
 }
 
 /// A row of tabs along the top or bottom: the tabs, and a gap above them (below them at the
@@ -30,6 +32,8 @@ const BUTTON_W: f32 = 32.0;
 const CONTROL_W: f32 = 46.0;
 /// Empty bar kept free to drag the window by, beside the window buttons.
 const DRAG_MIN: f32 = 56.0;
+/// The strip a hidden side tab bar folds to.
+const RAIL_W: f32 = 14.0;
 
 /// The suite's colours: the tab bar, the active tab (the same as the Home and Settings pages
 /// under it), and the pages' side bar and cards.
@@ -113,6 +117,9 @@ pub enum Glyph {
     Minimize,
     Maximize,
     Restore,
+    /// Arrows: hide the side tab bar towards that edge, or open it from there.
+    ArrowLeft,
+    ArrowRight,
 }
 
 pub fn paint_glyph(painter: &egui::Painter, rect: Rect, glyph: Glyph, color: Color32) {
@@ -140,6 +147,24 @@ pub fn paint_glyph(painter: &egui::Painter, rect: Rect, glyph: Glyph, color: Col
         }
         Glyph::Maximize => {
             painter.rect_stroke(Rect::from_center_size(c, Vec2::splat(10.0)), 1.0, thin, egui::StrokeKind::Inside);
+        }
+        Glyph::ArrowLeft | Glyph::ArrowRight => {
+            let d = if glyph == Glyph::ArrowLeft { -1.0 } else { 1.0 };
+            let r = r * 0.7;
+            painter.line_segment(
+                [
+                    pos2(c.x - d * r * 0.5, c.y - r),
+                    pos2(c.x + d * r * 0.5, c.y),
+                ],
+                stroke,
+            );
+            painter.line_segment(
+                [
+                    pos2(c.x + d * r * 0.5, c.y),
+                    pos2(c.x - d * r * 0.5, c.y + r),
+                ],
+                stroke,
+            );
         }
         Glyph::Restore => {
             let back = Rect::from_center_size(c + vec2(2.0, -2.0), Vec2::splat(8.0));
@@ -194,6 +219,28 @@ fn window_controls(ui: &mut Ui, height: f32) {
             });
         }
     }
+}
+
+/// The apps' top row (AutoSave … Share, Search): 38 points in WordCraft, DeckCraft and GridCraft.
+const APP_TITLE_H: f32 = 38.0;
+
+/// The width of the three window buttons.
+pub const WINDOW_CONTROLS_W: f32 = 3.0 * CONTROL_W;
+
+/// The window buttons over the right end of the active app's own top row (`TitleBar::InApp`),
+/// which keeps that much room free (`Doc::set_title_bar_end`). `area` is the app's area.
+pub fn app_window_controls(ctx: &egui::Context, area: Rect) {
+    egui::Area::new(egui::Id::new("craft_suite_app_window_controls"))
+        .order(egui::Order::Middle)
+        .fixed_pos(egui::pos2(area.max.x - WINDOW_CONTROLS_W, area.min.y))
+        .show(ctx, |ui| {
+            ui.set_width(WINDOW_CONTROLS_W);
+            ui.horizontal(|ui| {
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
+                    window_controls(ui, APP_TITLE_H)
+                });
+            });
+        });
 }
 
 /// Dragging `resp` moves the window; double-clicking it maximizes or restores the window.
@@ -280,7 +327,7 @@ pub fn show(app: &mut SuiteApp, ui: &mut Ui) {
     }
     let integrated = app.integrated();
     let top = app.settings.tab_position == TabPosition::Top;
-    if integrated && !top {
+    if integrated && !top && !app.buttons_in_app() {
         title_row(app, ui, &visuals, fill);
     }
     let frame = match app.settings.tab_position {
@@ -316,12 +363,75 @@ pub fn show(app: &mut SuiteApp, ui: &mut Ui) {
         }
         TabPosition::Left | TabPosition::Right => {
             let panel = if app.settings.tab_position == TabPosition::Left { egui::Panel::left(id) } else { egui::Panel::right(id) };
-            // A fixed width (Settings › Side tab bar width): a resizable side panel grows to its
-            // widest with full-width tabs in it.
-            panel.frame(frame).resizable(false).exact_size(app.settings.side_width).show(ui, |ui| body(app, ui, &mut rects));
+            if app.settings.side_auto_hide {
+                let rail = panel
+                    .frame(egui::Frame::NONE.fill(fill))
+                    .resizable(false)
+                    .exact_size(RAIL_W)
+                    .show(ui, |ui| rail(app, ui))
+                    .response
+                    .rect;
+                if app.tabbar.peek {
+                    peek(app, ui, rail, frame, &mut rects, body);
+                }
+            } else {
+                // A fixed width (Settings › Side tab bar width): a resizable side panel grows to
+                // its widest with full-width tabs in it.
+                panel.frame(frame).resizable(false).exact_size(app.settings.side_width).show(ui, |ui| body(app, ui, &mut rects));
+            }
         }
     }
     finish_drag(app, ui, &rects, vertical);
+}
+
+/// The strip a hidden side tab bar folds to: the pointer on it opens the bar over the page, and
+/// a click on it keeps the bar open.
+fn rail(app: &mut SuiteApp, ui: &mut Ui) {
+    let rect = ui.max_rect();
+    let resp = ui.interact(rect, ui.id().with("craft_suite_rail"), Sense::click());
+    if resp.hovered() {
+        app.tabbar.peek = true;
+    }
+    if resp.clicked() {
+        app.settings.side_auto_hide = false;
+        app.tabbar.peek = false;
+    }
+    let color = if resp.hovered() { ui.visuals().strong_text_color() } else { ui.visuals().weak_text_color() };
+    let outward = if app.settings.tab_position == TabPosition::Left { Glyph::ArrowRight } else { Glyph::ArrowLeft };
+    paint_glyph(ui.painter(), Rect::from_center_size(pos2(rect.center().x, rect.top() + 24.0), Vec2::splat(RAIL_W + 6.0)), outward, color);
+    resp.on_hover_text("Tabs (click to keep the tab bar open)");
+}
+
+/// The hidden side tab bar, open over the page beside its strip until the pointer leaves it.
+fn peek(
+    app: &mut SuiteApp,
+    ui: &mut Ui,
+    rail: Rect,
+    frame: egui::Frame,
+    rects: &mut Vec<(u64, Rect)>,
+    body: impl FnOnce(&mut SuiteApp, &mut Ui, &mut Vec<(u64, Rect)>),
+) {
+    let ctx = ui.ctx().clone();
+    let width = app.settings.side_width;
+    let left = app.settings.tab_position == TabPosition::Left;
+    let x = if left { rail.left() } else { rail.right() - width };
+    let shadow = ctx.global_style().visuals.popup_shadow;
+    let area = egui::Area::new(egui::Id::new("craft_suite_tabs_peek")).order(egui::Order::Foreground).fixed_pos(pos2(x, rail.top())).show(&ctx, |ui| {
+        frame.shadow(shadow).show(ui, |ui| {
+            let inner = vec2(width - 16.0, rail.height() - 16.0);
+            ui.set_min_size(inner);
+            ui.set_max_size(inner);
+            body(app, ui, rects);
+        });
+    });
+    // Open while the pointer is on the bar or its strip, or a menu from it or a tab drag is open.
+    let keep = ctx.pointer_hover_pos().is_some_and(|p| area.response.rect.expand(4.0).contains(p) || rail.contains(p))
+        || egui::Popup::is_any_open(&ctx)
+        || app.tabbar.drag.is_some();
+    if !keep {
+        app.tabbar.peek = false;
+        ctx.request_repaint();
+    }
 }
 
 /// Tabs along the top or bottom: one row, or one per app (Separate).
@@ -329,7 +439,7 @@ fn rows(app: &mut SuiteApp, ui: &mut Ui, rects: &mut Vec<(u64, Rect)>) {
     let groups = app.display_groups();
     let separate = app.settings.mixing == Mixing::Separate;
     let count = groups.len().max(1);
-    let controls = app.integrated() && app.settings.tab_position == TabPosition::Top;
+    let controls = app.integrated() && app.settings.tab_position == TabPosition::Top && !app.buttons_in_app();
     ui.spacing_mut().item_spacing.y = 0.0;
     for (gi, (kind, ids)) in groups.into_iter().enumerate() {
         // Top-aligned: every slot is a full row high (tabs draw below or above the gap).
@@ -437,6 +547,25 @@ fn side_strip(app: &mut SuiteApp, ui: &mut Ui, rects: &mut Vec<(u64, Rect)>) {
         egui::Popup::menu(&menu).show(|ui| new_menu(app, ui));
         #[cfg(feature = "ai")]
         crate::ai::bar_button(app, ui, vec2(ai_button_w(app), SIDE_TAB_H));
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            let left = app.settings.tab_position == TabPosition::Left;
+            let hidden = app.settings.side_auto_hide;
+            // Pointing to the edge it hides at; open over the page, pointing back out.
+            let glyph = if left != hidden {
+                Glyph::ArrowLeft
+            } else {
+                Glyph::ArrowRight
+            };
+            let tip = if hidden {
+                "Keep the tab bar open"
+            } else {
+                "Hide the tab bar (it opens when the pointer is at the window's edge)"
+            };
+            if glyph_button(app, ui, glyph, vec2(BUTTON_W - 6.0, SIDE_TAB_H), tip).clicked() {
+                app.settings.side_auto_hide = !hidden;
+                app.tabbar.peek = false;
+            }
+        });
     });
     ui.add_space(4.0);
     let separate = app.settings.mixing == Mixing::Separate;

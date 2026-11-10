@@ -865,9 +865,28 @@ impl SuiteApp {
 }
 
 impl SuiteApp {
+    /// The one interface size of every tab with `Settings::same_size`, as an egui zoom factor
+    /// (`ui_size` is a percentage of the display's own scale, which egui multiplies in).
+    pub fn suite_zoom(&self) -> Option<f32> {
+        self.settings
+            .same_size
+            .then(|| f32::from(self.settings.ui_size) / 100.0)
+    }
+
     /// The suite draws the title bar (Settings › Window).
     pub fn integrated(&self) -> bool {
-        self.settings.title_bar == TitleBar::Integrated
+        self.settings.title_bar != TitleBar::System
+    }
+
+    /// The window buttons are at the right end of the active app's own top row (Settings ›
+    /// Window › Title bar), instead of in the suite's title row or tab bar.
+    pub fn buttons_in_app(&self) -> bool {
+        self.settings.title_bar == TitleBar::InApp
+            && !self.presenting()
+            && matches!(
+                self.tab(self.active).map(|t| &t.content),
+                Some(Content::Doc(d)) if d.has_title_bar()
+            )
     }
 
     /// The active tab is running a full-screen slideshow.
@@ -1032,7 +1051,7 @@ impl eframe::App for SuiteApp {
                 }
             });
             if let (Some(target), Some(union)) = (&target, &self.font_union) {
-                target.restore_fonts(ctx, union);
+                target.restore_fonts(ctx, union, self.settings.same_font);
             }
             self.pending_look = target;
             self.shown = Some(self.active);
@@ -1041,15 +1060,28 @@ impl eframe::App for SuiteApp {
             return;
         }
         if let Some(look) = self.pending_look.take() {
-            look.restore_options(ctx);
+            look.restore_options(ctx, self.suite_zoom());
             if let Some(Tab { content: Content::Doc(doc), .. }) = self.tabs.iter_mut().find(|t| t.id == self.active) {
                 doc.activated(ctx);
             }
         }
+        // The suite's interface font and size (Settings › Window › Interface), kept while an app
+        // installs fonts or sets its own zoom: the apps do both from their own preferences.
+        let same_font = self.settings.same_font;
+        if ctx.fonts(|f| crate::look::has_suite_font(f.definitions())) != same_font {
+            let defs = ctx.fonts(|f| f.definitions().clone());
+            ctx.set_fonts(crate::look::with_suite_font(&defs, same_font));
+        }
+        let suite_zoom = self.suite_zoom();
+        if let Some(zoom) = suite_zoom
+            && ctx.zoom_factor() != zoom
+        {
+            ctx.set_zoom_factor(zoom);
+        }
         let pages_theme = self.theme_preference();
         if let Some(tab) = self.tabs.iter_mut().find(|t| t.id == self.active) {
             match &mut tab.content {
-                Content::Doc(doc) => doc.logic(ctx, frame),
+                Content::Doc(doc) => pinned_zoom(ctx, doc, suite_zoom, |doc| doc.logic(ctx, frame)),
                 // The suite theme can change while a page shows.
                 _ => {
                     if ctx.options(|o| o.theme_preference) != pages_theme {
@@ -1062,12 +1094,16 @@ impl eframe::App for SuiteApp {
 
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
         let presenting = self.presenting();
+        let suite_zoom = self.suite_zoom();
+        let buttons_in_app = self.buttons_in_app();
         if !presenting {
             crate::tabbar::show(self, ui);
             #[cfg(feature = "ai")]
             crate::ai::panel(self, ui);
         }
         let skipped = self.skip_frame;
+        // The app's area, whose top row gets the window buttons with `buttons_in_app`.
+        let mut app_area = ui.available_rect_before_wrap();
         if std::mem::take(&mut self.skip_frame) {
             ui.ctx().request_repaint();
         } else {
@@ -1087,11 +1123,23 @@ impl eframe::App for SuiteApp {
                         if !presenting {
                             crate::fontbar::show(&mut self.fontbar, &mut self.settings, id, doc, ui);
                         }
-                        ui.push_id(("craft_suite_tab", id), |ui| doc.ui(ui, frame));
+                        app_area = ui.available_rect_before_wrap();
+                        doc.set_title_bar_end(if buttons_in_app {
+                            crate::tabbar::WINDOW_CONTROLS_W
+                        } else {
+                            0.0
+                        });
+                        let ctx = ui.ctx().clone();
+                        pinned_zoom(&ctx, doc, suite_zoom, |doc| {
+                            ui.push_id(("craft_suite_tab", id), |ui| doc.ui(ui, frame))
+                        });
                     }
                 }
                 None => {}
             }
+        }
+        if buttons_in_app {
+            crate::tabbar::app_window_controls(ui.ctx(), app_area);
         }
         self.show_prompt(ui.ctx());
         self.show_toast(ui);
@@ -1133,4 +1181,24 @@ impl eframe::App for SuiteApp {
             instance::cleanup();
         }
     }
+}
+
+/// Runs `f` on `doc` with the context's zoom factor reading as the app's own interface size, so
+/// the app (which sets its size every frame from its preferences) leaves the suite's size alone.
+/// Without `suite_zoom`, the app sets its own size as in its own window.
+fn pinned_zoom<R>(
+    ctx: &egui::Context,
+    doc: &mut Doc,
+    suite_zoom: Option<f32>,
+    f: impl FnOnce(&mut Doc) -> R,
+) -> R {
+    let own = suite_zoom.and_then(|_| doc.own_zoom(ctx));
+    let Some(own) = own else {
+        return f(doc);
+    };
+    let shown = ctx.zoom_factor();
+    ctx.options_mut(|o| o.zoom_factor = own);
+    let out = f(doc);
+    ctx.options_mut(|o| o.zoom_factor = shown);
+    out
 }

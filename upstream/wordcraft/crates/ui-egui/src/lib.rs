@@ -643,6 +643,9 @@ pub struct WordApp {
     pub integrated_titlebar: bool,
     /// macOS: the title bar's height and where its content starts, around the traffic lights.
     pub mac_titlebar: chrome::MacTitleBar,
+    /// Room a host that embeds the app keeps at the right end of the title bar for its own window
+    /// buttons (0 by default). The title bar's controls end before it.
+    pub title_bar_end: f32,
     /// Focus (#1678): the ribbon is dropped down from the Focus bar, over the page.
     pub(crate) focus_ribbon: bool,
     pub(crate) updates_rt: updates_ui::Runtime,
