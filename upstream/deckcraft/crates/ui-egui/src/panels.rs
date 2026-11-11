@@ -22,6 +22,7 @@ mod thesaurus;
 use animation::animation;
 use background::background;
 use comments::{comments, revisions};
+pub(crate) use designer::auto_suggest;
 use designer::designer;
 use format_shape::format_shape;
 pub(crate) use format_shape::text_transparency_slider;

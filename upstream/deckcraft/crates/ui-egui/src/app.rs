@@ -50,6 +50,8 @@ impl SlideApp {
             control_rx: None,
             squiggles: Default::default(),
             dialog: None,
+            stock: Default::default(),
+            icon_picker: craft_gallery::picker::IconPicker::new(true),
             thesaurus_query: String::new(),
             show: None,
             anim_preview: None,
@@ -340,6 +342,7 @@ impl SlideApp {
                 ViewMode::Sorter => sorter::show(self, ui),
                 ViewMode::NotesPage => sorter::notes_page(self, ui),
                 ViewMode::Outline | ViewMode::Normal | ViewMode::Reading => {
+                    panes::auto_suggest(self, ui.ctx());
                     if self.ui.pane.is_some() {
                         panes::show(self, ui);
                     }
@@ -360,6 +363,9 @@ impl SlideApp {
         toast::note_missing_fonts(self);
         toast::show(self, &ctx);
         dialogs::show(self, &ctx);
+        if let Some(pick) = self.stock.show(&ctx) {
+            self.insert_stock(pick);
+        }
         #[cfg(not(target_arch = "wasm32"))]
         updates_ui::show(self, &ctx);
         menus::palette(self, &ctx);

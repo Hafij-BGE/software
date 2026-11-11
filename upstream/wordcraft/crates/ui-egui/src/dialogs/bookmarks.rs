@@ -149,6 +149,12 @@ pub(super) fn icons_body(app: &mut WordApp, ui: &mut Ui, query: &mut String, cat
     let name = icon_lib::find(selected).map(|i| i.name).unwrap_or("");
     ui.add_space(4.0);
     ui.label(egui::RichText::new(name).color(t.text_dim));
+    // The suite's shared library: thousands more, searchable, in Stock Images ▸ Icons.
+    let more = format!("{} ({})", tl!("More icons…"), craft_gallery::picker::thousands(craft_gallery::icons::all().len()));
+    if ui.link(more).clicked() {
+        let _ = app.run("ui.stockImages", json!({"tab": "icons"}));
+        return true;
+    }
     let (ok, cancel) = buttons(ui, tl!("Insert"));
     if (ok || insert) && !selected.is_empty() {
         let _ = app.run("insert.icon", json!({"id": selected.as_str()}));

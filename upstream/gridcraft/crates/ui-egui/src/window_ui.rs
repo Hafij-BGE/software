@@ -16,6 +16,7 @@ pub struct WindowUi {
     editor: Option<editor::EditState>,
     text_box_editor: Option<text_box::EditState>,
     dialog: Option<dialogs::Dialog>,
+    stock: Box<craft_gallery::stock::StockDialog>,
     backstage: Option<backstage::Backstage>,
     message: Option<(String, String)>,
     toast: Option<(String, f64)>,
@@ -60,6 +61,7 @@ impl SheetApp {
             editor,
             text_box_editor,
             dialog,
+            stock,
             backstage,
             message,
             toast,
@@ -77,6 +79,7 @@ impl SheetApp {
         std::mem::swap(&mut self.editor, editor);
         std::mem::swap(&mut self.text_box_editor, text_box_editor);
         std::mem::swap(&mut self.dialog, dialog);
+        std::mem::swap(&mut self.stock, stock);
         std::mem::swap(&mut self.backstage, backstage);
         std::mem::swap(&mut self.message, message);
         std::mem::swap(&mut self.toast, toast);

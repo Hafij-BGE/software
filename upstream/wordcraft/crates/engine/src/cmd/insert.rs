@@ -8,13 +8,20 @@ use wordcraft_doc::{Block, Paragraph, PartKind, Path, Pos, StoryRef, Table, para
 use super::{delete_selection, sel_result, split_para, type_text};
 use crate::{CmdError, CmdResult, CommandSpec, Selection, Session, p};
 
+mod building_blocks;
+mod cover_pages;
 mod header_footer;
+mod hf_designs;
 mod items;
 mod links;
 mod objects;
 
+pub use building_blocks::BUILT_IN_BLOCKS;
+use building_blocks::building_block;
+pub use cover_pages::COVER_DESIGNS;
 pub(crate) use header_footer::saved_copy;
 use header_footer::{create_hf, edit_hf, header_footer, new_empty_headers, strip_headers};
+pub use hf_designs::{HF_DESIGNS, PAGE_NUMBER_STYLES};
 pub use items::{DropCapState, drop_cap_state, format_date, format_date_at, format_date_parts};
 use items::{cover_page, date_time, drop_cap, drop_cap_off, field, page_number, symbol};
 use links::{bookmark, delete_bookmark, link, link_targets};
@@ -37,11 +44,15 @@ pub fn specs() -> Vec<CommandSpec> {
             s.sel = Selection::caret(at);
             sel_result(s)
         }),
-        CommandSpec::new("insert.coverPage", "Cover Page", "Insert › Pages", cover_page).params(r#"{"title"?: string, "subtitle"?: string, "author"?: string}"#),
+        CommandSpec::new("insert.coverPage", "Cover Page", "Insert › Pages", cover_page).params(
+            r#"{"design"?: "studio|banded|centered|sideline|framed|minimal|boldBlock|report|academic|twoTone", "title"?: string, "subtitle"?: string, "author"?: string} (left out: the document's title, subject and author)"#,
+        ),
+        CommandSpec::new("insert.buildingBlock", "Building Blocks", "Insert › Text › Quick Parts", building_block)
+            .params(r#"{"name": "signature|address|contact|approval|disclaimer|confidential"}"#),
         CommandSpec::new("insert.table", "Table", "Insert › Tables", table).params(r#"{"rows": n, "cols": n, "style"?: string}"#),
         CommandSpec::new("insert.picture", "Pictures", "Insert › Illustrations", picture).params(r#"{"path"?: string, "data"?: base64, "width"?: pt, "alt"?: string}"#),
         CommandSpec::new("insert.icon", "Icons", "Insert › Illustrations", icon)
-            .params(r#"{"id"?: string (omit to list the library), "color"?: "RRGGBB", "size"?: pt, "query"?: string, "category"?: string}"#),
+            .params(r#"{"id"?: string (omit to list the library; any of the shared library's 5,500 icons works too), "source"?: "gallery", "color"?: "RRGGBB", "size"?: pt, "query"?: string, "category"?: string}"#),
         CommandSpec::new("insert.shape", "Shapes", "Insert › Illustrations", shape)
             .params(r#"{"kind": "rectangle|roundedRectangle|ellipse|triangle|diamond|line|arrow|star|heart|straightConnector|elbowConnector|curvedConnector", "width"?: pt, "height"?: pt, "fill"?: "RRGGBB", "stroke"?: "RRGGBB", "arrow"?: "none"|"start"|"end"|"both" (lines and connectors; glue a connector's ends with shape.connect)}"#),
         CommandSpec::new("insert.textBox", "Text Box", "Insert › Text", text_box)
@@ -63,9 +74,9 @@ pub fn specs() -> Vec<CommandSpec> {
         })),
         CommandSpec::new("insert.bookmark", "Bookmark", "Insert › Links", bookmark).params(r#"{"name": string}"#).key("Mod+Shift+F5"),
         CommandSpec::new("insert.deleteBookmark", "Delete Bookmark", "Insert › Links", delete_bookmark).params(r#"{"name": string}"#),
-        CommandSpec::new("insert.header", "Header", "Insert › Header & Footer", |s, v| header_footer(s, v, true)).params(r#"{"text"?: string, "preset"?: "blank|blankThree|title"}"#),
-        CommandSpec::new("insert.footer", "Footer", "Insert › Header & Footer", |s, v| header_footer(s, v, false)).params(r#"{"text"?: string, "preset"?: "blank|blankThree|pageNumber"}"#),
-        CommandSpec::new("insert.pageNumber", "Page Number", "Insert › Header & Footer", page_number).params(r#"{"position"?: "top|bottom|current", "align"?: "left|center|right", "format"?: "x of y"}"#),
+        CommandSpec::new("insert.header", "Header", "Insert › Header & Footer", |s, v| header_footer(s, v, true)).params(r#"{"text"?: string, "preset"?: "blank|blankThree|title|accentBar|banded|dateTitle|authorPage|pageXofY|chapter|rule|confidential|twoTone|minimalDot|sideline|framed|fileDate|dash"}"#),
+        CommandSpec::new("insert.footer", "Footer", "Insert › Header & Footer", |s, v| header_footer(s, v, false)).params(r#"{"text"?: string, "preset"?: "blank|blankThree|pageNumber|accentBar|banded|dateTitle|authorPage|pageXofY|chapter|rule|confidential|twoTone|minimalDot|sideline|framed|fileDate|dash"}"#),
+        CommandSpec::new("insert.pageNumber", "Page Number", "Insert › Header & Footer", page_number).params(r#"{"position"?: "top|bottom|current|leftMargin|rightMargin", "align"?: "left|center|right", "style"?: "plain|pageX|xOfY|slash|dash|brackets|parens|bold|accent|boxed|circle|pill|roman|words", "format"?: "x of y" (same as style xOfY)}"#),
         // Pure: going into an existing header/footer changes nothing; one the page doesn't have yet
         // is made by the mutating `insert.createHeader`/`insert.createFooter` (undoable, refused in
         // a protected document).

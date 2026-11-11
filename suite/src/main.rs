@@ -23,6 +23,8 @@ mod look;
 #[cfg(feature = "markd")]
 mod markd;
 mod pages;
+#[cfg(all(unix, not(target_os = "macos")))]
+mod pinch;
 mod settings;
 mod system;
 mod logo;

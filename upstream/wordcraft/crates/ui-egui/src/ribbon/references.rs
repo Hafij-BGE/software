@@ -12,6 +12,11 @@ pub(super) fn references(app: &mut WordApp, ui: &mut Ui) {
                 mi(ui, app, "Automatic Table 1 (3 levels)", "references.toc", json!({"levels": 3}));
                 mi(ui, app, "Automatic Table 2 (2 levels)", "references.toc", json!({"levels": 2, "title": "Table of Contents"}));
                 ui.separator();
+                // The built-in designs past the two automatic tables above.
+                for (id, label) in wordcraft_engine::cmd::references::TOC_PRESETS.iter().skip(2) {
+                    mi(ui, app, label, "references.toc", json!({"preset": id}));
+                }
+                ui.separator();
                 mi(ui, app, "Custom Table of Contents…", "ui.dialog", json!({"name": "toc"}));
                 mi(ui, app, "Remove Table of Contents", "references.removeToc", json!({}));
             },

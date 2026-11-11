@@ -88,6 +88,11 @@ fn bezpath(d: &str) -> Option<BezPath> {
     if out.elements().is_empty() { None } else { Some(out) }
 }
 
+/// SVG path data (one or more subpaths) as DeckCraft path syntax.
+pub(crate) fn deck_path_from_svg(d: &str) -> Option<String> {
+    BezPath::from_svg(d).ok().as_ref().and_then(deck_path)
+}
+
 fn deck_path(bp: &BezPath) -> Option<String> {
     let mut out = String::new();
     let mut started = false;
@@ -155,6 +160,45 @@ mod tests {
         assert!(find("arrow_right").is_some_and(|i| i.name == "arrow-right"));
         assert!(find("Star").is_some_and(|i| i.name == "star"));
         assert!(find("nope").is_none());
+    }
+
+    #[test]
+    fn gallery_icons_insert_as_stroked_or_filled_paths() {
+        let mut s = Session::with_new();
+        // Lucide has no `dna`; the shared gallery does (a stroke icon on a 24 grid).
+        assert!(find("dna").is_none());
+        s.execute("insert.icon", &json!({"name": "dna", "rect": [100.0, 80.0, 72.0, 72.0]})).unwrap();
+        // `source: gallery` skips Lucide even when the name exists there.
+        s.execute("insert.icon", &json!({"name": "star", "source": "gallery", "rect": [300.0, 80.0, 72.0, 72.0]})).unwrap();
+        assert!(s.execute("insert.icon", &json!({"name": "no-such-icon", "source": "gallery"})).is_err());
+        let filled = craft_gallery::icons::all()
+            .iter()
+            .find(|i| i.kind == craft_gallery::Kind::Fill && i.raw_paths().any(|(_, even_odd)| even_odd))
+            .expect("a filled even-odd gallery icon");
+        s.execute("insert.icon", &json!({"name": filled.id, "rect": [100.0, 250.0, 96.0, 96.0]})).unwrap();
+        let st = s.doc().unwrap();
+        let dna = st.shapes().iter().find(|s| s.name == "Dna").unwrap();
+        let Geom::Custom { paths } = &dna.geom else { panic!("{:?}", dna.geom) };
+        assert_eq!(paths.len(), 1);
+        assert!(paths[0].stroke && paths[0].fill == FillMode::None && (paths[0].w - 24.0).abs() < 1e-9);
+        let width = dna.line.as_ref().and_then(|l| l.width).unwrap();
+        assert!((width - 6.0).abs() < 1e-6, "{width}");
+
+        let sh = st.shapes().iter().find(|s| s.name == filled.label).unwrap();
+        let Geom::Custom { paths } = &sh.geom else { panic!("{:?}", sh.geom) };
+        assert!(!paths.is_empty());
+        assert!(paths.iter().all(|p| p.fill == FillMode::Norm && !p.stroke && (p.w - 48.0).abs() < 1e-9));
+        assert!(sh.fill.as_ref().is_some_and(|f| !f.is_none()));
+        let img = deckcraft_render::render_slide(&st.doc, st.selection.slide, &deckcraft_render::RenderOpts { scale: 2.0, ..Default::default() });
+        assert!(ink_in(&img, 100.0, 80.0, 72.0, 72.0, 2.0) > 40);
+        assert!(ink_in(&img, 300.0, 80.0, 72.0, 72.0, 2.0) > 40);
+        assert!(ink_in(&img, 100.0, 250.0, 96.0, 96.0, 2.0) > 200, "filled icon paints solid ink");
+
+        let bytes = deckcraft_pptx::export(&st.doc).unwrap();
+        let p = deckcraft_pptx::import(&bytes).unwrap();
+        let back = p.slides[0].shapes.iter().find(|s| s.name == filled.label).unwrap();
+        let Geom::Custom { paths } = &back.geom else { panic!("{:?}", back.geom) };
+        assert!(paths.iter().all(|p| p.fill == FillMode::Norm && !p.stroke));
     }
 
     #[test]

@@ -45,7 +45,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Icons",
             ["Insert", "Illustrations"],
             None,
-            "{name: star|arrow-right|… (see insert.icons), rect?: [x,y,w,h]}",
+            "{name: star|arrow-right|… (see insert.icons), source?: lucide|gallery, rect?: [x,y,w,h]}",
             has_slide,
             insert_icon
         ),
@@ -57,7 +57,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Picture from File…",
             ["Insert", "Images", "Pictures"],
             None,
-            "{path? | data: base64, name?, rect?: [x,y,w,h]}",
+            "{path? | data: base64, name?, alt?: string, rect?: [x,y,w,h]}",
             has_slide,
             picture
         ),
@@ -267,9 +267,14 @@ fn list_icons(_s: &mut Session, _p: &Value) -> Result<Value> {
 }
 
 /// A Lucide stroke icon: custom geometry, no fill, round line scaled from the 24-unit design.
+/// `source: "gallery"` (or a name Lucide lacks) takes the icon from the shared 5,500-icon gallery.
 fn insert_icon(s: &mut Session, p: &Value) -> Result<Value> {
     let name = str_param(p, "name").ok_or_else(|| bad("insert.icon", "missing `name`"))?;
-    let icon = crate::icons::find(name).ok_or_else(|| bad("insert.icon", format!("unknown icon `{name}`")))?;
+    let lucide = if str_param(p, "source") == Some("gallery") { None } else { crate::icons::find(name) };
+    let Some(icon) = lucide else {
+        let g = craft_gallery::icons::find(name).ok_or_else(|| bad("insert.icon", format!("unknown icon `{name}`")))?;
+        return insert_gallery_icon(s, p, g);
+    };
     let d = crate::icons::path_data(icon.name).ok_or_else(|| bad("insert.icon", format!("could not build icon `{}`", icon.name)))?;
     let rect = rect_param(p, "rect").unwrap_or_else(|| default_rect(s, 72.0, 72.0));
     if rect.w < 1.0 || rect.h < 1.0 {
@@ -295,6 +300,54 @@ fn insert_icon(s: &mut Session, p: &Value) -> Result<Value> {
             join: Some(deckcraft_model::style::LineJoin::Round),
             ..Default::default()
         }),
+        style: Some(ShapeStyle::line(SchemeSlot::Tx1)),
+        ..Default::default()
+    };
+    let id = add_shape(s, "insert.icon", shape, true)?;
+    Ok(json!({"id": id}))
+}
+
+/// A gallery icon. Stroke icons are one stroked path like Lucide's; filled icons are one filled
+/// path per piece (each already wound for the nonzero rule) in the text colour, with no outline.
+fn insert_gallery_icon(s: &mut Session, p: &Value, icon: &'static craft_gallery::Icon) -> Result<Value> {
+    let rect = rect_param(p, "rect").unwrap_or_else(|| default_rect(s, 72.0, 72.0));
+    if rect.w < 1.0 || rect.h < 1.0 {
+        return Err(bad("insert.icon", "rect needs a positive width and height"));
+    }
+    let view = icon.view();
+    let pieces: Vec<String> = icon.piece_data().iter().filter_map(|d| crate::icons::deck_path_from_svg(d)).collect();
+    if pieces.is_empty() {
+        return Err(bad("insert.icon", format!("could not build icon `{}`", icon.id)));
+    }
+    let tx1 = || Fill::solid(ColorRef::scheme(SchemeSlot::Tx1));
+    let (paths, fill, line) = match icon.kind {
+        craft_gallery::Kind::Stroke => {
+            let d = pieces.join(" ");
+            let span = rect.w.min(rect.h).abs().min(4_000.0);
+            let line = Line {
+                fill: Some(tx1()),
+                width: Some((span * icon.stroke_width() / view).clamp(0.25, 400.0)),
+                cap: Some(deckcraft_model::style::LineCap::Round),
+                join: Some(deckcraft_model::style::LineJoin::Round),
+                ..Default::default()
+            };
+            let path = deckcraft_model::CustomPath { w: view, h: view, d, fill: deckcraft_geom::preset::FillMode::None, stroke: true };
+            (vec![path], Fill::None, line)
+        }
+        craft_gallery::Kind::Fill => {
+            let paths = pieces
+                .into_iter()
+                .map(|d| deckcraft_model::CustomPath { w: view, h: view, d, fill: deckcraft_geom::preset::FillMode::Norm, stroke: false })
+                .collect();
+            (paths, tx1(), Line { fill: Some(Fill::None), ..Default::default() })
+        }
+    };
+    let shape = Shape {
+        name: icon.label.to_string(),
+        xfrm: Some(rect),
+        geom: Geom::Custom { paths },
+        fill: Some(fill),
+        line: Some(line),
         style: Some(ShapeStyle::line(SchemeSlot::Tx1)),
         ..Default::default()
     };

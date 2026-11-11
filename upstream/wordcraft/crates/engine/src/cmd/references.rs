@@ -25,14 +25,14 @@ use notes::{note, note_refs};
 pub use properties::{bookmark_text, date_picture};
 #[cfg(test)]
 use toc::cached_toc_tabs;
-pub use toc::{caret_in_toc, leader, level_range, toc_instr, update_toc};
+pub use toc::{TOC_PRESETS, caret_in_toc, leader, level_range, toc_instr, update_toc};
 pub(crate) use toc::{headings, toc_bookmark};
 use toc::{insert_toc, remove_toc, toc_range};
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("references.toc", "Table of Contents", "References › Table of Contents", insert_toc).params(
-            r#"{"levels"?: 1-9, "title"?: string, "pageNumbers"?: bool, "rightAlign"?: bool, "tabLeader"?: "dot|hyphen|underscore|none", "hyperlinks"?: bool, "headingStyles"?: bool, "outlineLevels"?: bool, "tcFields"?: bool, "styleLevels"?: {style name: 1-9}} (replaces an existing table; {} updates it)"#,
+            r#"{"preset"?: "automatic1|automatic2|classic|formal|simple|modern|distinctive|detailed|overview|lined|noPages" (its settings, under any given here), "levels"?: 1-9, "title"?: string, "pageNumbers"?: bool, "rightAlign"?: bool, "tabLeader"?: "dot|hyphen|underscore|middleDot|none", "hyperlinks"?: bool, "headingStyles"?: bool, "outlineLevels"?: bool, "tcFields"?: bool, "styleLevels"?: {style name: 1-9}} (replaces an existing table; {} updates it)"#,
         ),
         CommandSpec::new("references.updateToc", "Update Table", "References › Table of Contents", |s, _| {
             update_toc(s)?;

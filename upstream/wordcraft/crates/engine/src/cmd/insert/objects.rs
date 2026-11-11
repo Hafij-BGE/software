@@ -182,7 +182,6 @@ pub(super) fn icon(s: &mut Session, v: &Value) -> CmdResult {
         s.push_ui_request(json!({"open": "icons"}));
         return Ok(json!({"icons": icons}));
     };
-    let icon = icon_lib::find(id).ok_or_else(|| CmdError::Params(format!("no icon {id:?} (insert.icon without an id lists them)")))?;
     let ink = match p::str(v, "color") {
         Some(c) => Rgb::parse(c).ok_or_else(|| CmdError::Params(format!("bad color {c:?}: use RRGGBB")))?,
         None => Rgb::BLACK,
@@ -190,6 +189,15 @@ pub(super) fn icon(s: &mut Session, v: &Value) -> CmdResult {
     let size = p::f32(v, "size").unwrap_or(72.0).clamp(4.0, 1584.0);
     // About 300 pixels per inch, so it prints sharply.
     let px = (size * 300.0 / 72.0).round().clamp(64.0, 1024.0) as u32;
+    // Word's own icons first; the shared 5,500-icon library (Stock Images ▸ Icons) after.
+    let own = if p::str(v, "source") == Some("gallery") { None } else { icon_lib::find(id) };
+    let Some(icon) = own else {
+        let g = craft_gallery::icons::find(id).ok_or_else(|| CmdError::Params(format!("no icon {id:?} (insert.icon without an id lists them)")))?;
+        let png = g.png(px as u16, [ink.0, ink.1, ink.2]).ok_or_else(|| CmdError::Failed("couldn't draw the icon".into()))?;
+        let mut r = place_picture(s, png, Some(size), g.label)?;
+        r["icon"] = json!(g.id);
+        return Ok(r);
+    };
     let png = icon_lib::render(icon, px, ink).to_png();
     if png.is_empty() {
         return Err(CmdError::Failed("couldn't draw the icon".into()));

@@ -63,6 +63,8 @@ craft-media = { git = "https://github.com/storytold/craft-libs", rev = "1b34eba4
 craft-pdf = { git = "https://github.com/storytold/craft-libs", rev = "1b34eba41e62138fc2438d2734523b302840b45d", version = "=0.1.0", default-features = false, features = ["write", "write-simple-text"] }
 # craft-update: app-specific pretend versions apply to startup and manual checks.
 craft-update = { git = "https://github.com/storytold/craft-libs", version = "=0.1.0", rev = "1b34eba41e62138fc2438d2734523b302840b45d", features = ["egui"] }
+# Icons and stock pictures shared by the suite apps (Insert ▸ Icons / Stock Images).
+craft-gallery = { path = "../../crates/gallery" }
 craft-ui = { git = "https://github.com/storytold/craft-libs", rev = "1b34eba41e62138fc2438d2734523b302840b45d", version = "=0.1.0" }
 i_overlay = "9"
 quick-xml = "0.41"

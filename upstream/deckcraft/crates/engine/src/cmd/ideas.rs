@@ -1,57 +1,124 @@
 //! Design Ideas: arrangements of what is on the current slide (picture full-bleed with the title
-//! on a band, picture on one half, a framed picture, text-only layouts). An idea moves and
-//! resizes the slide's own shapes and crops pictures to their new box; it changes only that
-//! slide. Everything is computed here, offline.
+//! on a band, picture on one half, a circle crop, a grid or collage of several pictures, text
+//! as cards, a timeline or process chevrons, title-slide designs). An idea moves and resizes the
+//! slide's own shapes, crops pictures to their new box and may add accent shapes in one of the
+//! theme's accent colours; it changes only that slide. Everything is computed here, offline.
+//!
+//! Shapes an idea adds are tagged (see `decor`): picking another idea takes them away again and
+//! puts text it split into cards back together, so ideas can be tried one after another.
+
+mod content;
+mod decor;
+mod layouts;
+#[cfg(test)]
+mod more_tests;
+
+use std::borrow::Cow;
 
 use deckcraft_geom::Xfrm;
 use deckcraft_model::resolve::{self, Ctx};
-use deckcraft_model::{Fill, Presentation, Rgba, Shape, ShapeKind};
+use deckcraft_model::{Fill, Presentation, Rgba, SchemeSlot, Shape, ShapeId, ShapeKind};
 use serde_json::{Value, json};
 
-use super::{CommandSpec, bad, cmd, has_slide, opt_usize_param, str_param, xfrm_of};
+use super::{CommandSpec, NO_ID_SPACE, bad, cmd, has_slide, opt_usize_param, str_param, xfrm_of};
 use crate::{Result, Selection, Session};
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        cmd!(query "design.ideas", "Design Ideas", [], None, "{slide?} → [{id, label}] ideas for the slide", has_slide, ideas_cmd),
-        cmd!("design.applyIdea", "Apply Design Idea", ["Home", "Designer"], None, "{id, slide?}", has_slide, apply_cmd),
+        cmd!(query "design.ideas", "Design Ideas", [], None, "{slide?} → [{id, label, variants}] ideas for the slide", has_slide, ideas_cmd),
+        cmd!("design.applyIdea", "Apply Design Idea", ["Home", "Designer"], None, "{id, variant?, slide?}", has_slide, apply_cmd),
     ]
 }
 
 /// An idea: id and label.
 pub type Idea = (&'static str, &'static str);
 
-const PICTURE_IDEAS: [Idea; 6] = [
+/// Ideas for a slide with one picture (`pictureBullets` only when its text is a short list).
+const PICTURE_IDEAS: [Idea; 12] = [
     ("fullBleed", "Full-bleed picture, title on a band"),
     ("pictureLeft", "Picture left, text right"),
     ("pictureRight", "Picture right, text left"),
     ("framed", "Framed picture beside the title"),
     ("pictureTop", "Picture across the top, text below"),
     ("pictureBottom", "Title and text above a picture strip"),
+    ("captionBand", "Full-bleed picture with a caption band"),
+    ("pictureCircle", "Picture in a circle beside the text"),
+    ("diagonalSplit", "Picture cut on a diagonal"),
+    ("pictureAccentPanel", "Picture over an accent panel"),
+    ("pictureInset", "Text on a card over the picture"),
+    ("pictureBullets", "Picture beside numbered points"),
 ];
-const TEXT_IDEAS: [Idea; 5] = [
+/// Ideas for a slide with two to four pictures (`mosaic` only without body text).
+const MULTI_PICTURE_IDEAS: [Idea; 4] = [
+    ("grid", "Pictures in a grid"),
+    ("collage", "Collage: one large picture and smaller ones"),
+    ("filmstrip", "Pictures in a row on an accent strip"),
+    ("mosaic", "Picture mosaic, title on a band"),
+];
+/// Ideas for a slide with a title and text.
+const TEXT_IDEAS: [Idea; 8] = [
     ("titleColumn", "Title column beside the text"),
     ("centred", "Centred title over the text"),
     ("titleBottom", "Text above, title at the foot"),
     ("titleRight", "Text beside a title column on the right"),
     ("narrow", "Title and a narrow text column on the left"),
+    ("accentBar", "Accent bar beside the title"),
+    ("tintedPanel", "Title on a tinted panel"),
+    ("underline", "Title with an accent underline"),
 ];
-/// Ideas for a slide that has only a title (a section or closing slide).
-const TITLE_IDEAS: [Idea; 3] = [
+/// Ideas for a title and text that need a certain kind of text (a figure, a quotation, a list
+/// of points, steps or dates, two sides to compare).
+const CONTENT_IDEAS: [Idea; 8] = [
+    ("bigNumber", "Key figure, large"),
+    ("quote", "Quotation"),
+    ("statement", "Statement on a band"),
+    ("cards", "Points as cards"),
+    ("agendaList", "Numbered agenda"),
+    ("timeline", "Timeline"),
+    ("chevrons", "Process chevrons"),
+    ("comparison", "Two-column comparison"),
+];
+/// Ideas for a slide that has only a title, or a title and subtitle (a title, section or
+/// closing slide).
+const TITLE_IDEAS: [Idea; 8] = [
     ("titleMiddle", "Title in the middle of the slide"),
     ("titleLowerThird", "Title on the lower third"),
     ("titleTopLeft", "Large title at the top left"),
+    ("titleBand", "Title on an accent band"),
+    ("titleAccentLine", "Title over an accent line"),
+    ("titleFrame", "Title in a frame"),
+    ("titleSplit", "Split slide, title on a tinted half"),
+    ("titleCorner", "Title with accent corners"),
 ];
+
+/// Every idea, in catalogue order.
+pub fn catalogue() -> impl Iterator<Item = Idea> {
+    PICTURE_IDEAS.into_iter().chain(MULTI_PICTURE_IDEAS).chain(TEXT_IDEAS).chain(CONTENT_IDEAS).chain(TITLE_IDEAS)
+}
+
+/// The colour variants of idea `id`: the accent each one is drawn in. Ideas that only move
+/// the slide's shapes (and add none) have one.
+pub fn variants_of(id: &str) -> &'static [SchemeSlot] {
+    const ACCENTS: [SchemeSlot; 3] = [SchemeSlot::Accent1, SchemeSlot::Accent2, SchemeSlot::Accent3];
+    const ONE: [SchemeSlot; 1] = [SchemeSlot::Accent1];
+    match id {
+        "captionBand" | "pictureCircle" | "diagonalSplit" | "pictureAccentPanel" | "pictureInset" | "pictureBullets" | "filmstrip" | "accentBar"
+        | "tintedPanel" | "underline" | "bigNumber" | "quote" | "statement" | "cards" | "agendaList" | "timeline" | "chevrons" | "comparison"
+        | "titleBand" | "titleAccentLine" | "titleFrame" | "titleSplit" | "titleCorner" => &ACCENTS,
+        _ => &ONE,
+    }
+}
 
 /// The roles of a slide's top-level shapes, by index.
 struct Roles {
     title: Option<usize>,
-    picture: Option<usize>,
+    /// Visible pictures, largest first.
+    pictures: Vec<usize>,
     text: Vec<usize>,
 }
 
 fn roles(shapes: &[Shape]) -> Roles {
-    let mut r = Roles { title: None, picture: None, text: vec![] };
+    let mut r = Roles { title: None, pictures: vec![], text: vec![] };
     for (i, s) in shapes.iter().enumerate() {
         if s.hidden {
             continue;
@@ -59,15 +126,14 @@ fn roles(shapes: &[Shape]) -> Roles {
         if s.ph.as_ref().is_some_and(|p| p.kind.is_title()) && r.title.is_none() {
             r.title = Some(i);
         } else if matches!(s.kind, ShapeKind::Picture { .. }) {
-            // The largest picture leads.
-            let area = |j: usize| shapes.get(j).and_then(|s| s.xfrm).map(|x| x.w * x.h).unwrap_or(0.0);
-            if r.picture.is_none_or(|p| area(i) > area(p)) {
-                r.picture = Some(i);
-            }
+            r.pictures.push(i);
         } else if s.text.as_ref().is_some_and(|t| !t.text().trim().is_empty()) {
             r.text.push(i);
         }
     }
+    // The largest picture leads.
+    let area = |j: usize| shapes.get(j).and_then(|s| s.xfrm).map(|x| x.w * x.h).unwrap_or(0.0);
+    r.pictures.sort_by(|a, b| area(*b).total_cmp(&area(*a)));
     r
 }
 
@@ -98,27 +164,53 @@ fn arrangeable(ctx: Option<&Ctx>, s: &Shape) -> bool {
     }
 }
 
+/// The slide's shapes without what earlier ideas added (see [`decor::normalize`]).
+fn normalized(shapes: &[Shape]) -> Cow<'_, [Shape]> {
+    if decor::touched(shapes) {
+        let mut v = shapes.to_vec();
+        decor::normalize(&mut v);
+        Cow::Owned(v)
+    } else {
+        Cow::Borrowed(shapes)
+    }
+}
+
+/// The layout input for `shapes`.
+fn layout<'a>(doc: &Presentation, shapes: &'a [Shape], r: Roles, slot: SchemeSlot) -> layouts::Layout<'a> {
+    let (sw, sh) = (doc.slide_size.width.max(1.0), doc.slide_size.height.max(1.0));
+    layouts::Layout { sw, sh, m: sw.min(sh) * 0.06, shapes, title: r.title, pictures: r.pictures, text: r.text, slot }
+}
+
 /// The ideas for slide `index` (none when it has nothing to arrange, or other content in the way).
 pub fn ideas_for(doc: &Presentation, index: usize) -> Vec<Idea> {
     let Some(slide) = doc.slides.get(index) else { return vec![] };
     let ctx = Ctx::for_slide(doc, slide);
-    if slide.shapes.iter().any(|s| !s.hidden && !arrangeable(ctx.as_ref(), s)) {
+    let shapes = normalized(&slide.shapes);
+    if shapes.iter().any(|s| !s.hidden && !arrangeable(ctx.as_ref(), s)) {
         return vec![];
     }
-    // The ideas move one picture; a second would stay put, over the rearranged text.
-    if slide.shapes.iter().filter(|s| !s.hidden && matches!(s.kind, ShapeKind::Picture { .. })).count() > 1 {
-        return vec![];
+    let l = layout(doc, &shapes, roles(&shapes), SchemeSlot::Accent1);
+    let pick = |ideas: &[Idea]| ideas.iter().copied().filter(|(id, _)| layouts::fits(id, &l)).collect::<Vec<_>>();
+    match l.pictures.len() {
+        0 => {}
+        1 => return pick(&PICTURE_IDEAS),
+        // The ideas lay out up to four pictures; more would stay put, over the rearranged text.
+        2..=4 => return pick(&MULTI_PICTURE_IDEAS),
+        _ => return vec![],
     }
-    let r = roles(&slide.shapes);
-    if r.picture.is_some() {
-        PICTURE_IDEAS.to_vec()
-    } else if r.title.is_some() && !r.text.is_empty() {
-        TEXT_IDEAS.to_vec()
-    } else if r.title.and_then(|t| slide.shapes.get(t)).is_some_and(|t| t.text.as_ref().is_some_and(|x| !x.text().trim().is_empty())) {
+    if !l.has_title() && l.title.is_some() && l.text.is_empty() {
         // An empty title would look the same in every idea.
-        TITLE_IDEAS.to_vec()
-    } else {
-        vec![]
+        return vec![];
+    }
+    match (l.title.is_some(), l.text.is_empty()) {
+        (true, false) => {
+            let mut v = if l.has_title() && l.title_slide() { TITLE_IDEAS.to_vec() } else { vec![] };
+            v.extend(TEXT_IDEAS);
+            v.extend(pick(&CONTENT_IDEAS));
+            v
+        }
+        (true, true) => TITLE_IDEAS.to_vec(),
+        _ => vec![],
     }
 }
 
@@ -152,132 +244,39 @@ fn is_band(f: &Fill) -> bool {
     *f == band_fill() || *f == legacy_band_fill()
 }
 
-/// Apply idea `id` to slide `index` of `doc` (`sel` resolves inherited placeholder boxes).
+/// Apply idea `id` to slide `index` of `doc` in its first colour variant (`sel` resolves
+/// inherited placeholder boxes).
 pub fn apply_idea(doc: &mut Presentation, sel: &Selection, index: usize, id: &str) -> Result<()> {
+    apply_idea_variant(doc, sel, index, id, 0)
+}
+
+/// Apply colour variant `variant` (see [`variants_of`]) of idea `id` to slide `index` of `doc`.
+pub fn apply_idea_variant(doc: &mut Presentation, sel: &Selection, index: usize, id: &str, variant: usize) -> Result<()> {
     if !ideas_for(doc, index).iter().any(|i| i.0 == id) {
         return Err(bad("design.applyIdea", format!("no idea `{id}` for this slide (see design.ideas)")));
     }
-    let (sw, sh) = (doc.slide_size.width.max(1.0), doc.slide_size.height.max(1.0));
-    let sel = Selection { slide: index, ..sel.clone() };
-    let shapes = doc.slides.get(index).map(|s| s.shapes.clone()).ok_or_else(|| bad("design.applyIdea", "no slide"))?;
-    let r = roles(&shapes);
-    let boxes: Vec<Xfrm> = shapes.iter().map(|s| xfrm_of(doc, &sel, s)).collect();
-    let m = sw.min(sh) * 0.06;
-    let mut place: Vec<(usize, Xfrm)> = vec![];
-    // Text shapes stacked in a box.
-    let stack = |b: Xfrm, out: &mut Vec<(usize, Xfrm)>| {
-        let n = r.text.len().max(1) as f64;
-        let gap = m * 0.4;
-        let h = ((b.h - gap * (n - 1.0)) / n).max(1.0);
-        for (k, i) in r.text.iter().enumerate() {
-            out.push((*i, Xfrm::new(b.x, b.y + k as f64 * (h + gap), b.w, h)));
-        }
+    let slots = variants_of(id);
+    let Some(&slot) = slots.get(variant) else {
+        return Err(bad("design.applyIdea", format!("idea `{id}` has {} colour variant(s); `variant` must be below that", slots.len())));
     };
-    let mut band = false;
-    match id {
-        "fullBleed" => {
-            if let Some(p) = r.picture {
-                place.push((p, Xfrm::new(0.0, 0.0, sw, sh)));
-            }
-            if let Some(t) = r.title {
-                place.push((t, Xfrm::new(m, sh * 0.68, sw - 2.0 * m, sh * 0.2)));
-                band = true;
-            }
-            stack(Xfrm::new(m, sh * 0.06, sw * 0.45, sh * 0.5), &mut place);
-        }
-        "pictureLeft" | "pictureRight" => {
-            let left = id == "pictureLeft";
-            let half = sw * 0.5;
-            let (px, tx) = if left { (0.0, half + m) } else { (half, m) };
-            if let Some(p) = r.picture {
-                place.push((p, Xfrm::new(px, 0.0, half, sh)));
-            }
-            let tw = half - 2.0 * m;
-            if let Some(t) = r.title {
-                place.push((t, Xfrm::new(tx, m, tw, sh * 0.24)));
-            }
-            stack(Xfrm::new(tx, m + sh * 0.28, tw, sh - 2.0 * m - sh * 0.28), &mut place);
-        }
-        "framed" => {
-            if let Some(p) = r.picture {
-                place.push((p, Xfrm::new(sw * 0.42, m * 1.5, sw * 0.58 - m * 1.5, sh - 3.0 * m)));
-            }
-            let tw = sw * 0.42 - 2.0 * m;
-            if let Some(t) = r.title {
-                place.push((t, Xfrm::new(m, m * 1.5, tw, sh * 0.3)));
-            }
-            stack(Xfrm::new(m, m * 1.5 + sh * 0.34, tw, sh - 3.0 * m - sh * 0.34), &mut place);
-        }
-        "titleColumn" => {
-            if let Some(t) = r.title {
-                place.push((t, Xfrm::new(m, m, sw * 0.32, sh - 2.0 * m)));
-            }
-            stack(Xfrm::new(sw * 0.36, m, sw * 0.64 - m, sh - 2.0 * m), &mut place);
-        }
-        "centred" => {
-            if let Some(t) = r.title {
-                place.push((t, Xfrm::new(sw * 0.1, m, sw * 0.8, sh * 0.26)));
-            }
-            stack(Xfrm::new(sw * 0.18, m + sh * 0.3, sw * 0.64, sh - 2.0 * m - sh * 0.3), &mut place);
-        }
-        "titleBottom" => {
-            stack(Xfrm::new(m, m, sw - 2.0 * m, sh * 0.62), &mut place);
-            if let Some(t) = r.title {
-                place.push((t, Xfrm::new(m, sh * 0.72, sw - 2.0 * m, sh * 0.2)));
-            }
-        }
-        "pictureTop" => {
-            if let Some(p) = r.picture {
-                place.push((p, Xfrm::new(0.0, 0.0, sw, sh * 0.5)));
-            }
-            if let Some(t) = r.title {
-                place.push((t, Xfrm::new(m, sh * 0.5 + m * 0.6, sw - 2.0 * m, sh * 0.16)));
-            }
-            let top = sh * 0.5 + m * 0.6 + sh * 0.18;
-            stack(Xfrm::new(m, top, sw - 2.0 * m, (sh - m - top).max(1.0)), &mut place);
-        }
-        "pictureBottom" => {
-            if let Some(t) = r.title {
-                place.push((t, Xfrm::new(m, m, sw - 2.0 * m, sh * 0.16)));
-            }
-            stack(Xfrm::new(m, m + sh * 0.18, sw - 2.0 * m, sh * 0.62 - m - sh * 0.18 - m * 0.4), &mut place);
-            if let Some(p) = r.picture {
-                place.push((p, Xfrm::new(0.0, sh * 0.62, sw, sh * 0.38)));
-            }
-        }
-        "titleRight" => {
-            stack(Xfrm::new(m, m, sw * 0.64 - 2.0 * m, sh - 2.0 * m), &mut place);
-            if let Some(t) = r.title {
-                place.push((t, Xfrm::new(sw * 0.66, m, sw * 0.34 - m, sh - 2.0 * m)));
-            }
-        }
-        "narrow" => {
-            if let Some(t) = r.title {
-                place.push((t, Xfrm::new(m, m, sw * 0.6, sh * 0.22)));
-            }
-            stack(Xfrm::new(m, m + sh * 0.26, sw * 0.5, sh - 2.0 * m - sh * 0.26), &mut place);
-        }
-        "titleMiddle" => {
-            if let Some(t) = r.title {
-                place.push((t, Xfrm::new(sw * 0.1, sh * 0.36, sw * 0.8, sh * 0.28)));
-            }
-        }
-        "titleLowerThird" => {
-            if let Some(t) = r.title {
-                place.push((t, Xfrm::new(m, sh * 0.62, sw - 2.0 * m, sh * 0.24)));
-            }
-        }
-        "titleTopLeft" => {
-            if let Some(t) = r.title {
-                place.push((t, Xfrm::new(m, m, sw * 0.7, sh * 0.4)));
-            }
-        }
-        _ => return Err(bad("design.applyIdea", format!("no idea `{id}`"))),
+    let sel = Selection { slide: index, ..sel.clone() };
+    let mut shapes = doc.slides.get(index).map(|s| s.shapes.clone()).ok_or_else(|| bad("design.applyIdea", "no slide"))?;
+    decor::normalize(&mut shapes);
+    let boxes: Vec<Xfrm> = shapes.iter().map(|s| xfrm_of(doc, &sel, s)).collect();
+    let r = roles(&shapes);
+    let (mut plan, pictures) = {
+        let l = layout(doc, &shapes, r, slot);
+        let plan = layouts::plan(id, &l).ok_or_else(|| bad("design.applyIdea", format!("no idea `{id}`")))?;
+        // Pictures go to the back (largest first), so text over them stays readable.
+        let mut pictures = l.pictures.clone();
+        pictures.sort_unstable();
+        (plan, pictures)
+    };
+    for s in plan.back.iter_mut().chain(plan.mid.iter_mut()).chain(plan.front.iter_mut()) {
+        s.id = ShapeId(doc.alloc_id().ok_or_else(|| bad("design.applyIdea", NO_ID_SPACE))?);
     }
-    let slide = doc.slides.get_mut(index).ok_or_else(|| bad("design.applyIdea", "no slide"))?;
-    let slide = std::sync::Arc::make_mut(slide);
-    for (i, x) in place {
-        let (Some(s), Some(old)) = (slide.shapes.get_mut(i), boxes.get(i)) else { continue };
+    for (i, x) in &plan.place {
+        let (Some(s), Some(old)) = (shapes.get_mut(*i), boxes.get(*i)) else { continue };
         if let ShapeKind::Picture { fill } = &mut s.kind {
             // The source's aspect, from the current box and crop.
             let c = fill.crop;
@@ -285,39 +284,65 @@ pub fn apply_idea(doc: &mut Presentation, sel: &Selection, index: usize, id: &st
             let src = (old.w / fw) / (old.h / fh).max(1e-6);
             fill.crop = cover_crop(src, x.w / x.h.max(1e-6));
         }
-        s.xfrm = Some(Xfrm { rot: 0.0, ..x });
+        s.xfrm = Some(Xfrm { rot: 0.0, ..*x });
     }
-    // The picture goes to the back, so text over it stays readable.
-    if let Some(p) = r.picture
-        && p < slide.shapes.len()
-    {
-        let pic = slide.shapes.remove(p);
-        slide.shapes.insert(0, pic);
+    for (i, g) in plan.clip.drain(..) {
+        if let Some(s) = shapes.get_mut(i) {
+            decor::set_geom(s, g);
+        }
     }
-    if let Some(t) = slide.shapes.iter_mut().find(|s| !s.hidden && s.ph.as_ref().is_some_and(|p| p.kind.is_title())) {
-        if band {
+    for &i in &plan.hide {
+        if let Some(s) = shapes.get_mut(i) {
+            decor::hide_as_source(s);
+        }
+    }
+    if let Some(t) = shapes.iter_mut().find(|s| !s.hidden && s.ph.as_ref().is_some_and(|p| p.kind.is_title())) {
+        if plan.band {
             t.fill = Some(band_fill());
         } else if t.fill.as_ref().is_some_and(is_band) {
-            // The band belongs to full-bleed only: another idea takes it away again.
+            // The band belongs to full-bleed and mosaic only: another idea takes it away again.
             t.fill = None;
         }
     }
+    // Back shapes, pictures, shapes between, the rest, front shapes.
+    let mut out = Vec::with_capacity(shapes.len() + plan.back.len() + plan.mid.len() + plan.front.len());
+    out.append(&mut plan.back);
+    let mut rest = vec![];
+    for (i, s) in shapes.into_iter().enumerate() {
+        if pictures.binary_search(&i).is_ok() { out.push(s) } else { rest.push(s) }
+    }
+    out.append(&mut plan.mid);
+    out.append(&mut rest);
+    out.append(&mut plan.front);
+    let slide = doc.slides.get_mut(index).ok_or_else(|| bad("design.applyIdea", "no slide"))?;
+    std::sync::Arc::make_mut(slide).shapes = out;
     Ok(())
 }
 
 fn ideas_cmd(s: &mut Session, p: &Value) -> Result<Value> {
     let st = s.doc()?;
     let i = opt_usize_param(p, "slide", "design.ideas")?.unwrap_or(st.selection.slide);
-    Ok(json!(ideas_for(&st.doc, i).iter().map(|(id, label)| json!({"id": id, "label": label})).collect::<Vec<_>>()))
+    Ok(json!(
+        ideas_for(&st.doc, i).iter().map(|(id, label)| json!({"id": id, "label": label, "variants": variants_of(id).len()})).collect::<Vec<_>>()
+    ))
 }
 
 fn apply_cmd(s: &mut Session, p: &Value) -> Result<Value> {
     let id = str_param(p, "id").ok_or_else(|| bad("design.applyIdea", "missing `id`"))?.to_string();
     let slide = opt_usize_param(p, "slide", "design.applyIdea")?;
+    let variant = opt_usize_param(p, "variant", "design.applyIdea")?.unwrap_or(0);
     s.edit(|doc, sel| {
         let i = slide.unwrap_or(sel.slide);
-        apply_idea(doc, sel, i, &id)?;
-        Ok(json!({"slide": i, "id": id}))
+        apply_idea_variant(doc, sel, i, &id, variant)?;
+        if i == sel.slide {
+            // Shapes the idea hid (split into cards) or took away leave the selection.
+            let shown = |sid: ShapeId| doc.slides.get(i).is_some_and(|s| s.shapes.iter().any(|x| x.id == sid && !x.hidden));
+            sel.shapes.retain(|sid| shown(*sid));
+            if sel.text.as_ref().is_some_and(|t| !shown(t.shape)) {
+                sel.text = None;
+            }
+        }
+        Ok(json!({"slide": i, "id": id, "variant": variant}))
     })
 }
 
@@ -379,7 +404,8 @@ mod tests {
     fn picture_slides_get_layout_ideas_and_text_slides_get_text_ideas() {
         let s = deck(true);
         let ids: Vec<&str> = ideas_for(&s.doc().unwrap().doc, 0).iter().map(|i| i.0).collect();
-        assert_eq!(ids, ["fullBleed", "pictureLeft", "pictureRight", "framed", "pictureTop", "pictureBottom"]);
+        assert_eq!(ids[..6], ["fullBleed", "pictureLeft", "pictureRight", "framed", "pictureTop", "pictureBottom"]);
+        assert_eq!(ids.len(), PICTURE_IDEAS.len(), "a two-point text also gets Picture beside numbered points");
         let s = deck(false);
         assert_eq!(ideas_for(&s.doc().unwrap().doc, 0).len(), TEXT_IDEAS.len());
         assert!(ideas_for(&s.doc().unwrap().doc, 9).is_empty());
@@ -422,7 +448,8 @@ mod tests {
         let slide = Arc::make_mut(&mut Arc::make_mut(&mut s.doc_mut().unwrap().doc).slides[0]);
         slide.shapes.retain(|x| x.id == ShapeId(500));
         let ids: Vec<&str> = ideas_for(&s.doc().unwrap().doc, 0).iter().map(|i| i.0).collect();
-        assert_eq!(ids, ["titleMiddle", "titleLowerThird", "titleTopLeft"]);
+        assert_eq!(ids[..3], ["titleMiddle", "titleLowerThird", "titleTopLeft"]);
+        assert_eq!(ids.len(), TITLE_IDEAS.len());
         s.execute("design.applyIdea", &json!({"id": "titleLowerThird"})).unwrap();
         let x = shape(&s, 500).xfrm.unwrap();
         assert!(x.y > 300.0 && x.y + x.h <= 540.01, "{x:?}");
@@ -568,7 +595,7 @@ mod tests {
     }
 
     #[test]
-    fn two_visible_pictures_get_no_ideas_but_a_hidden_second_one_does_not_count() {
+    fn two_visible_pictures_get_multi_picture_ideas_but_a_hidden_second_one_does_not_count() {
         let mut s = deck(true);
         let slide = Arc::make_mut(&mut Arc::make_mut(&mut s.doc_mut().unwrap().doc).slides[0]);
         slide.shapes.push(Shape {
@@ -577,7 +604,8 @@ mod tests {
             xfrm: Some(Xfrm::new(600.0, 300.0, 200.0, 100.0)),
             ..Default::default()
         });
-        assert!(ideas_for(&s.doc().unwrap().doc, 0).is_empty());
+        let ids: Vec<&str> = ideas_for(&s.doc().unwrap().doc, 0).iter().map(|i| i.0).collect();
+        assert_eq!(ids, ["grid", "collage", "filmstrip"], "no mosaic: the slide has body text");
         assert!(s.execute("design.applyIdea", &json!({"id": "pictureLeft"})).is_err());
         Arc::make_mut(&mut Arc::make_mut(&mut s.doc_mut().unwrap().doc).slides[0]).shapes[3].hidden = true;
         assert_eq!(ideas_for(&s.doc().unwrap().doc, 0).len(), PICTURE_IDEAS.len());

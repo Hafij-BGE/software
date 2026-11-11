@@ -2,6 +2,8 @@ use super::common::{mi, mi_icon, stack};
 use super::language::mi_check;
 use super::{Ui, WordApp, big, group, json, menu_button, small};
 
+mod page_parts;
+
 /// The basic shapes of Insert › Shapes: tooltip and `insert.shape` kind.
 pub(super) const SHAPE_TILES: [(&str, &str); 9] = [
     ("Rectangle", "rectangle"),
@@ -51,9 +53,7 @@ pub(super) fn insert(app: &mut WordApp, ui: &mut Ui) {
                 ui,
                 app,
                 crate::widgets::MenuButtonOptions::new("coverPage", Some("Cover Page"), "Cover Page", false, "insert.coverPage"),
-                |ui, app| {
-                    mi(ui, app, "Studio cover", "insert.coverPage", json!({}));
-                },
+                page_parts::cover_page_menu,
             );
             small(ui, app, "blankPage", Some("Blank Page"), "Blank Page", crate::widgets::ButtonAction::new("insert.blankPage", json!({}), false));
             small(ui, app, "pageBreak", Some("Page Break"), "Page Break", crate::widgets::ButtonAction::new("insert.pageBreak", json!({}), false));
@@ -77,7 +77,11 @@ pub(super) fn insert(app: &mut WordApp, ui: &mut Ui) {
         });
     });
     group(ui, "Illustrations", None, app, |ui, app| {
-        big(ui, app, "picture", "Pictures", "insert.picture", json!({}), false);
+        menu_button(ui, app, crate::widgets::MenuButtonOptions::new("picture", Some("Pictures"), "Pictures", true, "insert.picture"), |ui, app| {
+            mi(ui, app, "This Device…", "insert.picture", json!({}));
+            mi(ui, app, "Stock Images…", "ui.stockImages", json!({}));
+            mi(ui, app, "Online Pictures…", "ui.onlinePictures", json!({}));
+        });
         menu_button(ui, app, crate::widgets::MenuButtonOptions::new("shapes", Some("Shapes"), "Shapes", true, "insert.shape"), |ui, app| {
             shape_gallery(ui, app);
             ui.separator();
@@ -131,6 +135,8 @@ pub(super) fn insert(app: &mut WordApp, ui: &mut Ui) {
             mi(ui, app, "Blank (Three Columns)", "insert.header", json!({"preset": "blankThree"}));
             mi(ui, app, "Document Title", "insert.header", json!({"preset": "title"}));
             ui.separator();
+            page_parts::hf_gallery(ui, app, "insert.header", true);
+            ui.separator();
             mi(ui, app, "Edit Header", "insert.editHeader", json!({}));
             mi(ui, app, "Remove Header", "insert.removeHeader", json!({}));
         });
@@ -139,6 +145,8 @@ pub(super) fn insert(app: &mut WordApp, ui: &mut Ui) {
             mi(ui, app, "Blank (Three Columns)", "insert.footer", json!({"preset": "blankThree"}));
             mi(ui, app, "Page Number", "insert.footer", json!({"preset": "pageNumber"}));
             ui.separator();
+            page_parts::hf_gallery(ui, app, "insert.footer", false);
+            ui.separator();
             mi(ui, app, "Edit Footer", "insert.editFooter", json!({}));
             mi(ui, app, "Remove Footer", "insert.removeFooter", json!({}));
         });
@@ -146,13 +154,7 @@ pub(super) fn insert(app: &mut WordApp, ui: &mut Ui) {
             ui,
             app,
             crate::widgets::MenuButtonOptions::new("pageNumber", Some("Page\nNumber"), "Page Number", true, "insert.pageNumber"),
-            |ui, app| {
-                mi(ui, app, "Top of Page", "insert.pageNumber", json!({"position": "top", "align": "right"}));
-                mi(ui, app, "Bottom of Page", "insert.pageNumber", json!({"position": "bottom", "align": "center"}));
-                mi(ui, app, "Page X of Y", "insert.pageNumber", json!({"position": "bottom", "format": "x of y"}));
-                mi(ui, app, "Current Position", "insert.pageNumber", json!({"position": "current"}));
-                mi(ui, app, "Format Page Numbers…", "ui.dialog", json!({"name": "pageNumbers"}));
-            },
+            page_parts::page_number_menu,
         );
     });
     group(ui, "Text", None, app, |ui, app| {
@@ -174,6 +176,7 @@ pub(super) fn insert(app: &mut WordApp, ui: &mut Ui) {
                             ui.close();
                         }
                     }
+                    page_parts::building_blocks_menu(ui, app);
                     mi(ui, app, "Field…", "ui.dialog", json!({"name": "field"}));
                 },
             );

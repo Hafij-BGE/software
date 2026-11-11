@@ -1,0 +1,26 @@
+[package]
+name = "craft-gallery"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "The Insert galleries every craft app shares: a 5,500-icon library and stock and online pictures"
+
+[features]
+default = []
+# The egui icon picker and the Stock Images dialog (online pictures from Openverse).
+ui = ["dep:egui", "dep:ureq", "dep:serde_json"]
+
+[dependencies]
+vello_cpu = "0.2"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+egui = { version = "0.37", optional = true }
+serde_json = { version = "1", optional = true }
+
+# The web build has no sockets of its own; online pictures are desktop only.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+ureq = { version = "3", default-features = false, features = ["rustls", "platform-verifier", "gzip"], optional = true }
+
+# For building and testing this crate on its own; the apps' workspaces carry the same patch.
+[patch.crates-io]
+egui = { git = "https://github.com/storytold/egui.git", rev = "6d518fc799681571963842f95b55a6b68431b15a" }

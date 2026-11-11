@@ -1178,6 +1178,17 @@ version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=92d392cff132eaf53e13afff77f38b5c11b73aa0#92d392cff132eaf53e13afff77f38b5c11b73aa0"
 
 [[package]]
+name = "craft-gallery"
+version = "0.1.0"
+dependencies = [
+ "egui",
+ "image",
+ "serde_json",
+ "ureq",
+ "vello_cpu",
+]
+
+[[package]]
 name = "craft-i18n"
 version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=1b34eba41e62138fc2438d2734523b302840b45d#1b34eba41e62138fc2438d2734523b302840b45d"
@@ -1569,6 +1580,7 @@ name = "deckcraft-engine"
 version = "0.15.0"
 dependencies = [
  "chrono",
+ "craft-gallery",
  "deckcraft-color",
  "deckcraft-fonts",
  "deckcraft-format",
@@ -1765,6 +1777,7 @@ dependencies = [
 name = "deckcraft-ui-egui"
 version = "0.15.0"
 dependencies = [
+ "craft-gallery",
  "craft-ui 0.1.0 (git+https://github.com/storytold/craft-libs?rev=1b34eba41e62138fc2438d2734523b302840b45d)",
  "craft-update",
  "deckcraft-anim",
@@ -3005,6 +3018,7 @@ dependencies = [
 name = "gridcraft-engine"
 version = "0.16.0"
 dependencies = [
+ "craft-gallery",
  "gridcraft-calc",
  "gridcraft-chart",
  "gridcraft-core",
@@ -3079,6 +3093,7 @@ name = "gridcraft-ui-egui"
 version = "0.16.0"
 dependencies = [
  "craft-font-files",
+ "craft-gallery",
  "craft-ui 0.1.0 (git+https://github.com/storytold/craft-libs?rev=1b34eba41e62138fc2438d2734523b302840b45d)",
  "craft-update",
  "craft-window 0.1.0 (git+https://github.com/storytold/craft-libs?rev=1b34eba41e62138fc2438d2734523b302840b45d)",
@@ -8686,6 +8701,7 @@ dependencies = [
  "chrono",
  "craft-font-catalog",
  "craft-font-store",
+ "craft-gallery",
  "craft-proof",
  "getrandom 0.3.4",
  "image",
@@ -8823,6 +8839,7 @@ name = "wordcraft-ui-egui"
 version = "0.15.1"
 dependencies = [
  "chrono",
+ "craft-gallery",
  "craft-i18n 0.1.0 (git+https://github.com/storytold/craft-libs?rev=92d392cff132eaf53e13afff77f38b5c11b73aa0)",
  "craft-ui 0.1.0 (git+https://github.com/storytold/craft-libs?rev=92d392cff132eaf53e13afff77f38b5c11b73aa0)",
  "craft-update",

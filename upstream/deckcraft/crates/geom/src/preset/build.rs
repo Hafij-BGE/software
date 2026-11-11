@@ -1186,7 +1186,17 @@ fn callout_wave_and_connector_shapes(c: &Ctx) -> Option<Geometry> {
             let l = Pb::new().m(0.0, 0.0).l(w, 0.0).l(w, h).take();
             Geometry { paths: vec![stroke_only(l)], text_rect: full, handles: vec![], sites: vec![Point::ZERO, Point::new(w, h)] }
         }
-        "bentConnector3" | "bentConnector4" | "bentConnector5" => {
+        "bentConnector4" => {
+            // Two bends then a drop: across to x1, down to y2, across to the far side, down to the end.
+            let x = w * a(0) / 1e5;
+            let y = h * a(1) / 1e5;
+            let l = Pb::new().m(0.0, 0.0).l(x, 0.0).l(x, y).l(w, y).l(w, h).take();
+            let mut g = Geometry { paths: vec![stroke_only(l)], text_rect: full, handles: vec![], sites: vec![Point::ZERO, Point::new(w, h)] };
+            g.handles.push(Handle::new(0, Point::new(x, y / 2.0), Vec2::new(w / 1e5, 0.0), a(0), -1e6, 1e6));
+            g.handles.push(Handle::new(1, Point::new((x + w) / 2.0, y), Vec2::new(0.0, h / 1e5), a(1), -1e6, 1e6));
+            g
+        }
+        "bentConnector3" | "bentConnector5" => {
             let x = w * a(0) / 1e5;
             let l = Pb::new().m(0.0, 0.0).l(x, 0.0).l(x, h).l(w, h).take();
             let mut g = Geometry { paths: vec![stroke_only(l)], text_rect: full, handles: vec![], sites: vec![Point::ZERO, Point::new(w, h)] };

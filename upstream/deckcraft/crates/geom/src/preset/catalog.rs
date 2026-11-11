@@ -156,6 +156,8 @@ pub static CATALOG: &[PresetInfo] = &[
     p!("bentConnector3", "Connector: Elbow", Lines, [50000]),
     p!("curvedConnector3", "Connector: Curved", Lines, [50000]),
     p!("bentConnector2", "Connector: Elbow (one bend)", Lines, []),
+    p!("bentConnector4", "Connector: Elbow (two bends)", Lines, [50000, 50000]),
+    p!("curvedConnector2", "Connector: Curved (one bend)", Lines, []),
     p!("lineInv", "Line: Rising", Lines, []),
     p!("rect", "Rectangle", Rectangles, []),
     p!("roundRect", "Rectangle: Rounded Corners", Rectangles, [16667]),

@@ -622,6 +622,8 @@ pub struct WordApp {
     pub dialog: Option<dialogs::Dialog>,
     /// The Colors dialog (More Colors…), shown above any other dialog (#606).
     pub colors: Option<colors::ColorsDialog>,
+    /// Insert ▸ Pictures ▸ Stock Images and Online Pictures (the suite's shared gallery).
+    pub stock: Box<craft_gallery::stock::StockDialog>,
     /// The Restrict Editing pane (#412).
     pub restrict: dialogs_review::RestrictPane,
     /// The language-aware spelling and grammar task pane.

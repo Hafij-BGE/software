@@ -1016,3 +1016,38 @@ fn output_gives_every_reference_its_bookmarks_text() {
     assert_eq!(results, expected);
     assert_eq!(results, ["First target", "Second target", "First target", REFERENCE_NOT_FOUND, "First target"]);
 }
+
+/// TOC gallery presets: the preset's settings and title look, overridden by explicit settings.
+#[test]
+fn toc_presets_set_title_levels_and_look() {
+    let doc = || {
+        let mut s = Session::new(wordcraft_doc::Document::from_text("Intro\nPart"));
+        for (text, style) in [("Intro", "Heading 1"), ("Part", "Heading 2")] {
+            s.run("select.text", &json!({"text": text})).unwrap();
+            s.run("styles.apply", &json!({"style": style})).unwrap();
+        }
+        s.run("caret.docStart", &json!({})).unwrap();
+        s
+    };
+    let head = |s: &Session, title: &str| s.doc.body.iter().filter_map(|b| b.as_para()).find(|p| p.plain_text() == title).cloned();
+    for (id, _) in TOC_PRESETS {
+        let mut s = doc();
+        s.run("references.toc", &json!({"preset": id})).unwrap_or_else(|e| panic!("{id}: {e:?}"));
+        assert!(fields(&s).iter().any(|(i, _)| i.starts_with("TOC ")), "{id}");
+    }
+    let mut s = doc();
+    s.run("references.toc", &json!({"preset": "formal"})).unwrap();
+    let title = head(&s, "TABLE OF CONTENTS").expect("formal title");
+    assert_eq!(title.props.align, Some(wordcraft_doc::props::Align::Center));
+    assert_eq!(title.runs[0].props.bold, Some(true));
+    let mut s = doc();
+    s.run("references.toc", &json!({"preset": "overview"})).unwrap();
+    assert!(head(&s, "At a Glance").is_some());
+    assert!(fields(&s)[0].0.contains("\\o \"1-1\""), "{:?}", fields(&s));
+    // An explicit setting wins over the preset's.
+    let mut s = doc();
+    s.run("references.toc", &json!({"preset": "overview", "levels": 2, "title": "Mine"})).unwrap();
+    assert!(head(&s, "Mine").is_some());
+    assert!(fields(&s)[0].0.contains("\\o \"1-2\""));
+    assert!(doc().run("references.toc", &json!({"preset": "nope"})).is_err());
+}
