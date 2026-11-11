@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use deckcraft_engine::cmd::ideas;
@@ -16,6 +16,12 @@ const RENDERS_PER_FRAME: usize = 3;
 struct IdeaThumbs {
     key: (u64, u64, usize, u32),
     tex: Arc<Mutex<HashMap<String, (egui::TextureHandle, u32, u32)>>>,
+    /// The slide as it is, rendered at thumbnail size, to tell which whole-presentation
+    /// previews change nothing.
+    base: Arc<Mutex<Option<Vec<u8>>>>,
+    /// Whole-presentation previews that look exactly like the slide as it is: a slide with its
+    /// own fixed colours and fonts ignores theme colours and fonts, so these are left out.
+    same: Arc<Mutex<HashSet<String>>>,
 }
 
 /// What the pane remembers between frames: the colour chip under the pointer (its idea is
@@ -61,9 +67,11 @@ pub(super) fn designer(app: &mut SlideApp, ui: &mut Ui) {
     let key = (st.uid, st.revision, idx, px);
     let found = ideas::ideas_for(&doc, idx);
     let themes = deckcraft_model::theme::builtin_themes();
+    // The slide's own master, which Design › Variants and Themes change (not always the first).
+    let mi = master_of(&doc, idx);
     // The current theme in its other colours, as Design › Variants offers them.
-    let current_colors = doc.masters.first().map(|m| m.theme.colors.clone());
-    let all_variants = doc.masters.first().map(|m| deckcraft_model::theme::theme_variants(&m.theme)).unwrap_or_default();
+    let current_colors = doc.masters.get(mi).map(|m| m.theme.colors.clone());
+    let all_variants = doc.masters.get(mi).map(|m| deckcraft_model::theme::theme_variants(&m.theme)).unwrap_or_default();
     let variants: Vec<_> = all_variants.iter().filter(|v| Some(&v.colors) != current_colors.as_ref().map(|c| &c.colors)).cloned().collect();
     let scheme = super::scheme(app);
     let cache_id = egui::Id::unique("design-idea-thumbs");
@@ -82,10 +90,14 @@ pub(super) fn designer(app: &mut SlideApp, ui: &mut Ui) {
             ideas::apply_idea_variant(&mut d, &sel, idx, id, v.parse().ok()?).ok()?;
         } else if let Some(i) = name.strip_prefix("variant:") {
             let colors = variants.get(i.parse::<usize>().ok()?)?;
-            Arc::make_mut(d.masters.first_mut()?).theme.colors = colors.clone();
+            Arc::make_mut(d.masters.get_mut(mi)?).theme.colors = colors.clone();
         } else {
+            // As `design.theme` applies it.
             let th = themes.iter().find(|th| Some(th.name.as_str()) == name.strip_prefix("theme:"))?;
-            Arc::make_mut(d.masters.first_mut()?).theme = th.clone();
+            let m = Arc::make_mut(d.masters.get_mut(mi)?);
+            m.theme = th.clone();
+            m.name = th.name.clone();
+            m.color_map = vec![];
         }
         Some(d)
     };
@@ -106,11 +118,18 @@ pub(super) fn designer(app: &mut SlideApp, ui: &mut Ui) {
                         (px, (px as f64 * d.slide_size.height / d.slide_size.width.max(1.0)).clamp(1.0, 1e9) as u32),
                         crate::textures::max_side(ui.ctx()),
                     );
-                    let img = deckcraft_render::render_slide(
-                        &d,
-                        idx,
-                        &deckcraft_render::RenderOpts { scale: tw as f64 / d.slide_size.width.max(1.0), size: Some((tw, th)), ..Default::default() },
-                    );
+                    let opts =
+                        deckcraft_render::RenderOpts { scale: tw as f64 / d.slide_size.width.max(1.0), size: Some((tw, th)), ..Default::default() };
+                    let img = deckcraft_render::render_slide(&d, idx, &opts);
+                    if !name.starts_with("layout:") {
+                        let mut base = cache.base.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+                        let base = base.get_or_insert_with(|| deckcraft_render::render_slide(&doc, idx, &opts).pixels);
+                        if *base == img.pixels {
+                            cache.same.lock().unwrap_or_else(std::sync::PoisonError::into_inner).insert(name.to_string());
+                            // Drawn this frame; gone next frame.
+                            pending = true;
+                        }
+                    }
                     let tex = crate::textures::upload_editor(ui.ctx(), format!("idea-{name}"), crate::textures::to_color_image(&img, false));
                     let e = (tex, tw, th);
                     if let Ok(mut m) = cache.tex.lock() {
@@ -174,23 +193,39 @@ pub(super) fn designer(app: &mut SlideApp, ui: &mut Ui) {
         }
         ui.add_space(8.0);
     }
-    if !variants.is_empty() {
+    // Whole-presentation previews that would look like the slide as it is are left out.
+    let same = cache.same.lock().map(|s| s.clone()).unwrap_or_default();
+    let shown_variants: Vec<_> = (0..variants.len()).filter(|i| !same.contains(&format!("variant:{i}"))).collect();
+    let shown_themes: Vec<_> = themes.iter().filter(|th| !same.contains(&format!("theme:{}", th.name))).collect();
+    if shown_variants.is_empty() && shown_themes.is_empty() {
+        ui.add_space(4.0);
+        ui.label(
+            egui::RichText::new(
+                "This slide uses its own fixed colours and fonts, so the presentation's colour variants and themes don't change how it looks.",
+            )
+            .color(t.text_dim),
+        );
+    }
+    if !shown_variants.is_empty() {
         ui.add_space(4.0);
         ui.label(egui::RichText::new("Colours (whole presentation)").color(t.text_dim));
         ui.add_space(4.0);
     }
     let mut variant = None;
-    for (i, v) in variants.iter().enumerate() {
+    for i in shown_variants {
+        let v = &variants[i];
         if thumb(ui, &format!("variant:{i}"), &v.name).clicked() {
             variant = all_variants.iter().position(|a| a.colors == v.colors);
         }
         ui.add_space(8.0);
     }
-    ui.add_space(4.0);
-    ui.label(egui::RichText::new("Themes (whole presentation)").color(t.text_dim));
-    ui.add_space(4.0);
+    if !shown_themes.is_empty() {
+        ui.add_space(4.0);
+        ui.label(egui::RichText::new("Themes (whole presentation)").color(t.text_dim));
+        ui.add_space(4.0);
+    }
     let mut theme = None;
-    for th in &themes {
+    for th in shown_themes {
         if thumb(ui, &format!("theme:{}", th.name), &th.name).clicked() {
             theme = Some(th.name.clone());
         }
@@ -211,6 +246,11 @@ pub(super) fn designer(app: &mut SlideApp, ui: &mut Ui) {
     }
     pane.hover = hover;
     ui.ctx().data_mut(|d| d.insert_temp(state_id(), pane));
+}
+
+/// The master whose layout slide `idx` uses, as `design.variant` and `design.theme` pick it.
+fn master_of(doc: &Presentation, idx: usize) -> usize {
+    doc.slides.get(idx).and_then(|s| doc.masters.iter().position(|m| m.layout(s.layout).is_some())).unwrap_or(0)
 }
 
 /// What auto-suggest has seen of a slide: its picture count, whether it was seen without both a
@@ -330,6 +370,40 @@ mod tests {
         app.ui.design_ideas_auto = false;
         picture(&mut app);
         assert_eq!(opened(&mut app, &ctx), None);
+    }
+
+    /// The whole-presentation previews the Designer left out on the current slide, after enough
+    /// frames to render every thumbnail.
+    fn unchanged_previews(app: &mut SlideApp) -> std::collections::HashSet<String> {
+        let ctx = egui::Context::default();
+        let input =
+            || egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(300.0, 20000.0))), ..Default::default() };
+        for _ in 0..60 {
+            ctx.run_ui(input(), |ui| super::designer(app, ui)).drop_without_applying_deltas();
+        }
+        let cache: super::IdeaThumbs = ctx.data_mut(|d| d.get_temp(egui::Id::unique("design-idea-thumbs"))).unwrap();
+        cache.same.lock().unwrap().clone()
+    }
+
+    #[test]
+    fn previews_that_change_nothing_are_left_out() {
+        // A shape in the theme's accent colour: every variant recolours it.
+        let mut app = SlideApp::new(Session::with_new(), Services::default());
+        app.session.execute("shape.insert", &json!({"preset": "rect", "rect": [100, 100, 300, 100]})).unwrap();
+        let same = unchanged_previews(&mut app);
+        assert!(!same.iter().any(|n| n.starts_with("variant:")), "{same:?}");
+        // A slide in its own fixed colours, with nothing from the master: every variant and
+        // theme looks the same, so none is offered.
+        {
+            let doc = std::sync::Arc::make_mut(&mut app.session.doc_mut().unwrap().doc);
+            std::sync::Arc::make_mut(&mut doc.slides[0]).shapes.clear();
+        }
+        app.session.execute("design.background", &json!({"color": "#FFFFFF"})).unwrap();
+        app.session.execute("design.hideBackgroundGraphics", &json!({"hide": true})).unwrap();
+        let same = unchanged_previews(&mut app);
+        let themes = deckcraft_model::theme::builtin_themes().len();
+        assert_eq!(same.iter().filter(|n| n.starts_with("theme:")).count(), themes, "{same:?}");
+        assert_eq!(same.iter().filter(|n| n.starts_with("variant:")).count(), 3, "{same:?}");
     }
 
     #[test]
