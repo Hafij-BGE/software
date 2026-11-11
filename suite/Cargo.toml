@@ -55,7 +55,8 @@ flate2 = { version = "1", optional = true }
 winit = { version = "0.30", default-features = false, features = ["x11"] }
 zbus = { version = "5", default-features = false, features = ["async-io", "blocking-api"] }
 wl-clipboard-rs = "0.9"
-x11rb = "0.13"
+# Touchpad pinch zoom through XInput 2.4 gestures (src/pinch.rs).
+x11rb = { version = "0.13", features = ["xinput"] }
 zbus-secret-service-keyring-store = { version = "1", features = ["rt-async-io-crypto-rust"], optional = true }
 # Markd tabs: the versions wry 0.57 uses.
 gtk = { version = "0.18", optional = true }

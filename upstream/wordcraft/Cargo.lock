@@ -1064,6 +1064,17 @@ version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=92d392cff132eaf53e13afff77f38b5c11b73aa0#92d392cff132eaf53e13afff77f38b5c11b73aa0"
 
 [[package]]
+name = "craft-gallery"
+version = "0.1.0"
+dependencies = [
+ "egui",
+ "image",
+ "serde_json",
+ "ureq",
+ "vello_cpu",
+]
+
+[[package]]
 name = "craft-i18n"
 version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=92d392cff132eaf53e13afff77f38b5c11b73aa0#92d392cff132eaf53e13afff77f38b5c11b73aa0"
@@ -6934,6 +6945,7 @@ dependencies = [
  "chrono",
  "craft-font-catalog",
  "craft-font-store",
+ "craft-gallery",
  "craft-proof",
  "encoding_rs",
  "getrandom 0.3.4",
@@ -7091,6 +7103,7 @@ dependencies = [
  "accesskit_consumer",
  "cfb",
  "chrono",
+ "craft-gallery",
  "craft-i18n",
  "craft-ui",
  "craft-update",

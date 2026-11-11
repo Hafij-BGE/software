@@ -921,6 +921,17 @@ version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=1b34eba41e62138fc2438d2734523b302840b45d#1b34eba41e62138fc2438d2734523b302840b45d"
 
 [[package]]
+name = "craft-gallery"
+version = "0.1.0"
+dependencies = [
+ "egui",
+ "image",
+ "serde_json",
+ "ureq",
+ "vello_cpu",
+]
+
+[[package]]
 name = "craft-i18n"
 version = "0.1.0"
 source = "git+https://github.com/storytold/craft-libs?rev=1b34eba41e62138fc2438d2734523b302840b45d#1b34eba41e62138fc2438d2734523b302840b45d"
@@ -1931,6 +1942,7 @@ dependencies = [
  "hashbrown 0.17.1",
  "log",
  "peniko",
+ "png",
  "skrifa",
  "smallvec",
  "vello_common",
@@ -2105,6 +2117,7 @@ dependencies = [
 name = "gridcraft-engine"
 version = "0.16.0"
 dependencies = [
+ "craft-gallery",
  "gridcraft-calc",
  "gridcraft-chart",
  "gridcraft-core",
@@ -2189,6 +2202,7 @@ name = "gridcraft-ui-egui"
 version = "0.16.0"
 dependencies = [
  "craft-font-files",
+ "craft-gallery",
  "craft-ui",
  "craft-update",
  "craft-window",
@@ -5670,6 +5684,7 @@ dependencies = [
  "rustls-platform-verifier",
  "ureq-proto",
  "utf8-zero",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -5736,6 +5751,7 @@ dependencies = [
  "guillotiere",
  "log",
  "peniko",
+ "png",
  "smallvec",
  "thiserror 2.0.21",
 ]
@@ -5749,6 +5765,7 @@ dependencies = [
  "bytemuck",
  "glifo",
  "hashbrown 0.17.1",
+ "png",
  "vello_common",
 ]
 
@@ -6018,6 +6035,15 @@ name = "webpki-root-certs"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b96554aa2acc8ccdb7e1c9a58a7a68dd5d13bccc69cd124cb09406db612a1c9b"
+dependencies = [
+ "rustls-pki-types",
+]
+
+[[package]]
+name = "webpki-roots"
+version = "1.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7265c9301c16a8711c992c2d8da90ee77ef54b1ed51482d6dfeb00dc756b1297"
 dependencies = [
  "rustls-pki-types",
 ]

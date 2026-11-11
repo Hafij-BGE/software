@@ -37,6 +37,8 @@ wordcraft-zotero = { path = "crates/zotero" }
 wordcraft-control-key = { path = "crates/control-key" }
 wordcraft-ui-egui = { path = "crates/ui-egui" }
 wordcraft-metafile = { path = "crates/metafile" }
+# Icons and stock pictures shared by the suite apps (Insert ▸ Icons / Stock Images).
+craft-gallery = { path = "../../crates/gallery" }
 
 # foundation
 kurbo = { version = "0.13", features = ["serde"] }

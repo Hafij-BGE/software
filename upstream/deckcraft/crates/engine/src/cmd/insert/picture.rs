@@ -128,10 +128,12 @@ pub(super) fn picture(s: &mut Session, p: &Value) -> Result<Value> {
         _ => [0.0; 4],
     };
     let media = s.edit(|doc, _| doc.add_media(&name, ct, bytes).ok_or_else(|| bad("insert.picture", NO_ID_SPACE)))?;
+    // Alt text: given (a stock picture's title and credit) or the file name.
+    let descr = str_param(p, "alt").map(str::to_string).unwrap_or_else(|| name.clone());
     let shape = Shape {
         xfrm: Some(rect),
         kind: ShapeKind::Picture { fill: PictureFill { media, crop, ..Default::default() } },
-        descr: name.clone(),
+        descr: descr.clone(),
         ..Default::default()
     };
     if let Some((ph_id, _)) = target_ph {
@@ -147,7 +149,7 @@ pub(super) fn picture(s: &mut Session, p: &Value) -> Result<Value> {
                     p
                 });
                 sh.text = None;
-                sh.descr = name.clone();
+                sh.descr = descr.clone();
             }
             sel.shapes = vec![ph_id];
             Ok(())

@@ -36,6 +36,7 @@ impl SheetApp {
             editor: None,
             text_box_editor: None,
             dialog: None,
+            stock: Default::default(),
             backstage: None,
             message: None,
             toast: None,
@@ -247,6 +248,9 @@ impl SheetApp {
             });
         }
         dialogs::show(self, &ctx);
+        if let Some(pick) = self.stock.show(&ctx) {
+            self.insert_stock(pick);
+        }
         macro_ui::forget_closed_editor(self);
         macro_ui::question_box(self, &ctx);
         widgets::message_box(self, &ctx);

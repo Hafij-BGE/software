@@ -94,6 +94,9 @@ pub struct UiState {
     pub comment_focus: Option<(usize, usize)>,
     /// Quick Access Toolbar buttons, left to right.
     pub qat: Vec<qat::QatItem>,
+    /// Design Ideas › Show me design ideas automatically: the Designer opens itself for a new
+    /// picture, or for a new slide once it has a title and content.
+    pub design_ideas_auto: bool,
 }
 
 impl Default for UiState {
@@ -127,6 +130,7 @@ impl Default for UiState {
             grayscale: false,
             comment_focus: None,
             qat: qat::defaults(),
+            design_ideas_auto: true,
         }
     }
 }

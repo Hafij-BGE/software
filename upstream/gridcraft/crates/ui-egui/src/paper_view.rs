@@ -871,26 +871,72 @@ fn ruler_margins(app: &mut SheetApp, ui: &mut egui::Ui, geo: &Geo, pg: &PageGrid
     }
 }
 
+/// The Header & Footer gallery: `(label, spec)` for each preset, labelled with what it will read
+/// for page 1 of `cx` (its sections joined with commas), as Excel lists them. `none` and
+/// `confidential` are the interface's words for "(none)" and "Confidential".
+fn hf_presets(none: &str, confidential: &str, cx: &HfContext) -> Vec<(String, String)> {
+    let specs = [
+        "&CPage &P".to_string(),
+        "&CPage &P of &N".into(),
+        "&C&A".into(),
+        "&C&F".into(),
+        "&C&A, Page &P".into(),
+        "&C&F, Page &P".into(),
+        "&CPage &P, &A".into(),
+        "&CPage &P, &F".into(),
+        "&RPage &P of &N".into(),
+        "&L&A&RPage &P of &N".into(),
+        "&L&F&R&A".into(),
+        "&L&F&R&D".into(),
+        "&L&D&R&T".into(),
+        "&C&Z&F".into(),
+        // A literal `&` in the word would start a code, so it is doubled.
+        format!("&L{}&C&D&RPage &P", confidential.replace('&', "&&")),
+    ];
+    let label = |spec: &str| {
+        let parts: Vec<String> = print::expand_header_footer(spec, cx).into_iter().map(|sec| sec.text).filter(|t| !t.trim().is_empty()).collect();
+        // `&N` would read "1": show it unknown, as the gallery always has.
+        let text = parts.join(", ");
+        if spec.contains("&N") { text.replacen(" of 1", " of ?", 1) } else { text }
+    };
+    std::iter::once((none.to_string(), String::new())).chain(specs.into_iter().map(|spec| (label(&spec), spec))).collect()
+}
+
 /// The Header & Footer contextual ribbon tab.
 pub fn ribbon_tab(app: &mut SheetApp, ui: &mut egui::Ui) {
     use crate::widgets::big_button;
     let Some(e) = app.grid.hf_edit.as_ref() else { return };
     let (footer, kind) = (e.footer, e.kind);
-    let (sheet_name, file) =
-        app.session.active().map(|d| (d.wb.sheet(e.sheet).map(|s| s.name.clone()).unwrap_or_default(), d.display_title())).unwrap_or_default();
+    let sheet = e.sheet;
+    let cx = app
+        .session
+        .active()
+        .map(|d| {
+            let (date, time) = print::hf_date_time(&d.wb);
+            HfContext {
+                page: 1,
+                pages: 1,
+                sheet: d.wb.sheet(sheet).map(|s| s.name.clone()).unwrap_or_default(),
+                file: d.display_title(),
+                path: d.path.clone().unwrap_or_default(),
+                date,
+                time,
+            }
+        })
+        .unwrap_or_else(|| HfContext {
+            page: 1,
+            pages: 1,
+            sheet: String::new(),
+            file: String::new(),
+            path: String::new(),
+            date: String::new(),
+            time: String::new(),
+        });
     // Header & Footer presets (shown with sample values, as the result will read).
     for (label, part) in [("Header", false), ("Footer", true)] {
         let r = big_button(ui, if part { Icon::Footer } else { Icon::Header }, label, label, true);
         egui::Popup::menu(&r).show(|ui| {
-            let presets: [(String, &str); 7] = [
-                (tr(app, "(none)").to_string(), ""),
-                ("Page 1".into(), "&CPage &P"),
-                ("Page 1 of ?".into(), "&CPage &P of &N"),
-                (sheet_name.clone(), "&C&A"),
-                (file.clone(), "&C&F"),
-                (format!("{sheet_name}, Page 1"), "&C&A, Page &P"),
-                (format!("{file}, Page 1"), "&C&F, Page &P"),
-            ];
+            let presets = hf_presets(tr(app, "(none)"), tr(app, "Confidential"), &cx);
             for (text, spec) in presets {
                 if ui.button(text).clicked() {
                     let sheet = app.grid.hf_edit.as_ref().map(|e| e.sheet).unwrap_or(0);
@@ -956,6 +1002,38 @@ fn sep(ui: &mut egui::Ui) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The Header & Footer gallery: the original seven and the newer ones, each reading as it
+    /// will print, with no spec twice.
+    #[test]
+    fn header_footer_presets_read_as_they_print() {
+        let cx = HfContext {
+            page: 1,
+            pages: 1,
+            sheet: "Sales".into(),
+            file: "Book1.xlsx".into(),
+            path: "/home/me/".into(),
+            date: "1/2/2026".into(),
+            time: "9:30".into(),
+        };
+        let presets = hf_presets("(none)", "Confidential", &cx);
+        assert!(presets.len() >= 15, "{}", presets.len());
+        assert_eq!(presets[0], ("(none)".to_string(), String::new()));
+        let specs: std::collections::HashSet<&str> = presets.iter().map(|(_, s)| s.as_str()).collect();
+        assert_eq!(specs.len(), presets.len(), "no spec twice");
+        let find = |spec: &str| presets.iter().find(|(_, s)| s == spec).map(|(l, _)| l.clone());
+        assert_eq!(find("&CPage &P").as_deref(), Some("Page 1"));
+        assert_eq!(find("&CPage &P of &N").as_deref(), Some("Page 1 of ?"));
+        assert_eq!(find("&C&A, Page &P").as_deref(), Some("Sales, Page 1"));
+        assert_eq!(find("&L&A&RPage &P of &N").as_deref(), Some("Sales, Page 1 of ?"));
+        assert_eq!(find("&L&D&R&T").as_deref(), Some("1/2/2026, 9:30"));
+        assert_eq!(find("&C&Z&F").as_deref(), Some("/home/me/Book1.xlsx"));
+        assert_eq!(find("&LConfidential&C&D&RPage &P").as_deref(), Some("Confidential, 1/2/2026, Page 1"));
+        assert!(presets.iter().skip(1).all(|(label, _)| !label.is_empty()));
+        // A translation with an `&` stays literal text.
+        let amp = hf_presets("-", "R&D", &cx);
+        assert_eq!(amp.last().map(|(l, _)| l.as_str()), Some("R&D, 1/2/2026, Page 1"));
+    }
 
     const A4: (f32, f32) = (595.0, 842.0);
 

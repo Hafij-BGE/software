@@ -773,6 +773,19 @@ impl WordApp {
                 self.canvas.open_url = Some("https://discord.gg/artcraft".into());
                 json!({})
             }
+            // Insert ▸ Pictures ▸ Stock Images (`tab: "icons"` opens its Icons tab) and Online
+            // Pictures: the suite's shared gallery; a pick runs insert.picture or insert.icon.
+            "ui.stockImages" => {
+                match s("tab") {
+                    Some("icons") => self.stock.open_icons(),
+                    _ => self.stock.open_images(),
+                }
+                json!({"dialog": "stockImages"})
+            }
+            "ui.onlinePictures" => {
+                self.stock.open_online();
+                json!({"dialog": "onlinePictures"})
+            }
             "ui.caretAnimation" => {
                 // File › Options › Advanced › Animation: `value` true or false turns the caret's
                 // glide and fading blink on or off; no value reads it.
@@ -1117,6 +1130,8 @@ pub(crate) fn works_without_document(id: &str) -> bool {
             | "ui.fileBrowser"
             | "ui.makeDefaultApp"
             | "ui.discord"
+            | "ui.stockImages"
+            | "ui.onlinePictures"
             | "ui.caretAnimation"
             | "ui.startScreen"
             | "ui.recentRemove"

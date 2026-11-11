@@ -137,7 +137,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Icons",
             ["Insert", "Illustrations"],
             None,
-            "{name: chart|table|sum|filter|lock|comment|picture|book|folder|search|calc|check|… , at?, size?: 48, color?: hex}",
+            "{name: chart|table|sum|filter|lock|comment|picture|book|folder|search|calc|check|… , source?: gallery (the shared 5,500-icon library, placed as a picture), at?, size?: 48, color?: hex}",
             has_doc,
             insert_icon
         ),
@@ -1822,6 +1822,9 @@ fn manage_cf(s: &mut Session, p: &Json) -> Result<Json> {
 fn insert_icon(s: &mut Session, p: &Json) -> Result<Json> {
     let name = str_param(p, "name").unwrap_or("check").to_string();
     let size = f64_param(p, "size").unwrap_or(48.0).clamp(8.0, 1000.0) as f32;
+    if str_param(p, "source") == Some("gallery") {
+        return insert_gallery_icon(s, p, &name, size);
+    }
     let d = s.doc()?;
     let id = d.wb.next_object_id();
     let at = cell_param(s, p, "at")?.unwrap_or(d.selection.active);
@@ -1843,9 +1846,44 @@ fn insert_icon(s: &mut Session, p: &Json) -> Result<Json> {
     })
 }
 
+/// A shared-library icon, drawn at about 300 pixels per inch and placed as a picture (so it
+/// keeps its look in the saved .xlsx, where Sheet's own icons become plain shapes).
+fn insert_gallery_icon(s: &mut Session, p: &Json, name: &str, size: f32) -> Result<Json> {
+    let icon = craft_gallery::icons::find(name).ok_or_else(|| bad("insert.icons", format!("unknown icon `{name}`")))?;
+    let rgb = match super::format::color_param(p.get("color")) {
+        Some(Color::Rgb(v)) => [(v >> 16) as u8, (v >> 8) as u8, v as u8],
+        _ => [0, 0, 0],
+    };
+    let px = (size * 300.0 / 72.0).round().clamp(64.0, 1024.0) as u16;
+    let png = icon.png(px, rgb).ok_or_else(|| bad("insert.icons", "couldn't draw the icon"))?;
+    let mut q = json!({"base64": crate::io::base64_encode(&png), "mime": "image/png", "width": size, "height": size, "alt": icon.label});
+    for k in ["at", "mode"] {
+        if let Some(v) = p.get(k) {
+            q[k] = v.clone();
+        }
+    }
+    let mut r = insert_picture(s, &q)?;
+    if let Json::Object(m) = &mut r {
+        m.insert("icon".into(), json!(icon.id));
+    }
+    Ok(r)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn gallery_icons_go_in_as_pictures() {
+        let mut s = Session::new();
+        s.new_workbook();
+        let r = s.execute("insert.icons", json!({"name": "dna", "source": "gallery", "size": 36, "color": "1F6FEB"})).unwrap();
+        assert_eq!(r["icon"], "dna");
+        let d = s.doc().unwrap();
+        let img = d.wb.active().unwrap().images.last().expect("a picture");
+        assert_eq!((img.anchor.width, img.anchor.height), (36.0, 36.0));
+        assert!(s.execute("insert.icons", json!({"name": "no-such-icon", "source": "gallery"})).is_err());
+    }
 
     #[test]
     fn chart_from_whole_columns_uses_the_rows_in_use() {

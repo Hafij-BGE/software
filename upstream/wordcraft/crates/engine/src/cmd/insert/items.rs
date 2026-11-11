@@ -1,8 +1,11 @@
+use super::cover_pages::{CoverText, cover_blocks};
 use super::header_footer::hf_part;
+use super::hf_designs::{PAGE_NUMBER_STYLES, push_page_number};
 use super::{
-    Align, Block, CharProps, CmdError, CmdResult, InlineObject, Paragraph, Rgb, Selection, Session, StoryRef, TabAlign, TabStop, TextColor, Value,
-    delete_selection, json, p, para_block, sel_result, type_text,
+    Align, CharProps, CmdError, CmdResult, Float, InlineObject, Paragraph, PartKind, Selection, Session, ShapeKind, StoryRef, TabAlign, TabStop,
+    Value, Wrap, delete_selection, json, p, para_block, sel_result, type_text,
 };
+use wordcraft_doc::para::{Anchor, FloatAlign};
 
 pub(super) fn page_number(s: &mut Session, v: &Value) -> CmdResult {
     let position = p::str(v, "position").unwrap_or("bottom");
@@ -11,34 +14,111 @@ pub(super) fn page_number(s: &mut Session, v: &Value) -> CmdResult {
         "right" => Align::Right,
         _ => Align::Center,
     };
-    let x_of_y = p::str(v, "format").is_some_and(|f| f.contains("of"));
-    let field = InlineObject::Field { instr: "PAGE".into(), result: "1".into(), locked: false, dirty: false, code: false, form: String::new() };
+    // `format: "x of y"` is the older spelling of the Page X of Y style.
+    let legacy = if p::str(v, "format").is_some_and(|f| f.contains("of")) { "xOfY" } else { "plain" };
+    let style = p::str(v, "style").unwrap_or(legacy);
+    if !PAGE_NUMBER_STYLES.iter().any(|(id, _)| *id == style) {
+        return Err(CmdError::Params(format!("unknown page number style {style:?}")));
+    }
+    if !matches!(position, "top" | "bottom" | "current" | "leftMargin" | "rightMargin") {
+        return Err(CmdError::Params(format!("unknown page number position {position:?}")));
+    }
+    if style == "circle" {
+        // Word draws circled page numbers with the section's number format.
+        let block = s.sel.focus.path.0.first().copied().unwrap_or(0) as usize;
+        s.doc.section_mut(block).page_num_format = wordcraft_doc::section::NumFormat::DecimalEnclosedCircle;
+    }
     if position == "current" {
         let props = s.typing_props();
         let at = delete_selection(s)?;
-        let end = s.doc.insert_object(&at, field, &props)?;
+        let mut para = Paragraph::new();
+        push_page_number(&mut para, style)?;
+        let mut end = at;
+        for (text, obj, run) in para_pieces(&para, &props) {
+            end = match obj {
+                Some(obj) => s.doc.insert_object(&end, obj, &run)?,
+                None => s.doc.insert_text(&end, &text, &run)?,
+            };
+        }
         s.sel = Selection::caret(end);
         return sel_result(s);
     }
-    let header = position == "top";
+    let margin = matches!(position, "leftMargin" | "rightMargin");
+    let header = position == "top" || margin;
     let id = hf_part(s, header);
-    let mut para = Paragraph::new().styled(if header { "Header" } else { "Footer" });
-    para.props.align = Some(align);
+    let style_name = if header { "Header" } else { "Footer" };
+    let mut para = Paragraph::new().styled(style_name);
     para.props.tabs = Some(vec![TabStop { pos: 0.0, align: TabAlign::Clear, leader: Default::default() }]);
-    if x_of_y {
-        para.insert_text(0, "Page  of ", &CharProps::default())?;
-        para.insert_object(5, field, &CharProps { bold: Some(true), ..Default::default() })?;
-        let end = para.len();
-        para.insert_object(
-            end,
-            InlineObject::Field { instr: "NUMPAGES".into(), result: "1".into(), locked: false, dirty: false, code: false, form: String::new() },
-            &CharProps { bold: Some(true), ..Default::default() },
-        )?;
-    } else {
-        para.insert_object(0, field, &CharProps::default())?;
+    if margin {
+        // In the page margin: a borderless text box the header anchors, centered on the page's
+        // height in the left (or right) margin, as Word's Page Margins designs place it.
+        let mut inner = Paragraph::new().styled(style_name);
+        inner.props.align = Some(Align::Center);
+        push_page_number(&mut inner, style)?;
+        let story = s.doc.try_add_part(PartKind::TextBox, vec![para_block(inner)])?;
+        let float = Float {
+            wrap: Wrap::InFrontOfText,
+            h_rel: if position == "leftMargin" { Anchor::LeftMargin } else { Anchor::RightMargin },
+            v_rel: Anchor::Page,
+            h_align: Some(FloatAlign::Center),
+            v_align: Some(FloatAlign::Center),
+            ..Default::default()
+        };
+        let obj = InlineObject::Shape {
+            kind: ShapeKind::TextBox,
+            w: 54.0,
+            h: 36.0,
+            fill: None,
+            stroke: None,
+            stroke_width: 0.75,
+            float,
+            story: Some(story),
+            freeform: None,
+            effects: Default::default(),
+            extra: Default::default(),
+        };
+        // Kept with what the header already shows, like Word's margin designs.
+        let mut blocks: Vec<_> = s.doc.parts.get(&id).map(|part| part.blocks.clone()).unwrap_or_default();
+        para.insert_object(0, obj, &CharProps::default())?;
+        blocks.push(para_block(para));
+        s.doc.set_story(StoryRef::Part(id), blocks)?;
+        return Ok(json!({"story": id, "box": story}));
     }
+    para.props.align = Some(align);
+    push_page_number(&mut para, style)?;
     s.doc.set_story(StoryRef::Part(id), vec![para_block(para)])?;
     Ok(json!({"story": id}))
+}
+
+/// `para`'s text runs and objects in order, each with `base` under its own character formatting:
+/// how a styled page number goes in at the caret.
+fn para_pieces(para: &Paragraph, base: &CharProps) -> Vec<(String, Option<InlineObject>, CharProps)> {
+    let mut out = Vec::new();
+    let mut objects = para.objects.iter();
+    let mut off = 0;
+    for run in &para.runs {
+        let Some(run_text) = para.text.get(off..off + run.len) else { break };
+        off += run.len;
+        let mut props = base.clone();
+        props.overlay(&run.props);
+        let mut text = String::new();
+        for c in run_text.chars() {
+            if c == wordcraft_doc::para::OBJ {
+                if !text.is_empty() {
+                    out.push((std::mem::take(&mut text), None, props.clone()));
+                }
+                if let Some(obj) = objects.next() {
+                    out.push((String::new(), Some(obj.clone()), props.clone()));
+                }
+            } else {
+                text.push(c);
+            }
+        }
+        if !text.is_empty() {
+            out.push((text, None, props));
+        }
+    }
+    out
 }
 
 pub(super) fn date_time(s: &mut Session, v: &Value) -> CmdResult {
@@ -207,30 +287,16 @@ pub(super) fn field(s: &mut Session, v: &Value) -> CmdResult {
 }
 
 pub(super) fn cover_page(s: &mut Session, v: &Value) -> CmdResult {
-    let title = p::str(v, "title").unwrap_or("Document Title").to_string();
-    let subtitle = p::str(v, "subtitle").unwrap_or("Document subtitle").to_string();
-    let author = p::str(v, "author").unwrap_or(&s.author).to_string();
-    let accent = Rgb(0x15, 0x60, 0x82);
-    let mut blocks = Vec::new();
-    for _ in 0..8 {
-        blocks.push(Block::Para(Paragraph::new()));
-    }
-    let mut t =
-        Paragraph::with_text(&title, CharProps { size: Some(44.0), color: Some(TextColor::Rgb(accent)), ..Default::default() }).styled("Title");
-    t.props.borders = Some(wordcraft_doc::props::Borders {
-        bottom: Some(wordcraft_doc::props::Border { style: wordcraft_doc::props::BorderStyle::Single, width: 2.0, color: Some(accent), space: 6.0 }),
-        ..Default::default()
-    });
-    blocks.push(Block::Para(t));
-    blocks.push(Block::Para(Paragraph::with_text(&subtitle, CharProps::default()).styled("Subtitle")));
-    for _ in 0..14 {
-        blocks.push(Block::Para(Paragraph::new()));
-    }
-    blocks
-        .push(Block::Para(Paragraph::with_text(&author, CharProps { bold: Some(true), color: Some(TextColor::Rgb(accent)), ..Default::default() })));
-    let mut date = Paragraph::with_text(&format_date("MMMM d, yyyy"), CharProps::default());
-    date.insert_text(date.len(), "\u{000C}", &CharProps::default())?;
-    blocks.push(Block::Para(date));
+    let fallback = |given: Option<&str>, own: &str, default: &str| {
+        given.map(str::to_string).or_else(|| (!own.trim().is_empty()).then(|| own.trim().to_string())).unwrap_or_else(|| default.to_string())
+    };
+    let cover = CoverText {
+        title: fallback(p::str(v, "title"), &s.doc.core.title, "Document Title"),
+        subtitle: fallback(p::str(v, "subtitle"), &s.doc.core.subject, "Document subtitle"),
+        author: fallback(p::str(v, "author"), &s.doc.core.creator, &s.author),
+    };
+    let design = p::str(v, "design").unwrap_or("studio");
+    let blocks = cover_blocks(design, &cover)?.ok_or_else(|| CmdError::Params(format!("unknown cover page design {design:?}")))?;
     let frag = wordcraft_doc::edit::Fragment { blocks, ..Default::default() };
     let start = s.doc.start_of(StoryRef::Body);
     let at = s.doc.split_paragraph(&start)?;

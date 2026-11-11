@@ -30,13 +30,18 @@ pub(super) fn hf_part(s: &mut Session, header: bool) -> u32 {
     id
 }
 
-/// Three independently editable cells spanning the section's text width.
-fn three_column_hf(s: &Session, style: &str) -> wordcraft_doc::Blocks {
+/// The text width of the caret's section, in points.
+pub(super) fn text_width(s: &Session) -> f32 {
     let block = s.sel.focus.path.0.first().copied().unwrap_or(0) as usize;
     // The section `section_mut` would pick, read without making anything unique.
     let sections = s.doc.sections();
     let own = sections.iter().position(|(end, _)| block <= *end).filter(|i| i + 1 < sections.len()).and_then(|i| sections.get(i));
-    let width = own.map_or_else(|| s.doc.last_section.text_width(), |(_, sec)| sec.text_width());
+    own.map_or_else(|| s.doc.last_section.text_width(), |(_, sec)| sec.text_width())
+}
+
+/// Three independently editable cells spanning the section's text width.
+fn three_column_hf(s: &Session, style: &str) -> wordcraft_doc::Blocks {
+    let width = text_width(s);
     let mut table = Table::new(1, 3, width);
     table.props.style = Some("TableNormal".into());
     table.props.width = Some(width);
@@ -62,6 +67,8 @@ pub(super) fn header_footer(s: &mut Session, v: &Value, header: bool) -> CmdResu
         s.doc.set_story(StoryRef::Part(id), blocks)?;
     } else if p::str(v, "preset") == Some("blankThree") {
         let blocks = three_column_hf(s, style);
+        s.doc.set_story(StoryRef::Part(id), blocks)?;
+    } else if let Some(blocks) = p::str(v, "preset").map(|d| super::hf_designs::design(s, d, header)).transpose()?.flatten() {
         s.doc.set_story(StoryRef::Part(id), blocks)?;
     } else if let Some(preset) = p::str(v, "preset") {
         let mut para = Paragraph::new().styled(style);

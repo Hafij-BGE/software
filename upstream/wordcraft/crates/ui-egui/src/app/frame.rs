@@ -121,6 +121,9 @@ impl WordApp {
         #[cfg(not(target_arch = "wasm32"))]
         file_browser::show(self, ctx);
         colors::show(self, ctx);
+        if let Some(pick) = self.stock.show(ctx) {
+            insert_stock(self, pick);
+        }
         zotero::show_alert(self, ctx);
         read_aloud::show(self, ctx);
         crate::keytips::show(self, ctx, ui);
@@ -151,5 +154,18 @@ impl WordApp {
         self.frame_ms = now_ms() - t0;
         // Typing and formatting land here, after `logic` has reported.
         self.report_dirty();
+    }
+}
+
+/// Puts a Stock Images / Online Pictures pick in the document, as Insert ▸ Pictures does.
+fn insert_stock(app: &mut WordApp, pick: craft_gallery::stock::Pick) {
+    let r = match pick {
+        craft_gallery::stock::Pick::Icon(icon) => app.run("insert.icon", serde_json::json!({"id": icon.id, "source": "gallery"})),
+        craft_gallery::stock::Pick::Picture(c) => {
+            app.run("insert.picture", serde_json::json!({"data": wordcraft_engine::cmd::insert::base64_encode(&c.bytes), "alt": c.alt}))
+        }
+    };
+    if let Err(e) = r {
+        app.status(e);
     }
 }

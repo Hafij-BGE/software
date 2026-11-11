@@ -181,6 +181,7 @@ Insert|Header & Footer|Different Odd & Even|layout.differentOddEven
 Insert|Header & Footer|Link to Previous|layout.linkToPrevious
 Insert|Text|Text Box|insert.textBox
 Insert|Text|Quick Parts|insert.quickParts
+Insert|Text|Building Blocks|insert.buildingBlock
 Insert|Text|AutoText|insert.autoText
 Insert|Text|Document Property|insert.docProperty
 Insert|Text|Field|insert.field

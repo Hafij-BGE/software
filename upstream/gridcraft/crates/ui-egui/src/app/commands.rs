@@ -343,6 +343,21 @@ impl SheetApp {
         self.session.active().and_then(|d| d.wb.active().map(|s| s.is_protected())).unwrap_or(false)
     }
 
+    /// Inserts what the Stock Images dialog picked over the active cell: a picture with its
+    /// credit as alt text, or a library icon (as a PNG picture, so it survives xlsx).
+    pub fn insert_stock(&mut self, pick: craft_gallery::stock::Pick) {
+        match pick {
+            craft_gallery::stock::Pick::Icon(icon) => self.run_or_alert("insert.icons", json!({"name": icon.id, "source": "gallery"})),
+            craft_gallery::stock::Pick::Picture(c) => {
+                let mime = if c.ext == "png" { "image/png" } else { "image/jpeg" };
+                self.run_or_alert(
+                    "insert.picture",
+                    json!({"base64": gridcraft_engine::io::base64_encode(&c.bytes), "mime": mime, "alt": c.alt}),
+                )
+            }
+        }
+    }
+
     pub fn open_dialog(&mut self, name: &str, params: Json) {
         if let Err(e) = self.commit_text_box_edit() {
             self.message = Some(("Text Box".into(), clean_error(&e)));

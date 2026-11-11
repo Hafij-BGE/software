@@ -151,6 +151,9 @@ pub struct SuiteApp {
     pending_resize: Option<egui::ResizeDirection>,
     /// The window decorations last asked for.
     decorations_sent: Option<bool>,
+    /// Touchpad pinch as zoom (X11 only); `None` until the window is known.
+    #[cfg(all(unix, not(target_os = "macos")))]
+    pinch: Option<crate::pinch::Pinch>,
 }
 
 /// How close to the window's edge a press resizes the window (tabs in the title bar).
@@ -239,6 +242,8 @@ impl SuiteApp {
             prompt: None,
             allow_close: false,
             close_requested: false,
+            #[cfg(all(unix, not(target_os = "macos")))]
+            pinch: None,
             updater: update::Updater::new(),
             templates: Default::default(),
             fontbar: Default::default(),
@@ -982,6 +987,17 @@ impl SuiteApp {
     }
 }
 
+/// The suite's X11 window id, when it runs on X11 (the default, through XWayland).
+#[cfg(all(unix, not(target_os = "macos")))]
+fn x11_window(frame: &eframe::Frame) -> Option<u32> {
+    use winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
+    match frame.window_handle().ok()?.as_raw() {
+        RawWindowHandle::Xlib(h) => u32::try_from(h.window).ok(),
+        RawWindowHandle::Xcb(h) => Some(h.window.get()),
+        _ => None,
+    }
+}
+
 impl eframe::App for SuiteApp {
     fn raw_input_hook(&mut self, ctx: &egui::Context, raw: &mut egui::RawInput) {
         // The window's close button: the suite decides (unsaved tabs), not the app on show.
@@ -1007,6 +1023,10 @@ impl eframe::App for SuiteApp {
             }
         }
         self.take_shortcuts(raw);
+        #[cfg(all(unix, not(target_os = "macos")))]
+        if let Some(pinch) = &self.pinch {
+            pinch.feed(raw);
+        }
         if self.shown == Some(self.active)
             && let Some(Tab { content: Content::Doc(doc), .. }) = self.tabs.iter_mut().find(|t| t.id == self.active)
         {
@@ -1021,6 +1041,12 @@ impl eframe::App for SuiteApp {
             self.home_look = Some(home);
         }
         self.drain_incoming(ctx);
+        #[cfg(all(unix, not(target_os = "macos")))]
+        if self.pinch.is_none()
+            && let Some(window) = x11_window(frame)
+        {
+            self.pinch = Some(crate::pinch::Pinch::start(window, ctx.clone()));
+        }
         #[cfg(feature = "markd")]
         self.markd_shortcuts();
         let decorations = !self.integrated();

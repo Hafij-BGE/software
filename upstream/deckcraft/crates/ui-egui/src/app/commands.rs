@@ -236,6 +236,11 @@ impl SlideApp {
             "app.preferences" => self.dialog = Some(dialogs::Dialog::new("preferences")),
             "app.openDialog" => self.pick_and_open(),
             "app.insertPictureDialog" => self.pick_and_insert("picture", "insert.picture"),
+            "app.stockImages" => match p.get("tab").and_then(Value::as_str) {
+                Some("icons") => self.stock.open_icons(),
+                _ => self.stock.open_images(),
+            },
+            "app.onlinePictures" => self.stock.open_online(),
             "app.smartArtPictureDialog" => {
                 if self.services.pick_open.is_none() {
                     return Err("picking a SmartArt picture needs the desktop app".into());

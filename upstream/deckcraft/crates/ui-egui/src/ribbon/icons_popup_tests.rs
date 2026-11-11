@@ -21,9 +21,9 @@ fn clicking_inside_the_icons_popup_keeps_it_open() {
     h.run_steps(3);
     h.get_by_label("Icons").click();
     h.run_steps(3);
-    // A category heading is plain popup content, like the search box: a click on it is a click inside.
-    let first = deckcraft_engine::icons::icons().first().expect("the icon gallery is empty");
-    h.get_by_label(first.category).click();
+    // The result count is plain popup content, like the search box: a click on it is a click inside.
+    let count = format!("{} icons", craft_gallery::picker::thousands(craft_gallery::icons::all().len()));
+    h.get_by_label(&count).click();
     h.run_steps(3);
-    assert!(h.query_by_label(first.category).is_some(), "the icons popup closed after a click inside it");
+    assert!(h.query_by_label(&count).is_some(), "the icons popup closed after a click inside it");
 }

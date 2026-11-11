@@ -6,6 +6,9 @@
 //! - **Install from Windows on this PC**: copies Microsoft's fonts (Aptos, Calibri…) from a Windows
 //!   installation on the same computer, as the apps' own `font.add {windows}` does;
 //! - **Add font files…**: installs the fonts in a folder you pick;
+//! - **More free font sites**: links to other free font libraries ([`FONT_SITES`]: Fontshare,
+//!   Font Squirrel, Noto, SIL, Bangla fonts…) that open in the browser; what comes from them installs
+//!   with "Add font files…". Settings › Behaviour lists them too;
 //! - **Choose a similar font**: uses an installed font wherever the document uses the missing one
 //!   (one step Undo takes back).
 //!
@@ -26,6 +29,75 @@ use crate::settings::Settings;
 
 /// How often the open document's fonts are looked at again.
 const RECHECK_SECS: f64 = 2.0;
+
+/// A website with free fonts, under "More free font sites".
+pub struct FontSite {
+    pub name: &'static str,
+    /// What it has, in a few words.
+    pub about: &'static str,
+    pub url: &'static str,
+}
+
+/// Free font sites, by kind: (heading, sites). Every address answered 200 when it was added.
+pub const FONT_SITES: &[(&str, &[FontSite])] = &[
+    (
+        "Libraries",
+        &[
+            FontSite { name: "Google Fonts", about: "Open-licence families; “Download font” gets them from here", url: "https://fonts.google.com/" },
+            FontSite { name: "Fontsource", about: "Open-source fonts, Google's and others", url: "https://fontsource.org/" },
+            FontSite { name: "Bunny Fonts", about: "Google Fonts' families, a privacy-friendly mirror", url: "https://fonts.bunny.net/" },
+            FontSite { name: "Fontshare", about: "Indian Type Foundry's fonts, free for commercial use", url: "https://www.fontshare.com/" },
+            FontSite { name: "Font Squirrel", about: "Hand-picked fonts free for commercial use", url: "https://www.fontsquirrel.com/" },
+            FontSite { name: "Open Font Library", about: "Community fonts under open licences", url: "https://fontlibrary.org/" },
+            FontSite { name: "Adobe open-source fonts", about: "Source Sans, Source Serif, Source Han (Chinese, Japanese, Korean)", url: "https://github.com/adobe-fonts" },
+        ],
+    ),
+    (
+        "Independent foundries",
+        &[
+            FontSite { name: "The League of Moveable Type", about: "Open-source display and text fonts", url: "https://www.theleagueofmoveabletype.com/" },
+            FontSite { name: "Velvetyne", about: "Libre experimental fonts", url: "https://velvetyne.fr/" },
+            FontSite { name: "Open Foundry", about: "Open-source fonts, shown by family", url: "https://open-foundry.com/" },
+            FontSite { name: "Collletttivo", about: "Open-source fonts from an Italian collective", url: "https://www.collletttivo.it/" },
+            FontSite { name: "Uncut", about: "A catalogue of free contemporary typefaces", url: "https://uncut.wtf/" },
+        ],
+    ),
+    (
+        "Every language and script",
+        &[
+            FontSite { name: "Noto", about: "Google's fonts for every script", url: "https://fonts.google.com/noto" },
+            FontSite { name: "SIL fonts", about: "Arabic, Ethiopic, Myanmar, African and other scripts", url: "https://software.sil.org/fonts/" },
+            FontSite { name: "GNU FreeFont", about: "FreeSerif, FreeSans and FreeMono for many scripts", url: "https://www.gnu.org/software/freefont/" },
+            FontSite { name: "Google Fonts with Turkish letters", about: "Families that have ç, ğ, ı, İ, ö, ş, ü", url: "https://fonts.google.com/?lang=tr_Latn" },
+        ],
+    ),
+    (
+        "Bangla",
+        &[
+            FontSite { name: "Google Fonts in Bangla", about: "Hind Siliguri, Noto Sans Bengali, Baloo Da 2, Tiro Bangla…", url: "https://fonts.google.com/?lang=bn_Beng" },
+            FontSite { name: "Omicron Lab", about: "Unicode Bangla fonts: SolaimanLipi, Siyam Rupali, Kalpurush, Nikosh…", url: "https://www.omicronlab.com/bangla-fonts.html" },
+            FontSite { name: "Ekushey", about: "Free Bangla fonts: Ekushey Lal, Ekushey Kolom…", url: "https://ekushey.org/" },
+            FontSite { name: "Lipighor", about: "Free Bangla fonts", url: "https://www.lipighor.com/" },
+            FontSite { name: "Font Squirrel: Bengali", about: "Bengali fonts free for commercial use", url: "https://www.fontsquirrel.com/fonts/list/language/bengali" },
+        ],
+    ),
+];
+
+/// [`FONT_SITES`] as links that open in the browser.
+pub fn font_sites(ui: &mut Ui) {
+    for (heading, sites) in FONT_SITES {
+        ui.label(RichText::new(*heading).size(13.0).strong());
+        for site in *sites {
+            ui.horizontal_wrapped(|ui| {
+                ui.spacing_mut().item_spacing.x = 6.0;
+                ui.hyperlink_to(RichText::new(site.name).size(14.0), site.url);
+                ui.label(RichText::new(site.about).size(12.5).weak());
+            });
+        }
+        ui.add_space(4.0);
+    }
+    ui.label(RichText::new("Check each font's licence on its page. Unzip what you download, then install it with “Add font files…”.").size(12.5).weak());
+}
 
 #[derive(Default)]
 pub struct FontBar {
@@ -50,6 +122,8 @@ struct TabFonts {
     pick: usize,
     /// The font typed under "Choose a similar font".
     other: String,
+    /// "More free font sites" is open.
+    sites: bool,
     /// The last action's outcome: (text, it worked, when).
     note: Option<(String, bool, f64)>,
 }
@@ -259,6 +333,14 @@ fn card(bar: &mut FontBar, settings: &mut Settings, tab: u64, doc: &mut Doc, ui:
                 }
                 if option_row(ui, "📁", "Add font files…", "Install the fonts in a folder on this computer", None, c, false).clicked() {
                     action = Some(Action::Folder);
+                }
+                if option_row(ui, "🌐", "More free font sites", "Fontshare, Font Squirrel, Noto, Bangla fonts…", None, c, false).clicked() {
+                    st.sites = !st.sites;
+                }
+                if st.sites {
+                    ui.add_space(4.0);
+                    egui::ScrollArea::vertical().id_salt(("craft_suite_fontsites", tab)).max_height(240.0).show(ui, font_sites);
+                    ui.add_space(4.0);
                 }
                 if option_row(ui, "Aa", "Choose a similar font", "Use a matching font from the list", None, c, false).clicked() {
                     show_similar = !show_similar;
@@ -644,6 +726,20 @@ mod tests {
         assert!(suggestions("Fancy Mono", None).contains(&"JetBrains Mono"));
         let s = suggestions("Unknown Display", None);
         assert!(!s.is_empty() && s.len() <= 7);
+    }
+
+    #[test]
+    fn font_sites_are_https_and_listed_once() {
+        let sites: Vec<&FontSite> = FONT_SITES.iter().flat_map(|(_, s)| s.iter()).collect();
+        assert!(sites.len() >= 10, "{}", sites.len());
+        assert!(FONT_SITES.iter().all(|(heading, s)| !heading.is_empty() && !s.is_empty()));
+        assert!(FONT_SITES.iter().any(|(heading, _)| *heading == "Bangla"));
+        let mut seen = HashSet::new();
+        for s in sites {
+            assert!(s.url.starts_with("https://") && !s.url.contains(char::is_whitespace), "{}", s.url);
+            assert!(!s.name.is_empty() && !s.about.is_empty(), "{}", s.url);
+            assert!(seen.insert(s.url), "listed twice: {}", s.url);
+        }
     }
 
     #[test]

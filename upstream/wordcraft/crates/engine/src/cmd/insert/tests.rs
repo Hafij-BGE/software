@@ -416,3 +416,111 @@ fn local_civil_date_follows_the_utc_offset() {
         assert!(crate::cmd::local_offset_secs(unix).abs() <= 26 * 3600);
     }
 }
+
+/// Field codes and text of every paragraph in story `story` (table cells included).
+fn story_parts(s: &Session, story: StoryRef) -> (Vec<String>, String) {
+    let mut instrs = Vec::new();
+    let mut text = String::new();
+    for path in s.doc.para_paths(story) {
+        let para = s.doc.para(story, &path).unwrap();
+        text.push_str(&para.plain_text());
+        text.push('\n');
+        for o in &para.objects {
+            if let InlineObject::Field { instr, .. } = o {
+                instrs.push(instr.clone());
+            }
+        }
+    }
+    (instrs, text)
+}
+
+/// Header & footer gallery: every design fills the header and the footer, and the numbered
+/// ones carry live PAGE (and NUMPAGES) fields.
+#[test]
+fn every_header_footer_design_fills_the_story() {
+    for (id, _) in HF_DESIGNS {
+        for (cmd, header) in [("insert.header", true), ("insert.footer", false)] {
+            let mut s = Session::new(wordcraft_doc::Document::from_text("Body"));
+            s.doc.core.title = "Report".into();
+            let story = s.run(cmd, &json!({"preset": id})).unwrap_or_else(|e| panic!("{id} {cmd}: {e:?}"))["story"].as_u64().unwrap() as u32;
+            assert_eq!(s.doc.parts[&story].kind, if header { PartKind::Header } else { PartKind::Footer });
+            let (instrs, text) = story_parts(&s, StoryRef::Part(story));
+            assert!(!instrs.is_empty() || !text.trim().is_empty(), "{id} {cmd} is empty");
+        }
+    }
+    let mut s = Session::new(wordcraft_doc::Document::from_text("Body"));
+    let story = s.run("insert.footer", &json!({"preset": "pageXofY"})).unwrap()["story"].as_u64().unwrap() as u32;
+    let (instrs, _) = story_parts(&s, StoryRef::Part(story));
+    assert!(instrs.iter().any(|i| i == "PAGE") && instrs.iter().any(|i| i == "NUMPAGES"), "{instrs:?}");
+    // The older presets still work, and an unknown one still types a placeholder.
+    s.run("insert.header", &json!({"preset": "title"})).unwrap();
+    s.run("insert.header", &json!({"preset": "whatever"})).unwrap();
+}
+
+/// Page numbers: every style at the top, bottom, caret and in the page margins.
+#[test]
+fn page_number_styles_and_positions() {
+    for (style, _) in PAGE_NUMBER_STYLES {
+        for position in ["top", "bottom", "current", "leftMargin", "rightMargin"] {
+            let mut s = Session::new(wordcraft_doc::Document::from_text("Body"));
+            s.run("caret.docEnd", &json!({})).unwrap();
+            let r =
+                s.run("insert.pageNumber", &json!({"style": style, "position": position})).unwrap_or_else(|e| panic!("{style} {position}: {e:?}"));
+            let story = match position {
+                "current" => StoryRef::Body,
+                "leftMargin" | "rightMargin" => {
+                    let id = r["box"].as_u64().unwrap() as u32;
+                    assert_eq!(s.doc.parts[&id].kind, PartKind::TextBox);
+                    StoryRef::Part(id)
+                }
+                _ => StoryRef::Part(r["story"].as_u64().unwrap() as u32),
+            };
+            let (instrs, _) = story_parts(&s, story);
+            assert!(instrs.iter().any(|i| i.starts_with("PAGE")), "{style} {position}: {instrs:?}");
+        }
+    }
+    let mut s = Session::new(wordcraft_doc::Document::from_text("Body"));
+    let r = s.run("insert.pageNumber", &json!({"style": "xOfY", "position": "bottom"})).unwrap();
+    let (instrs, text) = story_parts(&s, StoryRef::Part(r["story"].as_u64().unwrap() as u32));
+    assert_eq!(instrs, ["PAGE", "NUMPAGES"]);
+    assert!(text.contains(" of "), "{text}");
+    // The legacy `format` spelling still gives Page X of Y.
+    let r = s.run("insert.pageNumber", &json!({"format": "x of y"})).unwrap();
+    assert_eq!(story_parts(&s, StoryRef::Part(r["story"].as_u64().unwrap() as u32)).0.len(), 2);
+    s.run("insert.pageNumber", &json!({"style": "circle"})).unwrap();
+    assert_eq!(s.doc.last_section.page_num_format, wordcraft_doc::section::NumFormat::DecimalEnclosedCircle);
+    assert!(s.run("insert.pageNumber", &json!({"style": "nope"})).is_err());
+    assert!(s.run("insert.pageNumber", &json!({"position": "sideways"})).is_err());
+}
+
+/// Cover page gallery: every design goes before the text and ends in a page break.
+#[test]
+fn every_cover_design_ends_in_a_page_break() {
+    for (id, _) in COVER_DESIGNS {
+        let mut s = Session::new(wordcraft_doc::Document::from_text("Body text"));
+        s.run("insert.coverPage", &json!({"design": id, "title": "Annual Report"})).unwrap_or_else(|e| panic!("{id}: {e:?}"));
+        let text = s.doc.plain_text(StoryRef::Body);
+        assert!(text.contains("Annual Report"), "{id}: {text}");
+        let (before, after) = text.split_once('\u{000C}').unwrap_or_else(|| panic!("{id}: no page break"));
+        assert!(before.contains("Annual Report") && after.contains("Body text"), "{id}");
+    }
+    let mut s = Session::new(wordcraft_doc::Document::from_text("Body"));
+    assert!(s.run("insert.coverPage", &json!({"design": "nope"})).is_err());
+    assert_eq!(s.doc.plain_text(StoryRef::Body).trim(), "Body");
+}
+
+/// Quick Parts building blocks go in at the caret.
+#[test]
+fn every_built_in_building_block_inserts() {
+    for (name, _) in BUILT_IN_BLOCKS {
+        let mut s = Session::new(wordcraft_doc::Document::from_text("Start"));
+        s.run("caret.docEnd", &json!({})).unwrap();
+        let before = s.doc.plain_text(StoryRef::Body).len();
+        s.run("insert.buildingBlock", &json!({"name": name})).unwrap_or_else(|e| panic!("{name}: {e:?}"));
+        assert!(s.doc.plain_text(StoryRef::Body).len() > before + 5, "{name}");
+        assert!(s.doc.plain_text(StoryRef::Body).starts_with("Start"));
+    }
+    let mut s = Session::new(wordcraft_doc::Document::new());
+    assert!(s.run("insert.buildingBlock", &json!({"name": "nope"})).is_err());
+    assert!(s.run("insert.buildingBlock", &json!({})).is_err());
+}

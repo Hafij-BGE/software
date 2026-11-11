@@ -25,6 +25,69 @@ pub fn leader(name: &str) -> TabLeader {
     }
 }
 
+/// Ready-made tables of contents for `references.toc`'s `preset`: `(id, menu label)`.
+pub const TOC_PRESETS: &[(&str, &str)] = &[
+    ("automatic1", "Automatic Table 1"),
+    ("automatic2", "Automatic Table 2"),
+    ("classic", "Automatic Table 3 (Classic)"),
+    ("formal", "Formal"),
+    ("simple", "Simple"),
+    ("modern", "Modern"),
+    ("distinctive", "Distinctive"),
+    ("detailed", "Detailed (5 Levels)"),
+    ("overview", "Overview (1 Level)"),
+    ("lined", "Lined"),
+    ("noPages", "Without Page Numbers"),
+];
+
+/// A preset's settings, how its title looks and whether the title is centered.
+fn toc_preset(id: &str) -> Option<(Value, CharProps, bool)> {
+    use wordcraft_doc::props::{Rgb, TextColor};
+    let accent = Some(TextColor::Rgb(Rgb(0x15, 0x60, 0x82)));
+    let plain = CharProps::default();
+    Some(match id {
+        "automatic1" => (serde_json::json!({"levels": 3, "title": "Contents"}), plain, false),
+        "automatic2" => (serde_json::json!({"levels": 3, "title": "Table of Contents"}), plain, false),
+        "classic" => (
+            serde_json::json!({"levels": 3, "title": "Contents", "tabLeader": "dot"}),
+            CharProps { small_caps: Some(true), spacing: Some(1.0), ..plain },
+            false,
+        ),
+        "formal" => {
+            (serde_json::json!({"levels": 3, "title": "TABLE OF CONTENTS", "tabLeader": "dot"}), CharProps { bold: Some(true), ..plain }, true)
+        }
+        "simple" => (serde_json::json!({"levels": 2, "title": "Contents", "tabLeader": "none"}), plain, false),
+        "modern" => (serde_json::json!({"levels": 3, "title": "Contents", "rightAlign": false}), CharProps { color: accent, ..plain }, false),
+        "distinctive" => (
+            serde_json::json!({"levels": 2, "title": "In This Document", "tabLeader": "hyphen"}),
+            CharProps { bold: Some(true), size: Some(18.0), color: accent, ..plain },
+            false,
+        ),
+        "detailed" => (serde_json::json!({"levels": 5, "title": "Contents", "tabLeader": "dot"}), plain, false),
+        "overview" => {
+            (serde_json::json!({"levels": 1, "title": "At a Glance", "tabLeader": "middleDot"}), CharProps { color: accent, ..plain }, false)
+        }
+        "lined" => (serde_json::json!({"levels": 3, "title": "Contents", "tabLeader": "underscore"}), plain, false),
+        "noPages" => (serde_json::json!({"levels": 3, "title": "Contents", "pageNumbers": false}), plain, false),
+        _ => return None,
+    })
+}
+
+/// `v` with its preset's settings under the ones `v` gives itself, the title's look and whether
+/// it is centered (`v` as it is when it names no preset).
+pub(crate) fn apply_toc_preset(v: &Value) -> Result<(Value, CharProps, bool), CmdError> {
+    let Some(id) = p::str(v, "preset") else { return Ok((v.clone(), CharProps::default(), false)) };
+    let (mut merged, props, center) = toc_preset(id).ok_or_else(|| CmdError::Params(format!("unknown table of contents preset {id:?}")))?;
+    if let (Value::Object(base), Value::Object(own)) = (&mut merged, v) {
+        for (k, val) in own {
+            if k != "preset" {
+                base.insert(k.clone(), val.clone());
+            }
+        }
+    }
+    Ok((merged, props, center))
+}
+
 /// The TOC field instruction for `references.toc`'s parameters (ECMA-376 §17.16.5.68): `\o`
 /// heading styles, `\h` hyperlinks, `\z` hide tab and page numbers in Web view, `\u` outline
 /// levels, `\f`/`\l` TC fields, `\n` without page numbers, `\p` separator, `\t` styles with levels.
@@ -375,6 +438,8 @@ pub(super) fn cached_toc_tabs(s: &Session) -> Vec<(String, Vec<TabStop>)> {
 }
 
 pub(super) fn insert_toc(s: &mut Session, v: &Value) -> CmdResult {
+    let (preset, title_props, center) = apply_toc_preset(v)?;
+    let v = &preset;
     let tabs = cached_toc_tabs(s);
     range_toc_to_field(s)?;
     let replace = v.as_object().is_some_and(|m| !m.is_empty());
@@ -408,7 +473,10 @@ pub(super) fn insert_toc(s: &mut Session, v: &Value) -> CmdResult {
         return Err(CmdError::Failed("a table of contents goes in the main text".into()));
     }
     // Title paragraph carrying the TOC field marker.
-    let mut head = Paragraph::with_text(&title, CharProps::default()).styled("TOCHeading");
+    let mut head = Paragraph::with_text(&title, title_props).styled("TOCHeading");
+    if center {
+        head.props.align = Some(wordcraft_doc::props::Align::Center);
+    }
     head.insert_object(
         head.len(),
         InlineObject::Field { instr: toc_instr(v), result: String::new(), locked: false, dirty: false, code: false, form: String::new() },

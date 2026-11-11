@@ -412,6 +412,22 @@ impl SlideApp {
         self.pick_and_run(purpose, cmd, &json!({}));
     }
 
+    /// Insert what the Stock Images window handed back: a picture (with its credit as alt text)
+    /// or a gallery icon as an editable shape.
+    pub(crate) fn insert_stock(&mut self, pick: craft_gallery::stock::Pick) {
+        let _ = match pick {
+            craft_gallery::stock::Pick::Icon(icon) => self.run("insert.icon", json!({"name": icon.id, "source": "gallery"})),
+            craft_gallery::stock::Pick::Picture(c) => self.run(
+                "insert.picture",
+                json!({
+                    "name": format!("{}.{}", c.name, c.ext),
+                    "data": deckcraft_engine::cmd::base64_encode(&c.bytes),
+                    "alt": c.alt,
+                }),
+            ),
+        };
+    }
+
     /// Pick a file and run `cmd` with it (`name` + `data`, or `path`) added to `extra`.
     pub(super) fn pick_and_run(&mut self, purpose: &str, cmd: &str, extra: &Value) {
         if let Some(pick) = self.services.pick_open.as_mut() {

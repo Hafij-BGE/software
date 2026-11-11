@@ -26,6 +26,15 @@ pub(super) fn insert(app: &mut SheetApp, ui: &mut Ui) {
                 ui.close();
             }
         }
+        ui.separator();
+        if ui.button("Stock Images…").clicked() {
+            app.stock.open_images();
+            ui.close();
+        }
+        if ui.button("Online Pictures…").clicked() {
+            app.stock.open_online();
+            ui.close();
+        }
     });
     let shapes = big_button(ui, Icon::Shapes, "Shapes", "Shapes", true);
     anchor_keytip(app, ui, &shapes, &["insert.shape"]);
@@ -64,6 +73,12 @@ pub(super) fn insert(app: &mut SheetApp, ui: &mut Ui) {
                 }
             }
         });
+        ui.separator();
+        let more = format!("{} ({})", "More icons…", craft_gallery::picker::thousands(craft_gallery::icons::all().len()));
+        if ui.button(more).clicked() {
+            app.stock.open_icons();
+            ui.close();
+        }
     });
     sep(ui);
     let __k = big_button(ui, Icon::Chart, "Recommended\nCharts", "Recommended Charts", false);

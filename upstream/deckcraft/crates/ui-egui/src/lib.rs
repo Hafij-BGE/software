@@ -143,6 +143,8 @@ pub const UI_COMMANDS: &[(&str, &str, Option<&str>, &str)] = &[
     ("app.preferences", "Preferences…", Some("Cmd+,"), "{}"),
     ("app.openDialog", "Open…", None, "{purpose?}"),
     ("app.insertPictureDialog", "Picture from File…", None, "{}"),
+    ("app.stockImages", "Stock Images…", None, "{tab?: images|icons}"),
+    ("app.onlinePictures", "Online Pictures…", None, "{}"),
     ("app.smartArtPictureDialog", "Insert Picture in SmartArt…", None, "{id?, index}"),
     ("app.changePictureDialog", "Change Picture…", None, "{}"),
     ("app.insertAudioDialog", "Audio from File…", None, "{}"),
@@ -229,6 +231,10 @@ pub struct SlideApp {
     /// Spelling squiggles, checked on a worker thread.
     pub squiggles: squiggles::Squiggles,
     pub dialog: Option<dialogs::Dialog>,
+    /// Insert › Pictures › Stock Images / Online Pictures (the shared craft-gallery window).
+    pub stock: craft_gallery::stock::StockDialog,
+    /// Insert › Icons: search and pick from the shared icon gallery.
+    pub icon_picker: craft_gallery::picker::IconPicker,
     /// The word looked up in the Thesaurus pane.
     pub thesaurus_query: String,
     pub show: Option<show::Show>,

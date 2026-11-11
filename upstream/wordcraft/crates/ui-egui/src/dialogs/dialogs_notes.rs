@@ -11,14 +11,33 @@ use crate::WordApp;
 use crate::theme::semibold;
 
 /// Number formats notes offer: OOXML name and a sample (not translated). The Format Page Numbers
-/// dialog offers the same list (#1113).
-pub(crate) const FORMATS: [(&str, &str); 5] = [
+/// dialog offers these first (#1113), then every other format ([`page_formats`]).
+pub(crate) const FORMATS: [(&str, &str); 6] = [
     ("decimal", "1, 2, 3, …"),
     ("lowerLetter", "a, b, c, …"),
     ("upperLetter", "A, B, C, …"),
     ("lowerRoman", "i, ii, iii, …"),
     ("upperRoman", "I, II, III, …"),
+    ("chicago", "*, †, ‡, …"),
 ];
+
+/// Every number format a page number can take: OOXML name and a sample the format draws itself
+/// ("1, 2, 3, …"), the common ones ([`FORMATS`]) first. Formats drawn alike (Hebrew, Hindi… show
+/// decimal digits) carry their name so each entry can be told apart. Bullet and None number
+/// nothing, so they aren't offered.
+pub(crate) fn page_formats() -> Vec<(&'static str, String)> {
+    use wordcraft_doc::section::NumFormat;
+    let mut out: Vec<(&'static str, String)> = FORMATS.iter().map(|(id, sample)| (*id, (*sample).to_string())).collect();
+    for f in NumFormat::ALL {
+        if matches!(f, NumFormat::None | NumFormat::Bullet) || out.iter().any(|(id, _)| *id == f.ooxml()) {
+            continue;
+        }
+        let sample = format!("{}, {}, {}, …", f.format(1), f.format(2), f.format(3));
+        let label = if out.iter().any(|(_, l)| *l == sample) { format!("{sample} ({})", f.ooxml()) } else { sample };
+        out.push((f.ooxml(), label));
+    }
+    out
+}
 
 /// The dialog's fields; `[footnotes, endnotes]` where each kind has its own.
 #[derive(Clone, Debug, PartialEq, Serialize)]
