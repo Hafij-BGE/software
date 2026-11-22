@@ -39,10 +39,7 @@ mod update;
 #[allow(dead_code)]
 #[path = "../../upstream/wordcraft/apps/wordcraft/src"]
 mod word_src {
-    pub mod animations;
-    pub mod clipboard;
-    pub mod file_dialogs;
-    pub mod print;
+    pub mod prefs;
     pub mod region;
 }
 #[allow(dead_code)]
@@ -57,7 +54,7 @@ mod grid_src {
 }
 use deck_src::audio as deck_audio;
 use grid_src::print as grid_print;
-use word_src::{animations as word_animations, clipboard as word_clipboard, file_dialogs as word_file_dialogs, print as word_print, region as word_region};
+use word_src::{prefs as word_prefs, region as word_region};
 
 use kind::Kind;
 
@@ -144,6 +141,8 @@ fn main() -> std::process::ExitCode {
         "Craft Suite",
         options,
         Box::new(move |cc| {
+            // WordCraft's craft runtime, before the first pass (its hooks must run for every pass).
+            hosts::word_install_runtime(&cc.egui_ctx);
             let incoming = settings.single_window.then(|| instance::serve(cc.egui_ctx.clone())).flatten();
             Ok(Box::new(app::SuiteApp::new(&cc.egui_ctx, settings, request, incoming)))
         }),

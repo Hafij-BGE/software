@@ -85,7 +85,7 @@ pub fn merged(primary: &FontDefinitions, union: &FontDefinitions) -> FontDefinit
 pub fn seed_union(home: &FontDefinitions) -> FontDefinitions {
     let mut union = home.clone();
     for defs in [
-        wordcraft_ui_egui::theme::font_definitions(false, false),
+        crate::hosts::word_font_definitions(),
         deckcraft_ui_egui::theme::font_definitions(&[]),
         gridcraft_ui_egui::theme::font_definitions(),
     ] {
