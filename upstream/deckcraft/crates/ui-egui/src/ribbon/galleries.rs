@@ -134,7 +134,7 @@ pub fn shapes_gallery(ui: &mut Ui) -> Option<&'static str> {
             ui.label(egui::RichText::new(cat.label()).font(theme::bold(12.0)));
             ui.horizontal_wrapped(|ui| {
                 ui.spacing_mut().item_spacing = vec2(1.0, 1.0);
-                for p in deckcraft_geom::preset::CATALOG.iter().filter(|p| p.category == cat) {
+                for p in deckcraft_engine::suite_presets::catalog().filter(|p| p.category == cat) {
                     let (r, resp) = ui.allocate_exact_size(vec2(26.0, 26.0), Sense::click());
                     if resp.hovered() {
                         ui.painter().rect_filled(r, CornerRadius::same(3), t.hover);

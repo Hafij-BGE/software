@@ -55,7 +55,7 @@ pub fn tool_kind(name: &str, preset: Option<&str>) -> Option<ToolKind> {
         "pen" => ToolKind::Ink { mode: "pen".into(), color: deckcraft_engine::model::Rgba::BLACK, width: 2.0 },
         "highlighter" => ToolKind::Ink { mode: "highlighter".into(), color: deckcraft_engine::model::Rgba::rgb(255, 230, 0), width: 10.0 },
         "eraser" => ToolKind::Ink { mode: "eraser".into(), color: deckcraft_engine::model::Rgba::BLACK, width: 2.0 },
-        other if deckcraft_engine::geom::preset::info(other).is_some() => ToolKind::Shape { preset: other.to_string() },
+        other if deckcraft_engine::suite_presets::info(other).is_some() => ToolKind::Shape { preset: other.to_string() },
         other if deckcraft_engine::tools::is_freeform_tool(other) => ToolKind::Shape { preset: other.to_string() },
         _ => return None,
     })
