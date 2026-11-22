@@ -91,7 +91,7 @@ pub fn specs() -> Vec<CommandSpec> {
         ),
         cmd!("insert.audio", "Audio from File…", ["Insert", "Media", "Audio"], None, "{path? | data: base64, name?, rect?}", has_slide, audio),
         cmd!("insert.video", "Video from File…", ["Insert", "Media", "Video"], None, "{path? | data: base64, name?, rect?}", has_slide, video),
-        cmd!("insert.wordArt", "WordArt", ["Insert", "Text"], None, "{text?, style?: 0..}", has_slide, word_art),
+        cmd!("insert.wordArt", "Decorative Text", ["Insert", "Text"], None, "{text?, style?: 0..}", has_slide, word_art),
         cmd!("insert.slideNumber", "Slide Number", ["Insert", "Text"], None, "{}", has_slide, slide_number),
         cmd!(
             "insert.dateTime",
@@ -142,7 +142,7 @@ pub fn specs() -> Vec<CommandSpec> {
         ),
         cmd!(
             "insert.smartArt",
-            "SmartArt",
+            "Diagram",
             ["Insert", "Illustrations"],
             None,
             "{kind: list|process|cycle|hierarchy|pyramid|matrix, items?: [text] (leading tabs = sub-points), nodes?: [{text, level}]} → {id}",
@@ -180,7 +180,7 @@ pub(crate) fn auto_name_base(shape: &Shape) -> String {
         _ => shape
             .geom
             .preset_name()
-            .and_then(deckcraft_geom::preset::info)
+            .and_then(crate::suite_presets::info)
             .map(|i| i.label.split(':').next().unwrap_or(i.label).trim().to_string())
             .unwrap_or_else(|| "Shape".into()),
     }
@@ -214,7 +214,7 @@ pub(crate) fn add_shape(s: &mut Session, cmd: &str, mut shape: Shape, select: bo
 
 fn insert_shape(s: &mut Session, p: &Value) -> Result<Value> {
     let preset = str_param(p, "preset").unwrap_or("rect");
-    let info = deckcraft_geom::preset::info(preset).ok_or_else(|| bad("shape.insert", format!("unknown preset `{preset}`")))?;
+    let info = crate::suite_presets::info(preset).ok_or_else(|| bad("shape.insert", format!("unknown preset `{preset}`")))?;
     let line_like = deckcraft_geom::preset::is_line_like(preset);
     let rect = rect_param(p, "rect").unwrap_or_else(|| default_rect(s, 72.0, if line_like { 0.0 } else { 72.0 }));
     let adj: Vec<f64> = p.get("adj").and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_f64).collect()).unwrap_or_default();
@@ -258,7 +258,7 @@ fn insert_shape(s: &mut Session, p: &Value) -> Result<Value> {
 
 fn presets(_s: &mut Session, _p: &Value) -> Result<Value> {
     Ok(Value::Array(
-        deckcraft_geom::preset::CATALOG.iter().map(|i| json!({"name": i.name, "label": i.label, "category": i.category.label()})).collect(),
+        crate::suite_presets::catalog().map(|i| json!({"name": i.name, "label": i.label, "category": i.category.label()})).collect(),
     ))
 }
 
