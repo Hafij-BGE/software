@@ -1,7 +1,13 @@
 use super::{
-    Anchor, BorderLine, BorderStyle, Borders, CfOperator, CfRule, CfValueKind, Color, CondFormat, EngineError, Fill, Json, Result, Session, Shape,
-    ShapeKind, Style, anchor_mode_param, bad, bool_param, cell_param, edit, f64_param, json, ok, str_param, target_ranges, target_sheet, u32_param,
+    Anchor, BorderLine, BorderStyle, Borders, CellRef, CfOperator, CfRule, CfValueKind, Color, CondFormat, EngineError, Fill, Json, RangeRef, Result,
+    Session, Shape, ShapeKind, Style, anchor_mode_param, bad, bool_param, cell_param, edit, f64_param, json, ok, str_param, target_ranges,
+    target_sheet, u32_param,
 };
+
+#[cfg(test)]
+pub(super) fn compiled() -> bool {
+    true
+}
 
 // ---------------------------------------------------------------- conditional formatting
 
@@ -271,12 +277,31 @@ pub(super) fn clear_cf(s: &mut Session, p: &Json) -> Result<Json> {
             sh.cond_formats.clear();
         } else {
             for cf in sh.cond_formats.iter_mut() {
+                let before = RangeRef::top_left(&cf.ranges);
                 cf.ranges.retain(|r| !ranges.iter().any(|x| x.intersects(r)));
+                // The relative formulas are written for the top-left cell: when it goes, they're
+                // rewritten for the new one, so the areas left keep reading the same cells.
+                if let (Some(from), Some(to)) = (before, RangeRef::top_left(&cf.ranges)) {
+                    rebase_cf_formulas(&mut cf.rule, from, to);
+                }
             }
             sh.cond_formats.retain(|c| !c.ranges.is_empty());
         }
         Ok(Json::Null)
     })
+}
+
+/// Moves the relative references of a rule's per-cell formulas written for `from` to `to`.
+fn rebase_cf_formulas(rule: &mut CfRule, from: CellRef, to: CellRef) {
+    let mv = |f: &str| crate::cmd::data::move_rule_formula(f, from, to);
+    match rule {
+        CfRule::CellIs { a, b, .. } => {
+            *a = mv(a);
+            *b = b.as_deref().map(mv);
+        }
+        CfRule::Expression { formula, .. } => *formula = mv(formula),
+        _ => {}
+    }
 }
 
 pub(super) fn manage_cf(s: &mut Session, p: &Json) -> Result<Json> {
@@ -321,6 +346,9 @@ pub(super) fn manage_cf(s: &mut Session, p: &Json) -> Result<Json> {
 pub(super) fn insert_icon(s: &mut Session, p: &Json) -> Result<Json> {
     let name = str_param(p, "name").unwrap_or("check").to_string();
     let size = f64_param(p, "size").unwrap_or(48.0).clamp(8.0, 1000.0) as f32;
+    if str_param(p, "source") == Some("gallery") {
+        return insert_gallery_icon(s, p, &name, size);
+    }
     let d = s.doc()?;
     let id = d.wb.next_object_id();
     let at = cell_param(s, p, "at")?.unwrap_or(d.selection.active);
@@ -333,6 +361,7 @@ pub(super) fn insert_icon(s: &mut Session, p: &Json) -> Result<Json> {
         line: Color::Auto,
         text: name,
         format: Default::default(),
+        rotation: 0.0,
         math: Default::default(),
     };
     let sheet = d.wb.active_sheet();
@@ -340,4 +369,27 @@ pub(super) fn insert_icon(s: &mut Session, p: &Json) -> Result<Json> {
         cx.sheet_mut(sheet)?.shapes.push(shape);
         Ok(json!({"shape": id}))
     })
+}
+
+/// A shared-library icon, drawn at about 300 pixels per inch and placed as a picture (so it
+/// keeps its look in the saved .xlsx, where Sheet's own icons become plain shapes).
+fn insert_gallery_icon(s: &mut Session, p: &Json, name: &str, size: f32) -> Result<Json> {
+    let icon = craft_gallery::icons::find(name).ok_or_else(|| bad("insert.icons", format!("unknown icon `{name}`")))?;
+    let rgb = match crate::cmd::format::color_param(p.get("color")) {
+        Some(Color::Rgb(v)) => [(v >> 16) as u8, (v >> 8) as u8, v as u8],
+        _ => [0, 0, 0],
+    };
+    let px = (size * 300.0 / 72.0).round().clamp(64.0, 1024.0) as u16;
+    let png = icon.png(px, rgb).ok_or_else(|| bad("insert.icons", "couldn't draw the icon"))?;
+    let mut q = json!({"base64": crate::io::base64_encode(&png), "mime": "image/png", "width": size, "height": size, "alt": icon.label});
+    for k in ["at", "mode"] {
+        if let Some(v) = p.get(k) {
+            q[k] = v.clone();
+        }
+    }
+    let mut r = super::objects::insert_picture(s, &q)?;
+    if let Json::Object(m) = &mut r {
+        m.insert("icon".into(), json!(icon.id));
+    }
+    Ok(r)
 }
