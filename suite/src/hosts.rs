@@ -14,7 +14,7 @@ use serde_json::json;
 
 use crate::kind::Kind;
 use crate::settings::{AutoSave, Settings, SuiteTheme, no_prefs};
-use crate::{deck_audio, grid_print, word_animations, word_clipboard, word_file_dialogs, word_print, word_region};
+use crate::{deck_audio, grid_print, word_prefs, word_region};
 
 pub enum Doc {
     Word(Box<WordTab>),
@@ -26,7 +26,8 @@ pub enum Doc {
 
 pub struct WordTab {
     app: wordcraft_ui_egui::WordApp,
-    dialogs: word_file_dialogs::Launcher,
+    /// The native panels behind the file service the app reaches through its host.
+    panels: craft::dialogs::service::FilePanels,
 }
 
 pub struct DeckTab {
@@ -448,7 +449,11 @@ impl Doc {
 
     pub fn raw_input_hook(&mut self, ctx: &egui::Context, raw: &mut egui::RawInput) {
         match self {
-            Doc::Word(t) => t.app.raw_input_hook(ctx, raw),
+            Doc::Word(t) => {
+                // The suite opens dropped files itself (`app.rs`); the runtime gets the app's input.
+                let _ = raw;
+                craft::ui::shell::embed::before_input(ctx, |out| t.app.frame_input(out));
+            }
             Doc::Deck(t) => t.app.raw_input_hook(ctx, raw),
             Doc::Grid(t) => t.app.raw_input_hook(ctx, raw),
             #[cfg(feature = "markd")]
@@ -465,7 +470,10 @@ impl Doc {
         match self {
             Doc::Word(t) => {
                 t.app.logic(ctx);
-                t.dialogs.show(frame);
+                t.panels.pump_with(t.app.dialog_host_mut(), Some(frame));
+                // The suite decides about closing its window itself (`check_close` per tab), so the
+                // runtime's close path only gets the platform quit (macOS) from here.
+                craft::ui::shell::embed::logic(ctx, || craft::ui::shell::embed::CloseDecision::Close);
             }
             Doc::Deck(t) => t.app.logic(ctx),
             Doc::Grid(t) => {
@@ -529,8 +537,9 @@ impl Doc {
     pub fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
         match self {
             Doc::Word(t) => {
+                craft::ui::shell::embed::before_ui(ui.ctx(), frame);
                 t.app.ui(ui);
-                t.dialogs.show(frame);
+                t.panels.pump_with(t.app.dialog_host_mut(), Some(frame));
             }
             Doc::Deck(t) => t.app.ui(ui),
             Doc::Grid(t) => t.app.ui(ui),
@@ -629,7 +638,7 @@ impl Doc {
 
     pub fn save_prefs(&self) {
         match self {
-            Doc::Word(t) => word_save_prefs(&t.app),
+            Doc::Word(_) => word_save_prefs(),
             Doc::Deck(t) => deck_save_prefs(&t.app),
             Doc::Grid(t) => grid_save_prefs(&t.app),
             // The page keeps its own settings.
@@ -658,52 +667,119 @@ pub fn init_once() {
 }
 
 pub fn finish_print_jobs() {
-    word_print::finish_pending_jobs();
+    // Jobs being sent finish first, so the spooler has them before the process exits.
+    if let Some(shared) = WORD.get()
+        && let Ok(spools) = shared.spools.lock()
+    {
+        for spool in spools.iter() {
+            spool.shutdown();
+        }
+    }
     grid_print::finish_pending_jobs();
 }
 
 // ---- WordCraft (upstream/wordcraft/apps/wordcraft/src/main.rs) -------------------------------
 
+/// What every WordCraft tab shares: one settings store (WordCraft's `config.toml`) and the print
+/// spools to wait for at exit. The craft runtime is installed once, on the suite's context.
+struct WordShared {
+    settings: craft::settings::SharedSettings<wordcraft_ui_egui::prefs::Prefs>,
+    spools: std::sync::Mutex<Vec<craft::print::spool::Spool>>,
+}
+
+static WORD: std::sync::OnceLock<WordShared> = std::sync::OnceLock::new();
+
+fn word_shared() -> &'static WordShared {
+    WORD.get_or_init(|| {
+        // The suite remembers the window, not each tab: the window place stays in memory.
+        let (settings, report) = word_prefs::open(word_prefs_enabled(), &mut craft::window::restore::Store::in_memory());
+        if report.has_problems() {
+            log::warn!("WordCraft preferences: {report:?}");
+        }
+        WordShared { settings, spools: std::sync::Mutex::new(Vec::new()) }
+    })
+}
+
+/// The interface language WordCraft's settings ask for, else the system's.
+fn word_lang() -> wordcraft_ui_egui::i18n::Lang {
+    wordcraft_ui_egui::i18n::Lang::from_pref(&word_shared().settings.lock().get().language)
+}
+
+/// The interface fonts WordCraft draws with, for the suite's font union (`look.rs`).
+pub fn word_font_definitions() -> egui::FontDefinitions {
+    crate::look::merged(&wordcraft_ui_egui::theme::font_definitions(), &wordcraft_ui_egui::ui_fonts(word_lang()).stack().flat_definitions())
+}
+
+/// Installs the craft runtime WordCraft runs on, once per context, from eframe's creation context
+/// (as WordCraft's `main.rs` does): installed during a pass, its hooks miss that pass.
+pub fn word_install_runtime(ctx: &egui::Context) {
+    static INSTALLED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    if INSTALLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
+        return;
+    }
+    let wake = {
+        let ctx = ctx.clone();
+        move || ctx.request_repaint()
+    };
+    let spec = craft::ui::InstallSpec::new(craft::host::target::ShellInfo::current(), std::sync::Arc::new(craft::window::system::SystemWindows))
+        .app_id("ai.storyteller.wordcraft")
+        .system(craft::platform::appearance::SystemReader::start(wake))
+        .clipboard(craft::platform::clipboard::Clipboard::new(craft::platform::clipboard::SystemClipboard::new().decoder(word_decode_png)))
+        .placement(std::sync::Arc::new(std::sync::Mutex::new(craft::window::restore::Store::in_memory())));
+    if let Err(e) = craft::ui::shell::embed::install(ctx, spec, &wordcraft_ui_egui::ui_fonts(word_lang())) {
+        log::warn!("WordCraft: the runtime could not be installed: {e}");
+    }
+}
+
+/// A PNG as the pixels the system clipboard takes (as `main.rs`'s `decode_png`).
+fn word_decode_png(bytes: &[u8]) -> Option<craft::platform::clipboard::ClipboardImage> {
+    let rgba = wordcraft_geom::picture::decode_memory(bytes).ok()?.to_rgba8();
+    Some(craft::platform::clipboard::ClipboardImage { width: rgba.width(), height: rgba.height(), rgba: rgba.into_raw() })
+}
+
 impl WordTab {
     fn new(ctx: &egui::Context) -> WordTab {
+        let shared = word_shared();
+        let settings = shared.settings.clone();
+        let wake = {
+            let ctx = ctx.clone();
+            move || ctx.request_repaint()
+        };
+        let (file_service, panels) = craft::dialogs::service::FileService::new(craft::host::Wake::new(wake));
+        let host = std::sync::Arc::new(
+            craft::host::Host::builder(wordcraft_ui_egui::APP)
+                .i18n(wordcraft_ui_egui::i18n::catalogs())
+                .files(std::sync::Arc::new(file_service))
+                .settings(std::sync::Arc::new(settings.clone()))
+                .lang(word_lang().craft_lang())
+                .build(),
+        );
         // The system region picks the new document's paper, the units and the decimal separator.
         let region = word_region::system();
-        let (file_dialog, dialogs) = word_file_dialogs::hook(ctx);
         let mut session = wordcraft_engine::Session::new(wordcraft_engine::blank_document(&region));
         session.system_region = region;
+        // The custom dictionary's words (#40) count as loaded settings.
+        if word_prefs_enabled()
+            && let Some(path) = word_prefs::user_dict_path()
+        {
+            word_prefs::load_user_dictionary(&mut session, &settings, path);
+        }
+        let spool = craft::print::spool::Spool::new(host.jobs_shared().clone());
+        if let Ok(mut spools) = shared.spools.lock() {
+            spools.push(spool.clone());
+        }
         let services = wordcraft_ui_egui::Services {
-            file_dialog: Some(file_dialog),
-            printers: Some(word_print::discover()),
-            print_native: Some(word_print::submit()),
-            clipboard_picture: Some(Box::new(word_clipboard::picture)),
-            animations_enabled: Some(word_animations::hook(ctx)),
-            clipboard_text: Some(Box::new(word_clipboard::text)),
-            clipboard_html: Some(Box::new(word_clipboard::html)),
-            clipboard_rtf: Some(Box::new(word_clipboard::rtf)),
-            clipboard_formats: Some(Box::new(word_clipboard::formats)),
+            print: Some(spool),
+            templates_dir: wordcraft_control_key::settings_dir().map(|d| d.join("Templates")),
             ..Default::default()
         };
-        let mut app = wordcraft_ui_egui::WordApp::new(session, services);
-        if word_prefs_enabled() {
-            if let Some(ui) = word_prefs_path().and_then(|p| std::fs::read(p).ok()).and_then(|b| wordcraft_ui_egui::UiState::from_json(&b)) {
-                app.apply_prefs(ui);
-            }
-            if let Some(p) = wordcraft_control_key::settings_dir().map(|b| b.join(wordcraft_engine::Session::USER_DICT_FILE)) {
-                wordcraft_proof::load_user_dictionary(&p);
-                app.session.user_dict_path = Some(p);
-            }
-        }
+        let mut app = wordcraft_ui_egui::WordApp::new(session, services).with_host(host).with_settings(settings);
         // A region chosen in File › Options replaces the system's for the blank document too.
         if app.session.prefs.region.is_some() {
             let doc = app.session.blank_document();
-            app.session.set_document(doc);
+            app.replace_startup_document(doc);
         }
-        app.watch_desktop_theme(ctx);
-        // The suite's window keeps the system title bar; the apps don't draw their own.
-        app.integrated_titlebar = false;
-        // The suite remembers the window, not each tab.
-        app.ui.window = None;
-        WordTab { app, dialogs }
+        WordTab { app, panels }
     }
 }
 
@@ -711,25 +787,15 @@ fn word_prefs_enabled() -> bool {
     !no_prefs() && std::env::var_os("WORDCRAFT_NO_PREFS").is_none()
 }
 
-fn word_prefs_path() -> Option<std::path::PathBuf> {
-    wordcraft_control_key::settings_dir().map(|b| b.join("ui.json"))
-}
-
-fn word_save_prefs(app: &wordcraft_ui_egui::WordApp) {
+/// Writes WordCraft's settings (the tabs share one store; it saves what changed).
+fn word_save_prefs() {
     if !word_prefs_enabled() {
         return;
     }
-    let Some(p) = word_prefs_path() else { return };
-    // Keep the window geometry WordCraft saved when it last ran on its own.
-    let mut prefs = app.prefs();
-    if let Some(old) = std::fs::read(&p).ok().and_then(|b| wordcraft_ui_egui::UiState::from_json(&b)) {
-        prefs.window = old.window;
-    }
-    if let Some(dir) = p.parent() {
-        let _ = std::fs::create_dir_all(dir);
-    }
-    if let Ok(bytes) = serde_json::to_vec_pretty(&prefs) {
-        let _ = std::fs::write(&p, bytes);
+    if let Some(shared) = WORD.get()
+        && let Err(e) = shared.settings.lock().flush()
+    {
+        log::warn!("WordCraft preferences: {e}");
     }
 }
 

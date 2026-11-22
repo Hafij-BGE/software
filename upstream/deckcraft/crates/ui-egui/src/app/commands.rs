@@ -243,7 +243,7 @@ impl SlideApp {
             "app.onlinePictures" => self.stock.open_online(),
             "app.smartArtPictureDialog" => {
                 if self.services.pick_open.is_none() {
-                    return Err("picking a SmartArt picture needs the desktop app".into());
+                    return Err("picking a Diagram picture needs the desktop app".into());
                 }
                 self.pick_and_run("picture", "smartArt.picture", p);
             }
