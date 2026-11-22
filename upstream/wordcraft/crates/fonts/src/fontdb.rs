@@ -28,14 +28,13 @@ mod names;
 
 use face::{BUNDLED, FontBytes};
 pub use face::{FALLBACK_FAMILY, FaceRef, FontFace, bundled};
+#[cfg(test)]
+use fallback_data::{Coverage, RUN_FALLBACK_CACHE_CHARS, SYS_FALLBACK_MAX_FILE, file_coverage, ranges_hold};
 #[cfg(not(target_arch = "wasm32"))]
 use fallback_data::{CoverageIndex, SysFallback};
 use fallback_data::{FallbackCache, RunFallbackCache};
-#[cfg(test)]
-use fallback_data::{RUN_FALLBACK_CACHE_CHARS, coverage_ranges, ranges_hold};
 #[cfg(not(target_arch = "wasm32"))]
 use names::CatalogEntry;
-pub(crate) use names::face_names;
 pub use names::{LocalName, base_style, name_language_matches, system_font_dirs};
 #[cfg(not(target_arch = "wasm32"))]
 pub use names::font_file_families;

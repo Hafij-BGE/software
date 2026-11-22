@@ -1,11 +1,19 @@
 //! Insert › Header, Footer, Page Number, Cover Page and Quick Parts galleries: the built-in
 //! designs the engine lists, a header/footer design as a drawn tile.
 
-use egui::{Color32, Pos2, Rect, Sense, Stroke, StrokeKind, vec2};
+use craft::behavior::{DisplayOrder, ItemSource};
+use craft::keymap::CommandRef;
+use craft::ui::contract::{ActivateOn, BodyCx, CollectionEvent, Props as _, SelectMode, Show as _, ShowCollection as _};
+use craft::ui::display::Divider;
+use craft::ui::list::ThumbAspect;
+use craft::ui::menu::{Menu, MenuItem};
+use craft::ui::runtime::commands::resolve;
+use craft::ui::tile_grid::{CaptionPlace, Tile, TileGrid};
+use egui::{Color32, Pos2, Rect, Stroke, StrokeKind, Ui, vec2};
+use serde_json::json;
 use wordcraft_engine::cmd::insert::{BUILT_IN_BLOCKS, COVER_DESIGNS, HF_DESIGNS, PAGE_NUMBER_STYLES};
 
-use super::super::common::mi;
-use super::{Ui, WordApp, json};
+use crate::WordApp;
 
 /// What a slot of a tile's sketch holds: nothing, grey text, accent text, dark bold text or a
 /// red notice.
@@ -60,7 +68,6 @@ fn sketch(id: &str) -> ([Ink; 3], Deco) {
 
 const ACCENT: Color32 = Color32::from_rgb(0x15, 0x60, 0x82);
 const ALERT: Color32 = Color32::from_rgb(0xC0, 0x00, 0x00);
-const TILE: egui::Vec2 = vec2(108.0, 50.0);
 const TILES_PER_ROW: usize = 3;
 
 /// Paints design `id` as a strip of page: text slots as bars, at the top of the page for a
@@ -127,80 +134,103 @@ fn paint_sketch(painter: &egui::Painter, r: Rect, id: &str, header: bool) {
     }
 }
 
+/// Tiles keyed by position.
+struct Indexed(usize);
+
+impl DisplayOrder<usize> for Indexed {
+    fn len(&self) -> usize {
+        self.0
+    }
+
+    fn key(&self, at: usize) -> usize {
+        at
+    }
+
+    fn index_of(&self, key: &usize) -> Option<usize> {
+        (*key < self.0).then_some(*key)
+    }
+}
+
+impl ItemSource<usize> for Indexed {}
+
 /// The header (or footer) designs as a grid of drawn tiles, each named under it; a click runs
-/// `cmd` with the design as its preset.
-pub(super) fn hf_gallery(ui: &mut Ui, app: &mut WordApp, cmd: &str, header: bool) {
-    let t = crate::theme::Tokens::get(ui.ctx());
-    let enabled = crate::widgets::enabled(app, cmd);
-    ui.add_enabled_ui(enabled, |ui| {
-        ui.spacing_mut().item_spacing = vec2(4.0, 4.0);
-        for row in HF_DESIGNS.chunks(TILES_PER_ROW) {
-            ui.horizontal(|ui| {
-                for (id, label) in row {
-                    let (r, resp) = ui.allocate_exact_size(TILE, Sense::click());
-                    let name = crate::tl!(label);
-                    resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), name));
-                    crate::widgets::bg(ui, r, &resp, false, &t);
-                    let art = Rect::from_min_size(r.min + vec2(4.0, 3.0), vec2(TILE.x - 8.0, 30.0));
-                    paint_sketch(ui.painter(), art, id, header);
-                    let font = egui::FontId::proportional(11.0);
-                    let text = ui.painter().layout(name.to_string(), font, t.text, TILE.x - 4.0);
-                    let at = Pos2::new(r.center().x - text.size().x / 2.0, art.bottom() + 2.0);
-                    ui.painter().galley(at, text, t.text);
-                    if resp.on_hover_text(name).clicked() {
-                        crate::widgets::run_from_ribbon(app, cmd, json!({"preset": id}));
-                        ui.close();
-                    }
-                }
-            });
-        }
+/// `cmd` with the design as its preset. Disabled while `cmd` is.
+pub(super) fn hf_gallery(ui: &mut Ui, cx: &mut BodyCx<'_>, app: &mut WordApp, cmd: &str, header: bool) {
+    let enabled = resolve(ui.ctx(), cmd).enabled;
+    let title = if header { crate::tl!("Header designs") } else { crate::tl!("Footer designs") };
+    let out = TileGrid::new(title)
+        .select(SelectMode::None)
+        .activate(ActivateOn::Click)
+        .card_columns(TILES_PER_ROW)
+        // Every design shows; the menu's body is the one scroll.
+        .natural_height(true)
+        .caption(CaptionPlace::Below)
+        .enabled(enabled)
+        .show_items(ui, &Indexed(HF_DESIGNS.len()), &mut |at, _| {
+            let (id, label) = HF_DESIGNS.get(*at).copied().unwrap_or(("", ""));
+            Tile::new(crate::tl!(label)).thumb(ThumbAspect::new(10, 3), move |cx, r| paint_sketch(&cx.painter, r, id, header))
+        });
+    let picked = out.response.events.iter().find_map(|event| match event {
+        CollectionEvent::Activate(at) => Some(*at),
+        _ => None,
     });
+    if let Some((id, _)) = picked.and_then(|at| HF_DESIGNS.get(at)) {
+        match app.run(cmd, json!({"preset": id})) {
+            Ok(_) => cx.request_close(),
+            Err(e) => app.status(e),
+        }
+    }
+}
+
+/// One menu row that runs `cmd` with `params`, labelled `label` in the interface language.
+fn item(ui: &mut Ui, label: &'static str, cmd: &str, params: serde_json::Value) {
+    MenuItem::command(CommandRef::with_params(cmd, params)).label(crate::tl!(label)).show(ui);
 }
 
 /// Insert › Page Number: each position lists every style; Page Margins puts the number in a box
 /// in the left or right margin.
-pub(super) fn page_number_menu(ui: &mut Ui, app: &mut WordApp) {
+pub(super) fn page_number_menu(ui: &mut Ui) {
     for (label, position, align) in [("Top of Page", "top", "right"), ("Bottom of Page", "bottom", "center")] {
-        ui.menu_button(crate::tl!(label), |ui| {
+        Menu::submenu_row(ui, crate::tl!(label), |ui, _| {
             for (side, side_align) in [("Plain Number (Left)", "left"), ("Plain Number (Center)", "center"), ("Plain Number (Right)", "right")] {
-                mi(ui, app, side, "insert.pageNumber", json!({"position": position, "align": side_align, "style": "plain"}));
+                item(ui, side, "insert.pageNumber", json!({"position": position, "align": side_align, "style": "plain"}));
             }
-            ui.separator();
+            Divider::horizontal().show(ui);
             for (style, name) in PAGE_NUMBER_STYLES.iter().filter(|(s, _)| *s != "plain") {
-                mi(ui, app, name, "insert.pageNumber", json!({"position": position, "align": align, "style": style}));
+                item(ui, name, "insert.pageNumber", json!({"position": position, "align": align, "style": style}));
             }
         });
     }
-    ui.menu_button(crate::tl!("Page Margins"), |ui| {
+    Menu::submenu_row(ui, crate::tl!("Page Margins"), |ui, _| {
         for (label, position) in [("Left Margin", "leftMargin"), ("Right Margin", "rightMargin")] {
-            ui.menu_button(crate::tl!(label), |ui| {
+            Menu::submenu_row(ui, crate::tl!(label), |ui, _| {
                 for (style, name) in PAGE_NUMBER_STYLES {
-                    mi(ui, app, name, "insert.pageNumber", json!({"position": position, "style": style}));
+                    item(ui, name, "insert.pageNumber", json!({"position": position, "style": style}));
                 }
             });
         }
     });
-    ui.menu_button(crate::tl!("Current Position"), |ui| {
+    Menu::submenu_row(ui, crate::tl!("Current Position"), |ui, _| {
         for (style, name) in PAGE_NUMBER_STYLES {
-            mi(ui, app, name, "insert.pageNumber", json!({"position": "current", "style": style}));
+            item(ui, name, "insert.pageNumber", json!({"position": "current", "style": style}));
         }
     });
-    ui.separator();
-    mi(ui, app, "Format Page Numbers…", "ui.dialog", json!({"name": "pageNumbers"}));
+    Divider::horizontal().show(ui);
+    item(ui, "Format Page Numbers…", "ui.dialog", json!({"name": "pageNumbers"}));
 }
 
 /// Insert › Cover Page: every built-in design.
-pub(super) fn cover_page_menu(ui: &mut Ui, app: &mut WordApp) {
+pub(super) fn cover_page_menu(ui: &mut Ui) {
     for (id, label) in COVER_DESIGNS {
-        mi(ui, app, label, "insert.coverPage", json!({"design": id}));
+        item(ui, label, "insert.coverPage", json!({"design": id}));
     }
 }
 
 /// Insert › Quick Parts › Building Blocks: the built-in blocks.
-pub(super) fn building_blocks_menu(ui: &mut Ui, app: &mut WordApp) {
-    ui.menu_button(crate::tl!("Building Blocks"), |ui| {
+pub(super) fn building_blocks_menu(ui: &mut Ui) {
+    Menu::submenu_row(ui, crate::tl!("Building Blocks"), |ui, _| {
         for (name, label) in BUILT_IN_BLOCKS {
-            mi(ui, app, label, "insert.buildingBlock", json!({"name": name}));
+            item(ui, label, "insert.buildingBlock", json!({"name": name}));
         }
     });
 }

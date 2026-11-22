@@ -23,3 +23,4 @@ brotli-decompressor = { workspace = true }
 unicode-bidi = { workspace = true }
 unicode-script = { workspace = true }
 log = { workspace = true }
+serde_json = { workspace = true }
