@@ -154,6 +154,10 @@ pub struct SuiteApp {
     /// Touchpad pinch as zoom (X11 only); `None` until the window is known.
     #[cfg(all(unix, not(target_os = "macos")))]
     pinch: Option<crate::pinch::Pinch>,
+    /// The suite size applied last frame, to tell an app changing the zoom from a settings change.
+    zoom_applied: Option<f32>,
+    /// An app was caught setting its own interface size (logged once).
+    zoom_override_logged: bool,
 }
 
 /// How close to the window's edge a press resizes the window (tabs in the title bar).
@@ -244,6 +248,8 @@ impl SuiteApp {
             close_requested: false,
             #[cfg(all(unix, not(target_os = "macos")))]
             pinch: None,
+            zoom_applied: None,
+            zoom_override_logged: false,
             updater: update::Updater::new(),
             templates: Default::default(),
             fontbar: Default::default(),
@@ -1027,10 +1033,11 @@ impl eframe::App for SuiteApp {
         if let Some(pinch) = &self.pinch {
             pinch.feed(raw);
         }
+        let suite_zoom = self.suite_zoom();
         if self.shown == Some(self.active)
             && let Some(Tab { content: Content::Doc(doc), .. }) = self.tabs.iter_mut().find(|t| t.id == self.active)
         {
-            doc.raw_input_hook(ctx, raw);
+            pinned_zoom(ctx, doc, suite_zoom, |doc| doc.raw_input_hook(ctx, raw, suite_zoom));
         }
     }
 
@@ -1134,12 +1141,21 @@ impl eframe::App for SuiteApp {
             let defs = ctx.fonts(|f| f.definitions().clone());
             ctx.set_fonts(crate::look::with_suite_font(&defs, face.as_ref()));
         }
+        // The suite's size always wins over the apps' own size settings. An app that sets its
+        // own zoom (upstream changes how often: WordCraft's runtime now does it every frame)
+        // would flip the zoom back and forth with this and shake the window, so the apps run
+        // under `pinned_zoom`; one that still gets through is put back here and logged.
         let suite_zoom = self.suite_zoom();
         if let Some(zoom) = suite_zoom
             && ctx.zoom_factor() != zoom
         {
+            if self.zoom_applied == Some(zoom) && !self.zoom_override_logged {
+                self.zoom_override_logged = true;
+                log::warn!("an app set its own interface size ({}); the suite's ({zoom}) stands", ctx.zoom_factor());
+            }
             ctx.set_zoom_factor(zoom);
         }
+        self.zoom_applied = suite_zoom;
         // One theme, name and the rest for every app (Settings): each takes them in its own frame.
         let system_dark = ctx.system_theme() == Some(egui::Theme::Dark);
         for tab in &mut self.tabs {

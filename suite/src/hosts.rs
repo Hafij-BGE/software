@@ -447,12 +447,22 @@ impl Doc {
         }
     }
 
-    pub fn raw_input_hook(&mut self, ctx: &egui::Context, raw: &mut egui::RawInput) {
+    /// Before the frame. `suite_zoom` is the suite's one interface size, when it sets one.
+    pub fn raw_input_hook(&mut self, ctx: &egui::Context, raw: &mut egui::RawInput, suite_zoom: Option<f32>) {
         match self {
             Doc::Word(t) => {
                 // The suite opens dropped files itself (`app.rs`); the runtime gets the app's input.
                 let _ = raw;
-                craft::ui::shell::embed::before_input(ctx, |out| t.app.frame_input(out));
+                // The runtime sets egui's zoom factor from the input's scale every frame. With the
+                // suite's one size it gets that size: WordCraft's own would undo the suite's each
+                // frame, and the two flipping back and forth shook the window.
+                craft::ui::shell::embed::before_input(ctx, |out| {
+                    let mut input = t.app.frame_input(out);
+                    if let Some(zoom) = suite_zoom {
+                        input.root.scale = craft::ui::runtime::env::Scale::new(zoom);
+                    }
+                    input
+                });
             }
             Doc::Deck(t) => t.app.raw_input_hook(ctx, raw),
             Doc::Grid(t) => t.app.raw_input_hook(ctx, raw),
@@ -487,13 +497,11 @@ impl Doc {
 
     /// The zoom factor the app sets for its own interface size each frame (see `pinned_zoom` in
     /// `app.rs`), or `None` for an app that sets none.
-    pub fn own_zoom(&self, ctx: &egui::Context) -> Option<f32> {
+    pub fn own_zoom(&self, _ctx: &egui::Context) -> Option<f32> {
         match self {
-            Doc::Word(t) => {
-                let native = ctx.native_pixels_per_point().unwrap_or(1.0);
-                let native = wordcraft_ui_egui::theme::usable_scale(native);
-                Some(t.app.ui.interface_size.zoom_factor(native))
-            }
+            // WordCraft sets no zoom in its frame: the runtime takes its size from the frame's
+            // input (`raw_input_hook`).
+            Doc::Word(_) => None,
             Doc::Deck(t) => Some(t.app.ui.ui_scale.clamp(0.5, 3.0)),
             Doc::Grid(t) => Some(t.app.ui.zoom_factor()),
             #[cfg(feature = "markd")]
