@@ -30,6 +30,8 @@ pub struct WordTab {
     panels: craft::dialogs::service::FilePanels,
     /// The height of WordCraft's top row (craft's title bar token), read as it draws.
     title_h: f32,
+    /// WordCraft's size overrides and the same with the suite's top-row height, made once.
+    sizes: Option<(std::sync::Arc<craft::theme::AppSizes>, std::sync::Arc<craft::theme::AppSizes>)>,
 }
 
 pub struct DeckTab {
@@ -460,6 +462,9 @@ impl Doc {
                 // frame, and the two flipping back and forth shook the window.
                 craft::ui::shell::embed::before_input(ctx, |out| {
                     let mut input = t.app.frame_input(out);
+                    // WordCraft's top row as tall as DeckCraft's and GridCraft's, where the
+                    // suite's window buttons go.
+                    input.root.sizes = t.suite_sizes(&input.root.sizes);
                     if let Some(zoom) = suite_zoom {
                         input.root.scale = craft::ui::runtime::env::Scale::new(zoom);
                     }
@@ -799,7 +804,26 @@ impl WordTab {
             let doc = app.session.blank_document();
             app.replace_startup_document(doc);
         }
-        WordTab { app, panels, title_h: 0.0 }
+        WordTab { app, panels, title_h: 0.0, sizes: None }
+    }
+}
+
+impl WordTab {
+    /// `own` (WordCraft's size overrides) with the title bar at the suite's top-row height.
+    fn suite_sizes(&mut self, own: &std::sync::Arc<craft::theme::AppSizes>) -> std::sync::Arc<craft::theme::AppSizes> {
+        if let Some((from, made)) = &self.sizes
+            && std::sync::Arc::ptr_eq(from, own)
+        {
+            return made.clone();
+        }
+        let mut sizes = (**own).clone();
+        // Each size set's own map wins over `all`, so every map gets it.
+        for map in [&mut sizes.all, &mut sizes.compact, &mut sizes.comfortable] {
+            map.insert("size.bar.title".into(), craft::theme::SizeValue::Number(crate::tabbar::APP_TITLE_H));
+        }
+        let made = std::sync::Arc::new(sizes);
+        self.sizes = Some((own.clone(), made.clone()));
+        made
     }
 }
 

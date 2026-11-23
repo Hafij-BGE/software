@@ -1006,6 +1006,7 @@ fn x11_window(frame: &eframe::Frame) -> Option<u32> {
 
 impl eframe::App for SuiteApp {
     fn raw_input_hook(&mut self, ctx: &egui::Context, raw: &mut egui::RawInput) {
+        crate::shot::take(ctx, raw);
         // The window's close button: the suite decides (unsaved tabs), not the app on show.
         if let Some(info) = raw.viewports.get_mut(&egui::ViewportId::ROOT)
             && !self.allow_close
