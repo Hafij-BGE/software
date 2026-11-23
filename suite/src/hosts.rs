@@ -28,6 +28,8 @@ pub struct WordTab {
     app: wordcraft_ui_egui::WordApp,
     /// The native panels behind the file service the app reaches through its host.
     panels: craft::dialogs::service::FilePanels,
+    /// The height of WordCraft's top row (craft's title bar token), read as it draws.
+    title_h: f32,
 }
 
 pub struct DeckTab {
@@ -521,10 +523,13 @@ impl Doc {
     }
 
     /// Keeps `width` free at the right end of the app's top row, for the window buttons.
-    /// The app's own title bar draws the window buttons (minimize, maximize, close) when the
-    /// window has no system title bar: WordCraft's craft TitleBar does.
-    pub fn draws_window_buttons(&self) -> bool {
-        matches!(self, Doc::Word(_))
+    /// The height of the app's own top row, where the suite's window buttons go (`TitleBar::InApp`).
+    pub fn title_bar_height(&self) -> f32 {
+        match self {
+            // WordCraft's top row is craft's title bar, whose height comes from its size tokens.
+            Doc::Word(t) if t.title_h > 0.0 => t.title_h,
+            _ => crate::tabbar::APP_TITLE_H,
+        }
     }
 
     pub fn set_title_bar_end(&mut self, width: f32) {
@@ -553,6 +558,7 @@ impl Doc {
             Doc::Word(t) => {
                 craft::ui::shell::embed::before_ui(ui.ctx(), frame);
                 t.app.ui(ui);
+                t.title_h = craft::ui::runtime::env::Env::of(ui).tokens.size.bar.title;
                 t.panels.pump_with(t.app.dialog_host_mut(), Some(frame));
             }
             Doc::Deck(t) => t.app.ui(ui),
@@ -793,7 +799,7 @@ impl WordTab {
             let doc = app.session.blank_document();
             app.replace_startup_document(doc);
         }
-        WordTab { app, panels }
+        WordTab { app, panels, title_h: 0.0 }
     }
 }
 

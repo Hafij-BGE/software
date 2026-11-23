@@ -1193,7 +1193,7 @@ impl eframe::App for SuiteApp {
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
         let presenting = self.presenting();
         let suite_zoom = self.suite_zoom();
-        let mut buttons_in_app = self.buttons_in_app();
+        let buttons_in_app = self.buttons_in_app();
         if !presenting {
             crate::tabbar::show(self, ui);
             #[cfg(feature = "ai")]
@@ -1202,6 +1202,7 @@ impl eframe::App for SuiteApp {
         let skipped = self.skip_frame;
         // The app's area, whose top row gets the window buttons with `buttons_in_app`.
         let mut app_area = ui.available_rect_before_wrap();
+        let mut title_h = crate::tabbar::APP_TITLE_H;
         if std::mem::take(&mut self.skip_frame) {
             ui.ctx().request_repaint();
         } else {
@@ -1222,11 +1223,6 @@ impl eframe::App for SuiteApp {
                             crate::fontbar::show(&mut self.fontbar, &mut self.settings, id, doc, ui);
                         }
                         app_area = ui.available_rect_before_wrap();
-                        // WordCraft's title bar (craft's TitleBar) draws the window buttons itself
-                        // in a window without the system's title bar: the suite's would sit on them.
-                        if doc.draws_window_buttons() {
-                            buttons_in_app = false;
-                        }
                         doc.set_title_bar_end(if buttons_in_app {
                             crate::tabbar::WINDOW_CONTROLS_W
                         } else {
@@ -1236,13 +1232,14 @@ impl eframe::App for SuiteApp {
                         pinned_zoom(&ctx, doc, suite_zoom, |doc| {
                             ui.push_id(("craft_suite_tab", id), |ui| doc.ui(ui, frame))
                         });
+                        title_h = doc.title_bar_height();
                     }
                 }
                 None => {}
             }
         }
         if buttons_in_app {
-            crate::tabbar::app_window_controls(ui.ctx(), app_area);
+            crate::tabbar::app_window_controls(ui.ctx(), app_area, title_h);
         }
         self.show_prompt(ui.ctx());
         self.show_toast(ui);
