@@ -1193,7 +1193,7 @@ impl eframe::App for SuiteApp {
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
         let presenting = self.presenting();
         let suite_zoom = self.suite_zoom();
-        let buttons_in_app = self.buttons_in_app();
+        let mut buttons_in_app = self.buttons_in_app();
         if !presenting {
             crate::tabbar::show(self, ui);
             #[cfg(feature = "ai")]
@@ -1222,6 +1222,11 @@ impl eframe::App for SuiteApp {
                             crate::fontbar::show(&mut self.fontbar, &mut self.settings, id, doc, ui);
                         }
                         app_area = ui.available_rect_before_wrap();
+                        // WordCraft's title bar (craft's TitleBar) draws the window buttons itself
+                        // in a window without the system's title bar: the suite's would sit on them.
+                        if doc.draws_window_buttons() {
+                            buttons_in_app = false;
+                        }
                         doc.set_title_bar_end(if buttons_in_app {
                             crate::tabbar::WINDOW_CONTROLS_W
                         } else {

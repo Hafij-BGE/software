@@ -521,6 +521,12 @@ impl Doc {
     }
 
     /// Keeps `width` free at the right end of the app's top row, for the window buttons.
+    /// The app's own title bar draws the window buttons (minimize, maximize, close) when the
+    /// window has no system title bar: WordCraft's craft TitleBar does.
+    pub fn draws_window_buttons(&self) -> bool {
+        matches!(self, Doc::Word(_))
+    }
+
     pub fn set_title_bar_end(&mut self, width: f32) {
         match self {
             Doc::Word(t) => t.app.title_bar_end = width,
