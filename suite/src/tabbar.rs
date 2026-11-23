@@ -222,14 +222,14 @@ fn window_controls(ui: &mut Ui, height: f32) {
 }
 
 /// The apps' top row (AutoSave … Share, Search): 38 points in WordCraft, DeckCraft and GridCraft.
-const APP_TITLE_H: f32 = 38.0;
+pub const APP_TITLE_H: f32 = 38.0;
 
 /// The width of the three window buttons.
 pub const WINDOW_CONTROLS_W: f32 = 3.0 * CONTROL_W;
 
 /// The window buttons over the right end of the active app's own top row (`TitleBar::InApp`),
 /// which keeps that much room free (`Doc::set_title_bar_end`). `area` is the app's area.
-pub fn app_window_controls(ctx: &egui::Context, area: Rect) {
+pub fn app_window_controls(ctx: &egui::Context, area: Rect, height: f32) {
     egui::Area::new(egui::Id::new("craft_suite_app_window_controls"))
         .order(egui::Order::Middle)
         .fixed_pos(egui::pos2(area.max.x - WINDOW_CONTROLS_W, area.min.y))
@@ -237,7 +237,7 @@ pub fn app_window_controls(ctx: &egui::Context, area: Rect) {
             ui.set_width(WINDOW_CONTROLS_W);
             ui.horizontal(|ui| {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
-                    window_controls(ui, APP_TITLE_H)
+                    window_controls(ui, height)
                 });
             });
         });

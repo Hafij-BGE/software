@@ -28,6 +28,7 @@ mod pinch;
 mod settings;
 mod system;
 mod logo;
+mod shot;
 mod tabbar;
 mod uifont;
 mod templates;
