@@ -108,7 +108,15 @@ fn autosave(app: &mut WordApp, ui: &mut Ui) -> egui::Rect {
     let on = app.autosaves() && block.is_none();
     let tip = block.as_ref().map_or_else(|| tl!("AutoSave saves every change to the file (needs a saved document)").to_string(), |b| b.reason());
     // The small switch, as the old title bar drew it.
-    let out = Switch::new(Bind::given(on)).label(tl!("AutoSave").to_string()).size(ControlSize::Sm).tooltip(TooltipSpec::new(tip)).show(ui);
+    // Craft Suite: centred in the bar's height like the Quick Access buttons beside it; the suite's taller top row
+    // (38 points) showed the switch stuck to the top edge.
+    let row = ui.available_size();
+    let out = ui
+        .allocate_ui_with_layout(row, egui::Layout::left_to_right(egui::Align::Center), |ui| {
+            ui.horizontal(|ui| Switch::new(Bind::given(on)).label(tl!("AutoSave").to_string()).size(ControlSize::Sm).tooltip(TooltipSpec::new(tip)).show(ui))
+                .inner
+        })
+        .inner;
     if out.response.clicked() {
         match block {
             None => {
