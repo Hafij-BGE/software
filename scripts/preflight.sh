@@ -81,7 +81,7 @@ else:
 sys.exit(bad)
 PY
 
-if ! scripts/check-fixes.sh; then fail=1; fi
+if ! bash scripts/check-fixes.sh; then fail=1; fi
 
 if [ "$QUICK" = 0 ]; then
   for toml in upstream/*/Cargo.toml; do
