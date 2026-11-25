@@ -19,6 +19,7 @@ If a check fails after a sync, port the fix to the new code. Never delete the ch
 | 8 | Shared Stock Images, icons and page designs, and the extra DeckCraft shapes. | `upstream/*/…`, `upstream/deckcraft/crates/engine/src/suite_presets.rs` | 0f505b8659 (#29) |
 | 9 | Screenshot hook used to test UI fixes. `CRAFT_SUITE_SCREENSHOT=<png>` (and optionally `CRAFT_SUITE_SCREENSHOT_FRAMES`) saves the window and quits. | `suite/src/shot.rs` | b8b3bb22d0 (#34) |
 | 10 | Lock files match `--locked` builds, and the apps and the suite share one revision of each fork pin. | checked by `scripts/preflight.sh` itself | c5360cfba7 (#26) |
+| 11 | Word's Home ▸ Font row keeps a 4-point gap between the font box and the size box. They no longer run into each other when the missing-font sign shows. | `upstream/wordcraft/crates/ui-egui/src/ribbon/home.rs` `FONT_BOX_GAP` | word-font-gap |
 
 ## Checking a UI fix
 

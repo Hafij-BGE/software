@@ -23,6 +23,10 @@ use super::{Ui, WordApp, json};
 use crate::colors::{Remember, Target};
 
 /// A ribbon group titled `title`, with the Dialog Launcher `launcher` when it has one.
+
+/// Craft Suite: the room between the Font group's font box and size box.
+const FONT_BOX_GAP: f32 = 4.0;
+
 fn ribbon_group(key: &'static str, title: &str, icon: &'static str, launcher: Option<&str>) -> RibbonGroup<'static> {
     let group = RibbonGroup::new(key, tl!(title).to_string(), crate::icons::id(icon).into());
     match launcher {
@@ -184,6 +188,9 @@ pub(super) fn home(row: &mut RibbonRow<'_>, app: &mut WordApp) {
                     if let Some(f) = out.picked {
                         let _ = app.run("format.font", json!({"name": f}));
                     }
+                    // Craft Suite: a gap between the font box and the size box; the row's no-gap spacing is for its small
+                    // buttons, and with the missing-font sign the two boxes ran into each other.
+                    ui.add_space(FONT_BOX_GAP);
                     let fmt = |s: f64| if s.fract() == 0.0 { format!("{s:.0}") } else { format!("{s}") };
                     let mut size = st.get("size").and_then(Value::as_f64).map(fmt).unwrap_or_default();
                     let sizes: Vec<Entry<String>> =
