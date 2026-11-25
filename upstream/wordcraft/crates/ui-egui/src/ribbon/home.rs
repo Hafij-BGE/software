@@ -27,6 +27,12 @@ use crate::colors::{Remember, Target};
 /// Craft Suite: the room between the Font group's font box and size box.
 const FONT_BOX_GAP: f32 = 4.0;
 
+/// Craft Suite: the room above the Font and Paragraph groups' two rows.
+const RIBBON_TOP_GAP: f32 = 3.0;
+
+/// Craft Suite: the room between the Font and Paragraph groups' two rows, as Slides keeps.
+const RIBBON_ROW_GAP: f32 = 5.0;
+
 fn ribbon_group(key: &'static str, title: &str, icon: &'static str, launcher: Option<&str>) -> RibbonGroup<'static> {
     let group = RibbonGroup::new(key, tl!(title).to_string(), crate::icons::id(icon).into());
     match launcher {
@@ -181,7 +187,9 @@ pub(super) fn home(row: &mut RibbonRow<'_>, app: &mut WordApp) {
         // The Font and Paragraph groups' small buttons sit side by side with no gap, as the old ribbon's (1 pt apart),
         // and show their icons alone so they never expand with text labels (#7308).
         icon_only(ui, |ui| {
+            // Craft Suite: room above the rows and between them, as Slides has, so the boxes above never crowd the buttons below.
             Stack::new().gap(Gap::Tight).show(ui, |ui, _| {
+                ui.add_space(RIBBON_TOP_GAP);
                 Row::new().gap(Gap::None).show(ui, |ui, _| {
                     let mut family = st.get("font").and_then(Value::as_str).unwrap_or("").to_string();
                     let out = crate::widgets::font_box(ui, app, tl!("Font").to_string(), &mut family);
@@ -229,6 +237,7 @@ pub(super) fn home(row: &mut RibbonRow<'_>, app: &mut WordApp) {
                             .show(ui);
                     }
                 });
+                ui.add_space(RIBBON_ROW_GAP);
                 Row::new().gap(Gap::None).show(ui, |ui, _| {
                     for (icon, tip, id, on) in [("bold", "Bold", "format.bold", flag("bold")), ("italic", "Italic", "format.italic", flag("italic"))]
                     {
@@ -281,7 +290,9 @@ pub(super) fn home(row: &mut RibbonRow<'_>, app: &mut WordApp) {
         let (align, rtl) = rp.as_ref().map_or((Align::Left, false), |r| (r.align.visual(r.bidi), r.bidi));
         let marks = app.session.view.marks;
         icon_only(ui, |ui| {
+            // Craft Suite: room above the rows and between them, as Slides has, so the boxes above never crowd the buttons below.
             Stack::new().gap(Gap::Tight).show(ui, |ui, _| {
+                ui.add_space(RIBBON_TOP_GAP);
                 Row::new().gap(Gap::None).show(ui, |ui, _| {
                     SplitButton::<String>::command(
                         CommandRef::with_params("para.bullets", json!({})),
@@ -367,6 +378,7 @@ pub(super) fn home(row: &mut RibbonRow<'_>, app: &mut WordApp) {
                         .tooltip(tl!("Show/Hide ¶").to_string())
                         .show(ui);
                 });
+                ui.add_space(RIBBON_ROW_GAP);
                 Row::new().gap(Gap::None).show(ui, |ui, _| {
                     for (icon, tip, id, on) in [
                         ("alignLeft", "Align Left", "para.alignLeft", align == Align::Left),
