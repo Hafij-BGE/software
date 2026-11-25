@@ -18,6 +18,7 @@
 #      one revision, so it fails with errors like "WindowEvent::ImeResetCompleted not covered" or
 #      "cannot find value CRAFT_... in crate backend". Fix: bring the pins in line.
 #   3. Compile errors in the apps or the suite (an upstream API the suite uses changed).
+#   4. A sync or port dropped one of the suite's own fixes (docs/SUITE-FIXES.md): scripts/check-fixes.sh.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -35,7 +36,7 @@ for a in "$@"; do
       echo "installed $hooks/pre-push"
       exit 0
       ;;
-    -h | --help) sed -n '2,21p' "$0"; exit 0 ;;
+    -h | --help) sed -n '2,22p' "$0"; exit 0 ;;
     *) echo "unknown option: $a" >&2; exit 2 ;;
   esac
 done
@@ -79,6 +80,8 @@ else:
     print(f"  ok    {len(pins)} forked crates, one revision each")
 sys.exit(bad)
 PY
+
+if ! scripts/check-fixes.sh; then fail=1; fi
 
 if [ "$QUICK" = 0 ]; then
   for toml in upstream/*/Cargo.toml; do
