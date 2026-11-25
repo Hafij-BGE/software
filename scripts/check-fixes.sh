@@ -30,6 +30,8 @@ CHECKS='
 8|upstream/deckcraft/crates/engine/src/suite_presets.rs|Craft Suite
 8|upstream/wordcraft/crates/ui-egui/src/lib.rs|Stock Images and Online Pictures
 11|upstream/wordcraft/crates/ui-egui/src/ribbon/home.rs|ui.add_space(FONT_BOX_GAP);
+12|upstream/wordcraft/crates/ui-egui/src/ribbon/home.rs|ui.add_space(RIBBON_ROW_GAP);
+12|upstream/wordcraft/crates/ui-egui/src/ribbon/home.rs|ui.add_space(RIBBON_TOP_GAP);
 9|suite/src/main.rs|mod shot;
 9|suite/src/shot.rs|CRAFT_SUITE_SCREENSHOT
 '
